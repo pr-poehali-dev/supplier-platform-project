@@ -6,8 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('home');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const { toast } = useToast();
@@ -27,7 +29,7 @@ const Index = () => {
       category: 'Советы отельерам',
       date: '15 декабря 2025',
       excerpt: 'Разбираем топ-5 стратегий для увеличения бронирований и лояльности гостей в новом сезоне.',
-      image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop',
+      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/ac90d11c-a95e-46ee-a6cc-92186aa4c753.jpg',
     },
     {
       id: 2,
@@ -35,7 +37,7 @@ const Index = () => {
       category: 'Бизнес-туризм',
       date: '10 декабря 2025',
       excerpt: 'Гибридные мероприятия, устойчивый туризм и новые технологии определяют будущее MICE-индустрии.',
-      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop',
+      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/e0352ee6-00e4-480a-8fca-7da4fd51358d.jpg',
     },
     {
       id: 3,
@@ -43,7 +45,7 @@ const Index = () => {
       category: 'Тренды туризма',
       date: '5 декабря 2025',
       excerpt: 'Как технологии меняют способ взаимодействия между поставщиками и клиентами в туризме.',
-      image: 'https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?w=800&auto=format&fit=crop',
+      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/d8dbc1da-916a-40f4-bf88-eb6eddb1fdf7.jpg',
     },
     {
       id: 4,
@@ -51,7 +53,7 @@ const Index = () => {
       category: 'Советы отельерам',
       date: '1 декабря 2025',
       excerpt: 'Почему индивидуальный подход к каждому гостю становится критически важным конкурентным преимуществом.',
-      image: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&auto=format&fit=crop',
+      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/ac90d11c-a95e-46ee-a6cc-92186aa4c753.jpg',
     },
   ];
 
@@ -167,15 +169,15 @@ const Index = () => {
                   Стать поставщиком
                   <Icon name="ArrowRight" className="ml-2" size={20} />
                 </Button>
-                <Button size="lg" variant="outline" className="text-lg">
-                  Узнать больше
+                <Button size="lg" variant="outline" className="text-lg" onClick={() => navigate('/simulator')}>
+                  Симулятор бизнеса
                 </Button>
               </div>
             </div>
             <div className="relative animate-float">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-3xl"></div>
               <img
-                src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&auto=format&fit=crop"
+                src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/d8dbc1da-916a-40f4-bf88-eb6eddb1fdf7.jpg"
                 alt="Tourism platform"
                 className="relative rounded-3xl shadow-2xl w-full"
               />
@@ -293,7 +295,7 @@ const Index = () => {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-accent/20 to-primary/20 rounded-3xl blur-3xl"></div>
               <img
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop"
+                src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/e0352ee6-00e4-480a-8fca-7da4fd51358d.jpg"
                 alt="Team collaboration"
                 className="relative rounded-3xl shadow-2xl w-full"
               />

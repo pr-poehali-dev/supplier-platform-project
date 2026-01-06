@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "Get all blog posts",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "posts": "array",
+        "total": "number"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Filter by category",
+      "method": "GET",
+      "path": "/?category=тренды",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "posts": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

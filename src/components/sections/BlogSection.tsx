@@ -1,52 +1,56 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 
+interface BlogPost {
+  id: number;
+  title: string;
+  category: string;
+  published_at: string;
+  excerpt: string;
+  image_url: string;
+}
+
 const BlogSection = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const blogCategories = ['all', 'Советы отельерам', 'Тренды туризма', 'Бизнес-туризм'];
-  
-  const blogPosts = [
-    {
-      id: 1,
-      title: 'Как повысить конверсию отеля в 2026 году',
-      category: 'Советы отельерам',
-      date: '15 декабря 2025',
-      excerpt: 'Разбираем топ-5 стратегий для увеличения бронирований и лояльности гостей в новом сезоне.',
-      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/ac90d11c-a95e-46ee-a6cc-92186aa4c753.jpg',
-    },
-    {
-      id: 2,
-      title: 'Тренды делового туризма: что меняется',
-      category: 'Бизнес-туризм',
-      date: '10 декабря 2025',
-      excerpt: 'Гибридные мероприятия, устойчивый туризм и новые технологии определяют будущее MICE-индустрии.',
-      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/e0352ee6-00e4-480a-8fca-7da4fd51358d.jpg',
-    },
-    {
-      id: 3,
-      title: 'Цифровизация туристической отрасли',
-      category: 'Тренды туризма',
-      date: '5 декабря 2025',
-      excerpt: 'Как технологии меняют способ взаимодействия между поставщиками и клиентами в туризме.',
-      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/d8dbc1da-916a-40f4-bf88-eb6eddb1fdf7.jpg',
-    },
-    {
-      id: 4,
-      title: 'Персонализация сервиса: новый стандарт',
-      category: 'Советы отельерам',
-      date: '1 декабря 2025',
-      excerpt: 'Почему индивидуальный подход к каждому гостю становится критически важным конкурентным преимуществом.',
-      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/ac90d11c-a95e-46ee-a6cc-92186aa4c753.jpg',
-    },
-  ];
+  const categoryMap: Record<string, string> = {
+    'новость': 'Новости',
+    'статья': 'Статьи',
+    'блог': 'Блог',
+    'тренды': 'Тренды туризма',
+    'интервью': 'Интервью'
+  };
 
-  const filteredPosts = selectedCategory === 'all' 
-    ? blogPosts 
-    : blogPosts.filter(post => post.category === selectedCategory);
+  useEffect(() => {
+    fetchBlogPosts();
+  }, [selectedCategory]);
+
+  const fetchBlogPosts = async () => {
+    try {
+      setLoading(true);
+      const category = selectedCategory === 'all' ? '' : selectedCategory;
+      const url = `https://functions.poehali.dev/0e09f71c-79fb-4a6c-ad91-6ca81f12a263?limit=20&channel_type=free${category ? `&category=${category}` : ''}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.posts) {
+        setBlogPosts(data.posts);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки постов:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const blogCategories = ['all', ...Object.keys(categoryMap)];
+  const filteredPosts = blogPosts;
 
   return (
     <section id="blog" className="py-20 px-4 bg-white/50 backdrop-blur-sm">
@@ -71,32 +75,51 @@ const BlogSection = () => {
               onClick={() => setSelectedCategory(category)}
               className={selectedCategory === category ? 'bg-gradient-to-r from-primary to-secondary' : ''}
             >
-              {category === 'all' ? 'Все статьи' : category}
+              {category === 'all' ? 'Все статьи' : categoryMap[category] || category}
             </Button>
           ))}
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredPosts.map((post, index) => (
+        {loading ? (
+          <div className="text-center py-12">
+            <Icon name="Loader2" className="animate-spin mx-auto text-primary" size={48} />
+            <p className="mt-4 text-gray-600">Загрузка статей...</p>
+          </div>
+        ) : filteredPosts.length === 0 ? (
+          <div className="text-center py-12">
+            <Icon name="FileText" className="mx-auto text-gray-400 mb-4" size={48} />
+            <p className="text-gray-600">Пока нет опубликованных статей</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredPosts.map((post, index) => (
             <Card 
               key={post.id} 
               className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-none"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="relative overflow-hidden">
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                />
+                {post.image_url && (
+                  <img
+                    src={post.image_url}
+                    alt={post.title}
+                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                )}
                 <div className="absolute top-4 left-4">
                   <Badge className="bg-white/90 text-primary border-none">
-                    {post.category}
+                    {categoryMap[post.category] || post.category}
                   </Badge>
                 </div>
               </div>
               <CardContent className="pt-6">
-                <p className="text-sm text-gray-500 mb-2">{post.date}</p>
+                <p className="text-sm text-gray-500 mb-2">
+                  {new Date(post.published_at).toLocaleDateString('ru-RU', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
                 <h3 className="text-xl font-bold font-heading mb-3 group-hover:text-primary transition-colors">
                   {post.title}
                 </h3>
@@ -107,8 +130,9 @@ const BlogSection = () => {
                 </Button>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

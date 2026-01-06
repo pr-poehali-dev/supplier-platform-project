@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface BlogPost {
+  id: number;
+  title: string;
+  category: string;
+  published_at: string;
+  excerpt: string;
+  image_url: string;
+}
+
 const Simulator = () => {
   const navigate = useNavigate();
   
@@ -24,6 +33,36 @@ const Simulator = () => {
   const [staffExpenses, setStaffExpenses] = useState(400000);
   const [marketingExpenses, setMarketingExpenses] = useState(0);
   const [otherExpenses, setOtherExpenses] = useState(0);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [loadingBlog, setLoadingBlog] = useState(true);
+
+  const categoryMap: Record<string, string> = {
+    'новость': 'Новости',
+    'статья': 'Статьи',
+    'блог': 'Блог',
+    'тренды': 'Тренды туризма',
+    'интервью': 'Интервью'
+  };
+
+  useEffect(() => {
+    fetchBlogPosts();
+  }, []);
+
+  const fetchBlogPosts = async () => {
+    try {
+      setLoadingBlog(true);
+      const response = await fetch('https://functions.poehali.dev/0e09f71c-79fb-4a6c-ad91-6ca81f12a263?limit=3&channel_type=free');
+      const data = await response.json();
+      
+      if (data.posts) {
+        setBlogPosts(data.posts);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки постов:', error);
+    } finally {
+      setLoadingBlog(false);
+    }
+  };
 
   const seasonCoeff = { low: 0.6, medium: 1.0, high: 1.3 };
 
@@ -384,52 +423,46 @@ const Simulator = () => {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                {
-                  id: 1,
-                  title: 'Как повысить конверсию отеля в 2026 году',
-                  category: 'Советы отельерам',
-                  date: '15 декабря 2025',
-                  excerpt: 'Разбираем топ-5 стратегий для увеличения бронирований и лояльности гостей в новом сезоне.',
-                  image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/ac90d11c-a95e-46ee-a6cc-92186aa4c753.jpg',
-                },
-                {
-                  id: 2,
-                  title: 'Тренды делового туризма: что меняется',
-                  category: 'Бизнес-туризм',
-                  date: '10 декабря 2025',
-                  excerpt: 'Гибридные мероприятия, устойчивый туризм и новые технологии определяют будущее MICE-индустрии.',
-                  image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/e0352ee6-00e4-480a-8fca-7da4fd51358d.jpg',
-                },
-                {
-                  id: 3,
-                  title: 'Цифровизация туристической отрасли',
-                  category: 'Тренды туризма',
-                  date: '5 декабря 2025',
-                  excerpt: 'Как технологии меняют способ взаимодействия между поставщиками и клиентами в туризме.',
-                  image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/d8dbc1da-916a-40f4-bf88-eb6eddb1fdf7.jpg',
-                },
-              ].map((post) => (
+            {loadingBlog ? (
+              <div className="text-center py-12">
+                <Icon name="Loader2" className="animate-spin mx-auto text-primary" size={48} />
+                <p className="mt-4 text-gray-600">Загрузка статей...</p>
+              </div>
+            ) : blogPosts.length === 0 ? (
+              <div className="text-center py-12">
+                <Icon name="FileText" className="mx-auto text-gray-400 mb-4" size={48} />
+                <p className="text-gray-600">Пока нет опубликованных статей</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {blogPosts.map((post) => (
                 <Card 
                   key={post.id} 
                   className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-none cursor-pointer"
                   onClick={() => navigate('/')}
                 >
                   <div className="relative overflow-hidden">
-                    <img
-                      src={post.image}
-                      alt={post.title}
-                      className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
+                    {post.image_url && (
+                      <img
+                        src={post.image_url}
+                        alt={post.title}
+                        className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    )}
                     <div className="absolute top-4 left-4">
                       <Badge className="bg-white/90 text-primary border-none">
-                        {post.category}
+                        {categoryMap[post.category] || post.category}
                       </Badge>
                     </div>
                   </div>
                   <CardContent className="pt-6">
-                    <p className="text-sm text-gray-500 mb-2">{post.date}</p>
+                    <p className="text-sm text-gray-500 mb-2">
+                      {new Date(post.published_at).toLocaleDateString('ru-RU', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </p>
                     <h3 className="text-xl font-bold font-heading mb-3 group-hover:text-primary transition-colors">
                       {post.title}
                     </h3>
@@ -440,8 +473,9 @@ const Simulator = () => {
                     </Button>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

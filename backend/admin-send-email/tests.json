@@ -7,9 +7,13 @@
       "expectedStatus": 200
     },
     {
-      "name": "Missing token",
-      "method": "GET",
+      "name": "Missing token returns 401",
+      "method": "POST",
       "path": "/",
+      "body": {
+        "subject": "Test",
+        "message": "Test message"
+      },
       "expectedStatus": 401,
       "expectedBody": {
         "error": "string"

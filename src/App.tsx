@@ -10,6 +10,7 @@ import Club from "./pages/Club";
 import BlogPost from "./pages/BlogPost";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/simulator" element={<Simulator />} />
           <Route path="/club" element={<Club />} />
           <Route path="/blog/:id" element={<BlogPost />} />
+          <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

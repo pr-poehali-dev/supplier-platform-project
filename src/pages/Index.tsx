@@ -1,118 +1,20 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import HeroSection from '@/components/sections/HeroSection';
+import BlogSection from '@/components/sections/BlogSection';
+import FeaturesSection from '@/components/sections/FeaturesSection';
+import AboutSection from '@/components/sections/AboutSection';
+import ContactSection from '@/components/sections/ContactSection';
 
 const Index = () => {
-  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('home');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const { toast } = useToast();
 
   const scrollToSection = (section: string) => {
     setActiveSection(section);
     const element = document.getElementById(section);
     element?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  const blogCategories = ['all', 'Советы отельерам', 'Тренды туризма', 'Бизнес-туризм'];
-  
-  const blogPosts = [
-    {
-      id: 1,
-      title: 'Как повысить конверсию отеля в 2026 году',
-      category: 'Советы отельерам',
-      date: '15 декабря 2025',
-      excerpt: 'Разбираем топ-5 стратегий для увеличения бронирований и лояльности гостей в новом сезоне.',
-      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/ac90d11c-a95e-46ee-a6cc-92186aa4c753.jpg',
-    },
-    {
-      id: 2,
-      title: 'Тренды делового туризма: что меняется',
-      category: 'Бизнес-туризм',
-      date: '10 декабря 2025',
-      excerpt: 'Гибридные мероприятия, устойчивый туризм и новые технологии определяют будущее MICE-индустрии.',
-      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/e0352ee6-00e4-480a-8fca-7da4fd51358d.jpg',
-    },
-    {
-      id: 3,
-      title: 'Цифровизация туристической отрасли',
-      category: 'Тренды туризма',
-      date: '5 декабря 2025',
-      excerpt: 'Как технологии меняют способ взаимодействия между поставщиками и клиентами в туризме.',
-      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/d8dbc1da-916a-40f4-bf88-eb6eddb1fdf7.jpg',
-    },
-    {
-      id: 4,
-      title: 'Персонализация сервиса: новый стандарт',
-      category: 'Советы отельерам',
-      date: '1 декабря 2025',
-      excerpt: 'Почему индивидуальный подход к каждому гостю становится критически важным конкурентным преимуществом.',
-      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/ac90d11c-a95e-46ee-a6cc-92186aa4c753.jpg',
-    },
-  ];
-
-  const teamMembers = [
-    {
-      name: 'Анна Петрова',
-      role: 'CEO & Основатель',
-      description: '15+ лет в туристической индустрии',
-    },
-    {
-      name: 'Дмитрий Соколов',
-      role: 'CTO',
-      description: 'Эксперт по цифровым решениям',
-    },
-    {
-      name: 'Елена Морозова',
-      role: 'Head of Partnerships',
-      description: 'Связующее звено экосистемы',
-    },
-  ];
-
-  const advantages = [
-    {
-      icon: 'Users',
-      title: 'Проверенная сеть',
-      description: '500+ надежных партнеров со всего мира',
-      gradient: 'from-primary to-secondary',
-    },
-    {
-      icon: 'Zap',
-      title: 'Автоматизация',
-      description: 'Технологии, которые экономят время и ресурсы',
-      gradient: 'from-secondary to-accent',
-    },
-    {
-      icon: 'TrendingUp',
-      title: 'Рост бизнеса',
-      description: 'Инструменты для масштабирования вашей компании',
-      gradient: 'from-accent to-primary',
-    },
-    {
-      icon: 'Shield',
-      title: 'Надежность',
-      description: 'Защита данных и прозрачные условия сотрудничества',
-      gradient: 'from-primary/80 to-secondary/80',
-    },
-  ];
-
-  const handleContactSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    toast({
-      title: 'Заявка отправлена!',
-      description: 'Мы свяжемся с вами в ближайшее время.',
-    });
-  };
-
-  const filteredPosts = selectedCategory === 'all' 
-    ? blogPosts 
-    : blogPosts.filter(post => post.category === selectedCategory);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-blue-50/30">
@@ -143,402 +45,55 @@ const Index = () => {
         </div>
       </nav>
 
-      <section id="home" className="pt-32 pb-20 px-4">
-        <div className="container mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6 animate-fade-in">
-              <Badge className="bg-primary/10 text-primary border-primary/20">
-                🚀 Платформа нового поколения
-              </Badge>
-              <h2 className="text-5xl lg:text-6xl font-bold font-heading leading-tight">
-                Платформа для{' '}
-                <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                  профессионалов
-                </span>{' '}
-                туризма
-              </h2>
-              <p className="text-xl text-gray-600">
-                Находим партнёров, автоматизируем процессы, растём вместе. Присоединяйтесь к экосистеме, где каждый находит своё место.
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg"
-                  onClick={() => scrollToSection('contact')}
-                >
-                  Стать поставщиком
-                  <Icon name="ArrowRight" className="ml-2" size={20} />
-                </Button>
-                <Button size="lg" variant="outline" className="text-lg" onClick={() => navigate('/simulator')}>
-                  Симулятор бизнеса
-                </Button>
-              </div>
-            </div>
-            <div className="relative animate-float">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-3xl"></div>
-              <img
-                src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/d8dbc1da-916a-40f4-bf88-eb6eddb1fdf7.jpg"
-                alt="Tourism platform"
-                className="relative rounded-3xl shadow-2xl w-full"
-              />
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-20">
-            {advantages.map((advantage, index) => (
-              <Card 
-                key={index} 
-                className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-none overflow-hidden"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className={`h-2 bg-gradient-to-r ${advantage.gradient}`}></div>
-                <CardContent className="pt-6">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${advantage.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <Icon name={advantage.icon as any} className="text-white" size={24} />
-                  </div>
-                  <h3 className="text-xl font-bold font-heading mb-2">{advantage.title}</h3>
-                  <p className="text-gray-600">{advantage.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="blog" className="py-20 px-4 bg-white/50 backdrop-blur-sm">
-        <div className="container mx-auto">
-          <div className="text-center mb-12 animate-fade-in">
-            <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">
-              📚 Знания и инсайты
-            </Badge>
-            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-4">
-              Блог экспертов
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Актуальные тренды, практические советы и кейсы из мира туризма
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3 justify-center mb-12">
-            {blogCategories.map((category) => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? 'default' : 'outline'}
-                onClick={() => setSelectedCategory(category)}
-                className={selectedCategory === category ? 'bg-gradient-to-r from-primary to-secondary' : ''}
-              >
-                {category === 'all' ? 'Все статьи' : category}
-              </Button>
-            ))}
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredPosts.map((post, index) => (
-              <Card 
-                key={post.id} 
-                className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-none"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="relative overflow-hidden">
-                  <img
-                    src={post.image}
-                    alt={post.title}
-                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-white/90 text-primary border-none">
-                      {post.category}
-                    </Badge>
-                  </div>
-                </div>
-                <CardContent className="pt-6">
-                  <p className="text-sm text-gray-500 mb-2">{post.date}</p>
-                  <h3 className="text-xl font-bold font-heading mb-3 group-hover:text-primary transition-colors">
-                    {post.title}
-                  </h3>
-                  <p className="text-gray-600 mb-4">{post.excerpt}</p>
-                  <Button variant="ghost" className="group/btn p-0 h-auto font-semibold text-primary">
-                    Читать далее
-                    <Icon name="ArrowRight" className="ml-2 group-hover/btn:translate-x-1 transition-transform" size={16} />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 px-4 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10">
-        <div className="container mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8">
-            <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300">
-              <div className="h-3 bg-gradient-to-r from-blue-500 to-cyan-600"></div>
-              <CardContent className="pt-8">
-                <div className="flex items-start gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                    <Icon name="Calculator" className="text-white" size={32} />
-                  </div>
-                  <div className="flex-1">
-                    <Badge className="mb-3 bg-blue-50 text-blue-700 border-blue-200">
-                      📊 Бесплатный инструмент
-                    </Badge>
-                    <h3 className="text-2xl font-bold font-heading mb-3">
-                      Симулятор отельера
-                    </h3>
-                    <p className="text-gray-600 mb-6">
-                      Рассчитайте потенциальную прибыль вашего глемпинга, арт-отеля или базы отдыха. 
-                      Узнайте, сколько сможете зарабатывать и получите персональные рекомендации.
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      <Badge variant="outline" className="text-xs">Расчёт прибыли</Badge>
-                      <Badge variant="outline" className="text-xs">Прогноз загрузки</Badge>
-                      <Badge variant="outline" className="text-xs">Рекомендации</Badge>
-                    </div>
-                    <Button 
-                      size="lg" 
-                      onClick={() => navigate('/simulator')}
-                      className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:opacity-90 w-full"
-                    >
-                      Попробовать симулятор
-                      <Icon name="ArrowRight" className="ml-2" size={20} />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300">
-              <div className="h-3 bg-gradient-to-r from-purple-500 to-pink-600"></div>
-              <CardContent className="pt-8">
-                <div className="flex items-start gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                    <Icon name="Crown" className="text-white" size={32} />
-                  </div>
-                  <div className="flex-1">
-                    <Badge className="mb-3 bg-purple-50 text-purple-700 border-purple-200">
-                      👑 Премиум доступ
-                    </Badge>
-                    <h3 className="text-2xl font-bold font-heading mb-3">
-                      Закрытый клуб партнёров
-                    </h3>
-                    <p className="text-gray-600 mb-6">
-                      Вступите в элитное сообщество профессионалов туризма. 500+ проверенных партнёров, 
-                      закрытые мероприятия и рост прибыли до 40%.
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      <Badge variant="outline" className="text-xs">Сеть партнёров</Badge>
-                      <Badge variant="outline" className="text-xs">Мероприятия</Badge>
-                      <Badge variant="outline" className="text-xs">Менеджер 24/7</Badge>
-                    </div>
-                    <Button 
-                      size="lg" 
-                      onClick={() => navigate('/club')}
-                      className="bg-gradient-to-r from-purple-500 to-pink-600 hover:opacity-90 w-full"
-                    >
-                      Узнать о клубе
-                      <Icon name="Sparkles" className="ml-2" size={20} />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section id="about" className="py-20 px-4">
-        <div className="container mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
-            <div className="animate-fade-in">
-              <Badge className="mb-4 bg-accent/10 text-accent border-accent/20">
-                🎯 Наша миссия
-              </Badge>
-              <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">
-                О проекте TourConnect
-              </h2>
-              <div className="space-y-4 text-lg text-gray-600">
-                <p>
-                  Мы создали платформу, которая объединяет профессионалов туристической индустрии по всему миру. 
-                  Наша цель — сделать взаимодействие между поставщиками услуг простым, прозрачным и эффективным.
-                </p>
-                <p>
-                  С 2020 года мы помогаем отелям, турагентствам, организаторам мероприятий и другим участникам 
-                  рынка находить надежных партнеров и масштабировать свой бизнес.
-                </p>
-                <p className="font-semibold text-primary">
-                  Наши ценности: доверие, инновации, партнерство и профессионализм.
-                </p>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-accent/20 to-primary/20 rounded-3xl blur-3xl"></div>
-              <img
-                src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/e0352ee6-00e4-480a-8fca-7da4fd51358d.jpg"
-                alt="Team collaboration"
-                className="relative rounded-3xl shadow-2xl w-full"
-              />
-            </div>
-          </div>
-
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold font-heading mb-4">Наша команда</h3>
-            <p className="text-gray-600 text-lg">Профессионалы, которые делают проект реальностью</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {teamMembers.map((member, index) => (
-              <Card 
-                key={index} 
-                className="text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-none"
-              >
-                <CardContent className="pt-8">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary via-secondary to-accent mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold">
-                    {member.name.charAt(0)}
-                  </div>
-                  <h4 className="text-xl font-bold font-heading mb-2">{member.name}</h4>
-                  <p className="text-primary font-semibold mb-2">{member.role}</p>
-                  <p className="text-gray-600">{member.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="contact" className="py-20 px-4 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-12 animate-fade-in">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-              💼 Начните сотрудничество
-            </Badge>
-            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-4">
-              Свяжитесь с нами
-            </h2>
-            <p className="text-xl text-gray-600">
-              Заполните форму, и мы обсудим возможности сотрудничества
-            </p>
-          </div>
-
-          <Card className="border-none shadow-2xl">
-            <CardContent className="pt-8">
-              <form onSubmit={handleContactSubmit} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Ваше имя</label>
-                    <Input placeholder="Иван Иванов" required className="h-12" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Email</label>
-                    <Input type="email" placeholder="ivan@example.com" required className="h-12" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Компания</label>
-                  <Input placeholder="Название вашей компании" required className="h-12" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Ваш запрос</label>
-                  <Textarea 
-                    placeholder="Расскажите, чем мы можем помочь..." 
-                    required 
-                    className="min-h-32"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="privacy" required className="w-4 h-4" />
-                  <label htmlFor="privacy" className="text-sm text-gray-600">
-                    Согласен на обработку персональных данных
-                  </label>
-                </div>
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg"
-                >
-                  Отправить заявку
-                  <Icon name="Send" className="ml-2" size={20} />
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <div className="grid md:grid-cols-3 gap-6 mt-12">
-            <Card className="text-center border-none">
-              <CardContent className="pt-6">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <Icon name="Mail" className="text-primary" size={24} />
-                </div>
-                <p className="font-semibold mb-1">Email</p>
-                <p className="text-gray-600">info@tourconnect.ru</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center border-none">
-              <CardContent className="pt-6">
-                <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-3">
-                  <Icon name="Phone" className="text-secondary" size={24} />
-                </div>
-                <p className="font-semibold mb-1">Телефон</p>
-                <p className="text-gray-600">+7 (495) 123-45-67</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center border-none">
-              <CardContent className="pt-6">
-                <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-3">
-                  <Icon name="MapPin" className="text-accent" size={24} />
-                </div>
-                <p className="font-semibold mb-1">Адрес</p>
-                <p className="text-gray-600">Москва, ул. Примерная, 1</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
+      <HeroSection scrollToSection={scrollToSection} />
+      <BlogSection />
+      <FeaturesSection />
+      <AboutSection />
+      <ContactSection />
 
       <footer className="bg-gray-900 text-white py-12 px-4">
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-2xl font-bold font-heading mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              <h3 className="text-xl font-bold font-heading mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                 TourConnect
               </h3>
-              <p className="text-gray-400">
-                Платформа для профессионалов туризма
+              <p className="text-gray-400 text-sm">
+                Платформа для профессионалов туристической индустрии
               </p>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Навигация</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><button onClick={() => scrollToSection('home')} className="hover:text-white transition-colors">Главная</button></li>
-                <li><button onClick={() => scrollToSection('blog')} className="hover:text-white transition-colors">Блог</button></li>
+              <h4 className="font-semibold mb-4">Компания</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
                 <li><button onClick={() => scrollToSection('about')} className="hover:text-white transition-colors">О нас</button></li>
+                <li><button onClick={() => scrollToSection('blog')} className="hover:text-white transition-colors">Блог</button></li>
                 <li><button onClick={() => scrollToSection('contact')} className="hover:text-white transition-colors">Контакты</button></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Юридическая информация</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Политика конфиденциальности</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Условия использования</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Публичная оферта</a></li>
+              <h4 className="font-semibold mb-4">Продукты</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="/simulator" className="hover:text-white transition-colors">Симулятор бизнеса</a></li>
+                <li><a href="/club" className="hover:text-white transition-colors">Клуб партнёров</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Соцсети</h4>
+              <h4 className="font-semibold mb-4">Социальные сети</h4>
               <div className="flex gap-4">
-                <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
                   <Icon name="Facebook" size={20} />
-                </a>
-                <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                </button>
+                <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
                   <Icon name="Twitter" size={20} />
-                </a>
-                <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
-                  <Icon name="Linkedin" size={20} />
-                </a>
+                </button>
+                <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                  <Icon name="Instagram" size={20} />
+                </button>
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2026 TourConnect. Все права защищены.</p>
+          <div className="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
+            <p>&copy; 2025 TourConnect. Все права защищены.</p>
           </div>
         </div>
       </footer>

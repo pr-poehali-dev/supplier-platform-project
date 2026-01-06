@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Handle OPTIONS request",
+    "event": {
+      "httpMethod": "OPTIONS",
+      "requestContext": {
+        "http": {
+          "path": "/"
+        }
+      }
+    },
+    "expectedStatus": 200
+  },
+  {
+    "name": "VK redirect without code",
+    "event": {
+      "httpMethod": "GET",
+      "requestContext": {
+        "http": {
+          "path": "/vk"
+        }
+      },
+      "queryStringParameters": {
+        "redirect_uri": "https://example.com/callback"
+      }
+    },
+    "expectedStatus": 302
+  }
+]

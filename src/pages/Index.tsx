@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import HeroSection from '@/components/sections/HeroSection';
@@ -8,6 +9,7 @@ import AboutSection from '@/components/sections/AboutSection';
 import ContactSection from '@/components/sections/ContactSection';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('home');
 
   const scrollToSection = (section: string) => {
@@ -39,7 +41,10 @@ const Index = () => {
               </button>
             ))}
           </div>
-          <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+          <Button 
+            className="bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+            onClick={() => navigate('/auth')}
+          >
             Войти
           </Button>
         </div>

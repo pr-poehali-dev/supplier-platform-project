@@ -25,6 +25,13 @@ interface BlogPost {
 const Simulator = () => {
   const navigate = useNavigate();
   
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      navigate('/auth');
+    }
+  }, [navigate]);
+  
   const [format, setFormat] = useState<'weekend' | 'eco' | 'glamping'>('weekend');
   const [units, setUnits] = useState(15);
   const [price, setPrice] = useState(8000);

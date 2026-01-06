@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import Simulator from "./pages/Simulator";
 import Club from "./pages/Club";
 import BlogPost from "./pages/BlogPost";
+import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +22,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/simulator" element={<Simulator />} />
           <Route path="/club" element={<Club />} />
           <Route path="/blog/:id" element={<BlogPost />} />

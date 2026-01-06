@@ -60,13 +60,13 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
               <Button 
                 size="lg" 
                 className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg"
-                onClick={() => scrollToSection('contact')}
+                onClick={() => navigate('/auth')}
               >
-                Присоединиться
+                Начать сотрудничество
                 <Icon name="ArrowRight" className="ml-2" size={20} />
               </Button>
-              <Button size="lg" variant="outline" className="text-lg" onClick={() => navigate('/simulator')}>
-                Симулятор бизнеса
+              <Button size="lg" variant="outline" className="text-lg" onClick={() => navigate('/auth')}>
+                Калькулятор бизнеса
               </Button>
             </div>
           </div>

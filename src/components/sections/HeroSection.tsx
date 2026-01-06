@@ -14,26 +14,26 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
   const advantages = [
     {
       icon: 'Users',
-      title: 'Проверенная сеть',
-      description: '500+ надежных партнеров со всего мира',
+      title: 'Комьюнити',
+      description: 'Сообщество предпринимателей в сфере туризма РФ',
       gradient: 'from-primary to-secondary',
     },
     {
       icon: 'Zap',
-      title: 'Автоматизация',
-      description: 'Технологии, которые экономят время и ресурсы',
+      title: 'Инструменты',
+      description: 'Полезные сервисы для старта и развития бизнеса',
       gradient: 'from-secondary to-accent',
     },
     {
       icon: 'TrendingUp',
-      title: 'Рост бизнеса',
-      description: 'Инструменты для масштабирования вашей компании',
+      title: 'База знаний',
+      description: 'Гайды, советы и практические кейсы от экспертов',
       gradient: 'from-accent to-primary',
     },
     {
       icon: 'Shield',
-      title: 'Надежность',
-      description: 'Защита данных и прозрачные условия сотрудничества',
+      title: 'Поддержка',
+      description: 'Помощь на всех этапах создания и развития бизнеса',
       gradient: 'from-primary/80 to-secondary/80',
     },
   ];
@@ -47,14 +47,14 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
               🚀 Платформа нового поколения
             </Badge>
             <h2 className="text-5xl lg:text-6xl font-bold font-heading leading-tight">
-              Платформа для{' '}
+              База знаний для{' '}
               <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                профессионалов
+                бизнеса
               </span>{' '}
-              туризма
+              в туризме
             </h2>
             <p className="text-xl text-gray-600">
-              Находим партнёров, автоматизируем процессы, растём вместе. Присоединяйтесь к экосистеме, где каждый находит своё место.
+              Помогаем предпринимателям открыть и развить бизнес в сфере туризма России. Инструменты, советы и сообщество единомышленников.
             </p>
             <div className="flex flex-wrap gap-4">
               <Button 
@@ -62,7 +62,7 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
                 className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg"
                 onClick={() => scrollToSection('contact')}
               >
-                Стать поставщиком
+                Присоединиться
                 <Icon name="ArrowRight" className="ml-2" size={20} />
               </Button>
               <Button size="lg" variant="outline" className="text-lg" onClick={() => navigate('/simulator')}>
@@ -73,8 +73,8 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
           <div className="relative animate-float">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-3xl"></div>
             <img
-              src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/d8dbc1da-916a-40f4-bf88-eb6eddb1fdf7.jpg"
-              alt="Tourism platform"
+              src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/00d6cf71-7bbc-433f-bade-e254c6085344.jpg"
+              alt="База отдыха в России"
               className="relative rounded-3xl shadow-2xl w-full"
             />
           </div>

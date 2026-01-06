@@ -4,6 +4,8 @@ import re
 from datetime import datetime
 import psycopg2
 import boto3
+import requests
+from uuid import uuid4
 
 
 def handler(event: dict, context) -> dict:
@@ -73,9 +75,8 @@ def handler(event: dict, context) -> dict:
             largest_photo = max(photos, key=lambda p: p.get('file_size', 0))
             file_id = largest_photo.get('file_id')
             
-            # Здесь должна быть логика загрузки фото через Telegram Bot API
-            # и сохранения в S3, но для начала просто сохраняем file_id
-            image_url = f"tg://photo/{file_id}"
+            # Загружаем фото из Telegram и сохраняем в S3
+            image_url = download_and_upload_photo(file_id)
 
         # Определяем тип канала (пока все free, premium добавим позже)
         channel_type = 'free'
@@ -145,6 +146,61 @@ def remove_category_tag(text: str) -> str:
         text = re.sub(pattern, '', text, flags=re.IGNORECASE)
     
     return text.strip()
+
+
+def download_and_upload_photo(file_id: str) -> str:
+    """
+    Загружает фото из Telegram и сохраняет в S3.
+    Возвращает публичный URL изображения.
+    """
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not bot_token:
+        return None
+    
+    try:
+        # Получаем информацию о файле
+        file_info_url = f"https://api.telegram.org/bot{bot_token}/getFile?file_id={file_id}"
+        file_info_response = requests.get(file_info_url, timeout=10)
+        file_info = file_info_response.json()
+        
+        if not file_info.get('ok'):
+            return None
+        
+        file_path = file_info['result']['file_path']
+        
+        # Скачиваем файл
+        file_url = f"https://api.telegram.org/file/bot{bot_token}/{file_path}"
+        file_response = requests.get(file_url, timeout=30)
+        
+        if file_response.status_code != 200:
+            return None
+        
+        # Определяем расширение файла
+        file_ext = file_path.split('.')[-1] if '.' in file_path else 'jpg'
+        unique_filename = f"blog/{uuid4()}.{file_ext}"
+        
+        # Загружаем в S3
+        s3 = boto3.client('s3',
+            endpoint_url='https://bucket.poehali.dev',
+            aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+            aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+        )
+        
+        s3.put_object(
+            Bucket='files',
+            Key=unique_filename,
+            Body=file_response.content,
+            ContentType=f'image/{file_ext}'
+        )
+        
+        # Формируем публичный URL
+        cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{unique_filename}"
+        return cdn_url
+        
+    except Exception as e:
+        # В случае ошибки возвращаем None, чтобы пост сохранился без картинки
+        print(f"Error downloading photo: {e}")
+        return None
 
 
 def save_to_database(

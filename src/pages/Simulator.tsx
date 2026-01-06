@@ -439,7 +439,7 @@ const Simulator = () => {
                 <Card 
                   key={post.id} 
                   className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-none cursor-pointer"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate(`/blog/${post.id}`)}
                 >
                   <div className="relative overflow-hidden">
                     {post.image_url && (

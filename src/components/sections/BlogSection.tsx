@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,7 @@ interface BlogPost {
 }
 
 const BlogSection = () => {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,8 +97,9 @@ const BlogSection = () => {
             {filteredPosts.map((post, index) => (
             <Card 
               key={post.id} 
-              className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-none"
+              className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-none cursor-pointer"
               style={{ animationDelay: `${index * 100}ms` }}
+              onClick={() => navigate(`/blog/${post.id}`)}
             >
               <div className="relative overflow-hidden">
                 {post.image_url && (

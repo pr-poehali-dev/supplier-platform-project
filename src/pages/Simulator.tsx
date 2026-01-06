@@ -21,16 +21,16 @@ const Simulator = () => {
   const [price, setPrice] = useState(8000);
   const [occupancy, setOccupancy] = useState(65);
   const [season, setSeason] = useState<'low' | 'medium' | 'high'>('medium');
-  const [staff, setStaff] = useState<'minimal' | 'standard' | 'extended'>('standard');
+  const [staffExpenses, setStaffExpenses] = useState(400000);
+  const [marketingExpenses, setMarketingExpenses] = useState(0);
+  const [otherExpenses, setOtherExpenses] = useState(0);
 
   const seasonCoeff = { low: 0.6, medium: 1.0, high: 1.3 };
-  const staffCost = { minimal: 250000, standard: 400000, extended: 600000 };
 
   const monthlyRevenue = units * price * (occupancy / 100) * 30 * seasonCoeff[season];
-  const staffExpenses = staffCost[staff];
   const utilities = units * 15000;
-  const marketing = monthlyRevenue * 0.05;
-  const totalExpenses = staffExpenses + utilities + marketing;
+  const marketing = marketingExpenses || (monthlyRevenue * 0.05);
+  const totalExpenses = staffExpenses + utilities + marketing + otherExpenses;
   const result = monthlyRevenue - totalExpenses;
 
   const formatMoney = (value: number) => {
@@ -86,10 +86,10 @@ const Simulator = () => {
       });
     }
     
-    if (units > 20 && staff === 'minimal') {
+    if (units > 20 && staffExpenses < 300000) {
       comments.push({
         icon: 'Users',
-        text: 'Много номеров при минимальном персонале — риск сервисного провала. Гости заметят недостаток внимания.'
+        text: 'Много номеров при небольших затратах на персонал — риск сервисного провала. Гости заметят недостаток внимания.'
       });
     }
     
@@ -226,18 +226,48 @@ const Simulator = () => {
                   </Select>
                 </div>
 
+                <div className="h-px bg-gray-200 my-4"></div>
+
                 <div className="space-y-2">
-                  <Label className="text-base font-medium">Персонал</Label>
-                  <Select value={staff} onValueChange={(v: any) => setStaff(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="minimal">Минимальный (250 тыс. ₽/мес)</SelectItem>
-                      <SelectItem value="standard">Стандартный (400 тыс. ₽/мес)</SelectItem>
-                      <SelectItem value="extended">Расширенный (600 тыс. ₽/мес)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-base font-medium">Расходы на персонал (₽/мес)</Label>
+                  <input
+                    type="number"
+                    value={staffExpenses}
+                    onChange={(e) => setStaffExpenses(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    min="0"
+                    step="10000"
+                  />
+                  <p className="text-sm text-gray-500">{formatMoney(staffExpenses)}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-base font-medium">Расходы на маркетинг (₽/мес)</Label>
+                  <input
+                    type="number"
+                    value={marketingExpenses}
+                    onChange={(e) => setMarketingExpenses(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    min="0"
+                    step="5000"
+                    placeholder="По умолчанию 5% от дохода"
+                  />
+                  <p className="text-sm text-gray-500">
+                    {marketingExpenses > 0 ? formatMoney(marketingExpenses) : '5% от дохода (по умолчанию)'}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-base font-medium">Прочие расходы (₽/мес)</Label>
+                  <input
+                    type="number"
+                    value={otherExpenses}
+                    onChange={(e) => setOtherExpenses(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    min="0"
+                    step="5000"
+                  />
+                  <p className="text-sm text-gray-500">{formatMoney(otherExpenses)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -266,9 +296,15 @@ const Simulator = () => {
                       <span className="font-medium">{formatMoney(utilities)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Маркетинг (5%)</span>
+                      <span className="text-gray-600">Маркетинг</span>
                       <span className="font-medium">{formatMoney(marketing)}</span>
                     </div>
+                    {otherExpenses > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Прочие расходы</span>
+                        <span className="font-medium">{formatMoney(otherExpenses)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center pt-2 border-t border-gray-300">
                       <span className="text-gray-700 font-medium">Расходы</span>
                       <span className="text-lg font-bold text-red-600">{formatMoney(totalExpenses)}</span>
@@ -323,7 +359,7 @@ const Simulator = () => {
             </Card>
           )}
 
-          <Card className="border-none shadow-xl bg-gray-50">
+          <Card className="border-none shadow-xl bg-gray-50 mb-8">
             <CardContent className="pt-6">
               <div className="flex items-start gap-3">
                 <Icon name="Info" className="text-gray-500 flex-shrink-0 mt-1" size={20} />
@@ -334,6 +370,79 @@ const Simulator = () => {
               </div>
             </CardContent>
           </Card>
+
+          <section className="py-12">
+            <div className="text-center mb-12">
+              <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">
+                📚 Знания и инсайты
+              </Badge>
+              <h2 className="text-3xl lg:text-4xl font-bold font-heading mb-4">
+                Блог экспертов
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Актуальные тренды, практические советы и кейсы из мира туризма
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                {
+                  id: 1,
+                  title: 'Как повысить конверсию отеля в 2026 году',
+                  category: 'Советы отельерам',
+                  date: '15 декабря 2025',
+                  excerpt: 'Разбираем топ-5 стратегий для увеличения бронирований и лояльности гостей в новом сезоне.',
+                  image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/ac90d11c-a95e-46ee-a6cc-92186aa4c753.jpg',
+                },
+                {
+                  id: 2,
+                  title: 'Тренды делового туризма: что меняется',
+                  category: 'Бизнес-туризм',
+                  date: '10 декабря 2025',
+                  excerpt: 'Гибридные мероприятия, устойчивый туризм и новые технологии определяют будущее MICE-индустрии.',
+                  image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/e0352ee6-00e4-480a-8fca-7da4fd51358d.jpg',
+                },
+                {
+                  id: 3,
+                  title: 'Цифровизация туристической отрасли',
+                  category: 'Тренды туризма',
+                  date: '5 декабря 2025',
+                  excerpt: 'Как технологии меняют способ взаимодействия между поставщиками и клиентами в туризме.',
+                  image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/d8dbc1da-916a-40f4-bf88-eb6eddb1fdf7.jpg',
+                },
+              ].map((post) => (
+                <Card 
+                  key={post.id} 
+                  className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-none cursor-pointer"
+                  onClick={() => navigate('/')}
+                >
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={post.image}
+                      alt={post.title}
+                      className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute top-4 left-4">
+                      <Badge className="bg-white/90 text-primary border-none">
+                        {post.category}
+                      </Badge>
+                    </div>
+                  </div>
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-gray-500 mb-2">{post.date}</p>
+                    <h3 className="text-xl font-bold font-heading mb-3 group-hover:text-primary transition-colors">
+                      {post.title}
+                    </h3>
+                    <p className="text-gray-600 mb-4">{post.excerpt}</p>
+                    <Button variant="ghost" className="group/btn p-0 h-auto font-semibold text-primary">
+                      Читать далее
+                      <Icon name="ArrowRight" className="ml-2 group-hover/btn:translate-x-1 transition-transform" size={16} />
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     </div>

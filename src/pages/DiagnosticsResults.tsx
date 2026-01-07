@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useEffect, useState } from 'react';
+import { saveDiagnosticsResult } from '@/utils/diagnosticsStorage';
 
 interface BlockScore {
   id: string;
@@ -27,8 +28,10 @@ const DiagnosticsResults = () => {
   const navigate = useNavigate();
   const [blockScores, setBlockScores] = useState<BlockScore[]>([]);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
 
   const answers = location.state?.answers as Record<string, number> | undefined;
+  const savedResult = location.state?.savedResult as boolean | undefined;
 
   useEffect(() => {
     if (!answers) {
@@ -72,7 +75,21 @@ const DiagnosticsResults = () => {
 
     setBlockScores(scores);
     generateAnalysis(scores);
-  }, [answers, navigate]);
+
+    if (!savedResult && !isSaved) {
+      const totalScore = scores.reduce((sum, b) => sum + b.score, 0);
+      const totalMaxScore = scores.reduce((sum, b) => sum + b.maxScore, 0);
+      const totalPercentage = Math.round((totalScore / totalMaxScore) * 100);
+
+      saveDiagnosticsResult({
+        answers,
+        totalScore,
+        totalPercentage,
+        blockScores: scores
+      });
+      setIsSaved(true);
+    }
+  }, [answers, navigate, savedResult, isSaved]);
 
   const generateAnalysis = (scores: BlockScore[]) => {
     const criticalBlocks = scores.filter(s => s.level === 'critical');
@@ -403,6 +420,10 @@ const DiagnosticsResults = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
+          <Button onClick={() => navigate('/profile')} variant="outline" size="lg" className="flex-1">
+            <Icon name="History" className="mr-2" size={20} />
+            История диагностик
+          </Button>
           <Button onClick={() => navigate('/diagnostics')} variant="outline" size="lg" className="flex-1">
             <Icon name="RotateCcw" className="mr-2" size={20} />
             Пройти заново

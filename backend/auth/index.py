@@ -1,6 +1,7 @@
 import json
 import os
 import psycopg2
+import psycopg2.extras
 import requests
 from datetime import datetime, timedelta
 import jwt
@@ -10,6 +11,7 @@ def handler(event: dict, context) -> dict:
     '''
     OAuth авторизация через VK, Яндекс и Google.
     Создает пользователя в БД и возвращает JWT токен.
+    API для сохранения и получения результатов диагностики.
     '''
     method = event.get('httpMethod', 'GET')
     path = event.get('requestContext', {}).get('http', {}).get('path', '')
@@ -27,7 +29,9 @@ def handler(event: dict, context) -> dict:
             'isBase64Encoded': False
         }
     
-    if '/vk' in path:
+    if '/diagnostics' in path:
+        return handle_diagnostics(event)
+    elif '/vk' in path:
         return handle_vk_auth(event)
     elif '/yandex' in path:
         return handle_yandex_auth(event)
@@ -267,6 +271,105 @@ def create_jwt_token(user_id: int, email: str) -> str:
         'exp': datetime.utcnow() + timedelta(days=30)
     }
     return jwt.encode(payload, secret, algorithm='HS256')
+
+
+def handle_diagnostics(event: dict) -> dict:
+    method = event.get('httpMethod', 'GET')
+    headers = event.get('headers', {})
+    user_id = headers.get('x-user-id') or headers.get('X-User-Id')
+
+    if not user_id:
+        return {
+            'statusCode': 401,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'error': 'Требуется авторизация'}),
+            'isBase64Encoded': False
+        }
+
+    dsn = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(dsn)
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        if method == 'POST':
+            body = json.loads(event.get('body', '{}'))
+            answers = body.get('answers', {})
+            total_score = body.get('total_score', 0)
+            total_percentage = body.get('total_percentage', 0)
+            block_scores = body.get('block_scores', [])
+
+            cur.execute(
+                "INSERT INTO diagnostics_results (user_id, answers, total_score, total_percentage, block_scores) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                (user_id, json.dumps(answers), total_score, total_percentage, json.dumps(block_scores))
+            )
+            result_id = cur.fetchone()['id']
+            conn.commit()
+
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'id': result_id, 'message': 'Результаты сохранены'}),
+                'isBase64Encoded': False
+            }
+
+        elif method == 'GET':
+            cur.execute(
+                "SELECT id, answers, total_score, total_percentage, block_scores, created_at FROM diagnostics_results WHERE user_id = %s ORDER BY created_at DESC",
+                (user_id,)
+            )
+            results = cur.fetchall()
+
+            results_list = []
+            for row in results:
+                results_list.append({
+                    'id': row['id'],
+                    'answers': row['answers'],
+                    'total_score': row['total_score'],
+                    'total_percentage': row['total_percentage'],
+                    'block_scores': row['block_scores'],
+                    'created_at': row['created_at'].isoformat() if row['created_at'] else None
+                })
+
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'results': results_list}),
+                'isBase64Encoded': False
+            }
+
+        return {
+            'statusCode': 405,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'error': 'Метод не поддерживается'}),
+            'isBase64Encoded': False
+        }
+
+    except Exception as e:
+        conn.rollback()
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'error': str(e)}),
+            'isBase64Encoded': False
+        }
+    finally:
+        cur.close()
+        conn.close()
 
 
 def create_error_redirect(redirect_uri: str, error: str) -> dict:

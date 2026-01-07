@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "name": "Test redirect",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 302,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

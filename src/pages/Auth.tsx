@@ -9,7 +9,8 @@ const Auth = () => {
   const handleAuth = (provider: 'vk' | 'yandex' | 'google') => {
     setIsLoading(provider);
     const redirectUri = `${window.location.origin}/auth/callback`;
-    window.location.href = `/api/auth/${provider}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+    const authUrl = 'https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70';
+    window.location.href = `${authUrl}?provider=${provider}&redirect_uri=${encodeURIComponent(redirectUri)}`;
   };
 
   return (

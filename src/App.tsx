@@ -11,6 +11,8 @@ import BlogPost from "./pages/BlogPost";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Admin from "./pages/Admin";
+import Diagnostics from "./pages/Diagnostics";
+import DiagnosticsResults from "./pages/DiagnosticsResults";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +31,8 @@ const App = () => (
           <Route path="/club" element={<Club />} />
           <Route path="/blog/:id" element={<BlogPost />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/diagnostics" element={<Diagnostics />} />
+          <Route path="/diagnostics/results" element={<DiagnosticsResults />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

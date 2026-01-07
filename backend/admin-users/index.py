@@ -5,7 +5,7 @@ import jwt
 
 def handler(event: dict, context) -> dict:
     '''
-    Получение списка пользователей для админ-панели.
+    API для администрирования: управление пользователями и постами блога.
     Требует админские права.
     '''
     method = event.get('httpMethod', 'GET')
@@ -15,7 +15,7 @@ def handler(event: dict, context) -> dict:
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-Authorization',
                 'Access-Control-Max-Age': '86400'
             },
@@ -125,6 +125,45 @@ def handler(event: dict, context) -> dict:
                     'body': json.dumps({'success': True, 'is_admin': new_status}),
                     'isBase64Encoded': False
                 }
+        
+        elif method == 'DELETE':
+            # Удаление поста блога
+            query_params = event.get('queryStringParameters', {}) or {}
+            post_id = query_params.get('post_id')
+            
+            if not post_id:
+                cur.close()
+                conn.close()
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'post_id is required'}),
+                    'isBase64Encoded': False
+                }
+            
+            cur.execute("DELETE FROM blog_posts WHERE id = %s RETURNING id", (int(post_id),))
+            deleted = cur.fetchone()
+            
+            if not deleted:
+                cur.close()
+                conn.close()
+                return {
+                    'statusCode': 404,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Post not found'}),
+                    'isBase64Encoded': False
+                }
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'success': True, 'message': 'Пост успешно удален'}),
+                'isBase64Encoded': False
+            }
         
         cur.close()
         conn.close()

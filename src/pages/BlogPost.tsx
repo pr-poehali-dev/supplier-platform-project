@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import { useToast } from '@/hooks/use-toast';
 
 interface BlogPost {
   id: number;
@@ -13,6 +14,8 @@ interface BlogPost {
   excerpt: string;
   content: string;
   image_url: string;
+  video_url?: string;
+  media_type?: 'image' | 'video' | 'none';
 }
 
 const BlogPost = () => {
@@ -21,6 +24,9 @@ const BlogPost = () => {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const categoryMap: Record<string, string> = {
     'новость': 'Новости',
@@ -32,7 +38,54 @@ const BlogPost = () => {
 
   useEffect(() => {
     fetchPost();
+    checkAdminStatus();
   }, [id]);
+
+  const checkAdminStatus = () => {
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+    if (token && user) {
+      try {
+        const userData = JSON.parse(user);
+        setIsAdmin(userData.is_admin || false);
+      } catch (e) {
+        setIsAdmin(false);
+      }
+    }
+  };
+
+  const deletePost = async () => {
+    if (!confirm('Вы уверены, что хотите удалить эту статью?')) return;
+
+    try {
+      setDeleting(true);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`https://functions.poehali.dev/57e87325-acea-4f23-9b9b-048fa498ae14?post_id=${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Успешно!',
+          description: 'Статья удалена'
+        });
+        navigate('/');
+      } else {
+        throw new Error('Ошибка удаления');
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить статью',
+        variant: 'destructive'
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const fetchPost = async () => {
     try {
@@ -124,9 +177,22 @@ const BlogPost = () => {
               TourConnect
             </h1>
           </button>
-          <Button onClick={() => navigate('/club')} className="bg-gradient-to-r from-primary to-secondary">
-            Клуб партнёров
-          </Button>
+          <div className="flex gap-3">
+            {isAdmin && (
+              <Button 
+                onClick={deletePost} 
+                disabled={deleting}
+                variant="destructive"
+                className="flex items-center gap-2"
+              >
+                <Icon name="Trash2" size={18} />
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </Button>
+            )}
+            <Button onClick={() => navigate('/club')} className="bg-gradient-to-r from-primary to-secondary">
+              Клуб партнёров
+            </Button>
+          </div>
         </div>
       </nav>
 
@@ -152,13 +218,23 @@ const BlogPost = () => {
               </div>
             </div>
 
-            {post.image_url && (
+            {post.media_type === 'video' && post.video_url ? (
+              <video
+                src={post.video_url}
+                controls
+                className="w-full h-[400px] object-cover rounded-2xl shadow-2xl mb-8"
+                poster={post.image_url || ''}
+              >
+                <source src={post.video_url} type="video/mp4" />
+                Ваш браузер не поддерживает видео.
+              </video>
+            ) : post.image_url ? (
               <img
                 src={post.image_url}
                 alt={post.title}
                 className="w-full h-[400px] object-cover rounded-2xl shadow-2xl mb-8"
               />
-            )}
+            ) : null}
           </div>
 
           <Card className="border-none shadow-xl mb-8">

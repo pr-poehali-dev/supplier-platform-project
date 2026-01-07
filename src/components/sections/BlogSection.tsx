@@ -101,20 +101,6 @@ const BlogSection = () => {
               style={{ animationDelay: `${index * 100}ms` }}
               onClick={() => navigate(`/blog/${post.id}`)}
             >
-              <div className="relative overflow-hidden">
-                {post.image_url && (
-                  <img
-                    src={post.image_url}
-                    alt={post.title}
-                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                )}
-                <div className="absolute top-4 left-4">
-                  <Badge className="bg-white/90 text-primary border-none">
-                    {categoryMap[post.category] || post.category}
-                  </Badge>
-                </div>
-              </div>
               <CardContent className="pt-6">
                 <p className="text-sm text-gray-500 mb-2">
                   {new Date(post.published_at).toLocaleDateString('ru-RU', { 

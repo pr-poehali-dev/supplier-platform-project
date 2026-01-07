@@ -73,6 +73,8 @@ def get_blog_posts(category: str, channel_type: str, limit: int, offset: int) ->
                     excerpt,
                     content,
                     image_url,
+                    video_url,
+                    media_type,
                     category,
                     channel_type,
                     published_at,

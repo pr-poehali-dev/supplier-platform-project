@@ -11,30 +11,27 @@ interface HeroSectionProps {
 const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
   const navigate = useNavigate();
 
-  const advantages = [
+  const tools = [
+    {
+      icon: 'Calculator',
+      title: 'Симулятор бизнеса',
+      description: 'Рассчитайте экономику вашего проекта',
+      gradient: 'from-primary to-secondary',
+      action: '/simulator',
+    },
     {
       icon: 'Users',
-      title: 'Комьюнити',
-      description: 'Сообщество предпринимателей в сфере туризма РФ',
-      gradient: 'from-primary to-secondary',
-    },
-    {
-      icon: 'Zap',
-      title: 'Инструменты',
-      description: 'Полезные сервисы для старта и развития бизнеса',
+      title: 'Закрытый клуб',
+      description: 'Комьюнити предпринимателей в туризме',
       gradient: 'from-secondary to-accent',
+      action: '/club',
     },
     {
-      icon: 'TrendingUp',
-      title: 'База знаний',
-      description: 'Гайды, советы и практические кейсы от экспертов',
+      icon: 'Target',
+      title: 'Диагностика бизнеса',
+      description: 'Найдите точки роста за 10 минут',
       gradient: 'from-accent to-primary',
-    },
-    {
-      icon: 'Shield',
-      title: 'Поддержка',
-      description: 'Помощь на всех этапах создания и развития бизнеса',
-      gradient: 'from-primary/80 to-secondary/80',
+      action: '/diagnostics',
     },
   ];
 
@@ -73,27 +70,28 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
           <div className="relative animate-float">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-3xl"></div>
             <img
-              src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/00d6cf71-7bbc-433f-bade-e254c6085344.jpg"
-              alt="База отдыха в России"
+              src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/96e9855f-23d1-41b1-86bd-6f53191ad56d.jpg"
+              alt="Современная база отдыха"
               className="relative rounded-3xl shadow-2xl w-full"
             />
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-20">
-          {advantages.map((advantage, index) => (
+        <div className="grid md:grid-cols-3 gap-6 mt-20">
+          {tools.map((tool, index) => (
             <Card 
               key={index} 
-              className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-none overflow-hidden"
+              className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-none overflow-hidden cursor-pointer"
               style={{ animationDelay: `${index * 100}ms` }}
+              onClick={() => navigate(tool.action)}
             >
-              <div className={`h-2 bg-gradient-to-r ${advantage.gradient}`}></div>
+              <div className={`h-2 bg-gradient-to-r ${tool.gradient}`}></div>
               <CardContent className="pt-6">
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${advantage.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <Icon name={advantage.icon as any} className="text-white" size={24} />
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${tool.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <Icon name={tool.icon as any} className="text-white" size={24} />
                 </div>
-                <h3 className="text-xl font-bold font-heading mb-2">{advantage.title}</h3>
-                <p className="text-gray-600">{advantage.description}</p>
+                <h3 className="text-xl font-bold font-heading mb-2">{tool.title}</h3>
+                <p className="text-gray-600">{tool.description}</p>
               </CardContent>
             </Card>
           ))}

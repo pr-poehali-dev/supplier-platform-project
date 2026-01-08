@@ -88,32 +88,14 @@ const ContactSection = () => {
           </CardContent>
         </Card>
 
-        <div className="mt-12 grid md:grid-cols-3 gap-6">
-          <Card className="text-center border-none shadow-lg hover:shadow-xl transition-shadow">
+        <div className="mt-12 flex justify-center">
+          <Card className="text-center border-none shadow-lg hover:shadow-xl transition-shadow max-w-md w-full">
             <CardContent className="pt-6">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4">
                 <Icon name="Mail" className="text-white" size={24} />
               </div>
               <h4 className="font-bold mb-2">Email</h4>
-              <p className="text-gray-600 text-sm">info@tourconnect.ru</p>
-            </CardContent>
-          </Card>
-          <Card className="text-center border-none shadow-lg hover:shadow-xl transition-shadow">
-            <CardContent className="pt-6">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-secondary to-accent flex items-center justify-center mx-auto mb-4">
-                <Icon name="Phone" className="text-white" size={24} />
-              </div>
-              <h4 className="font-bold mb-2">Телефон</h4>
-              <p className="text-gray-600 text-sm">+7 (495) 123-45-67</p>
-            </CardContent>
-          </Card>
-          <Card className="text-center border-none shadow-lg hover:shadow-xl transition-shadow">
-            <CardContent className="pt-6">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center mx-auto mb-4">
-                <Icon name="MapPin" className="text-white" size={24} />
-              </div>
-              <h4 className="font-bold mb-2">Адрес</h4>
-              <p className="text-gray-600 text-sm">Москва, Россия</p>
+              <p className="text-gray-600 text-sm">admin@tourconnect.ru</p>
             </CardContent>
           </Card>
         </div>

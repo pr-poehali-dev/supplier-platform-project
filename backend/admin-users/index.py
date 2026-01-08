@@ -43,7 +43,7 @@ def handler(event: dict, context) -> dict:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         
-        cur.execute("SELECT is_admin FROM users WHERE id = %s", (payload['user_id'],))
+        cur.execute(f"SELECT is_admin FROM users WHERE id = {payload['user_id']}")
         admin_check = cur.fetchone()
         
         if not admin_check or not admin_check[0]:
@@ -61,13 +61,13 @@ def handler(event: dict, context) -> dict:
             limit = int(query_params.get('limit', '100'))
             offset = int(query_params.get('offset', '0'))
             
-            cur.execute("""
+            cur.execute(f"""
                 SELECT id, email, full_name, provider, avatar_url, 
                        created_at, last_login, telegram_invited, is_admin
                 FROM users
                 ORDER BY created_at DESC
-                LIMIT %s OFFSET %s
-            """, (limit, offset))
+                LIMIT {limit} OFFSET {offset}
+            """)
             
             users = []
             for row in cur.fetchall():
@@ -107,12 +107,12 @@ def handler(event: dict, context) -> dict:
             action = body.get('action')
             
             if action == 'toggle_admin':
-                cur.execute("""
+                cur.execute(f"""
                     UPDATE users 
                     SET is_admin = NOT is_admin 
-                    WHERE id = %s
+                    WHERE id = {user_id}
                     RETURNING is_admin
-                """, (user_id,))
+                """)
                 new_status = cur.fetchone()[0]
                 conn.commit()
                 
@@ -141,7 +141,7 @@ def handler(event: dict, context) -> dict:
                     'isBase64Encoded': False
                 }
             
-            cur.execute("DELETE FROM blog_posts WHERE id = %s RETURNING id", (int(post_id),))
+            cur.execute(f"DELETE FROM blog_posts WHERE id = {int(post_id)} RETURNING id")
             deleted = cur.fetchone()
             
             if not deleted:

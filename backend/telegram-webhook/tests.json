@@ -1,0 +1,20 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Handle empty POST (webhook health check)",
+      "method": "POST",
+      "path": "/",
+      "body": "{}",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "ok": true
+      }
+    }
+  ]
+}

@@ -35,6 +35,8 @@ export default function BookingCalendar() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [botLink, setBotLink] = useState('');
   
   const [showAddUnit, setShowAddUnit] = useState(false);
   const [newUnit, setNewUnit] = useState({
@@ -54,6 +56,12 @@ export default function BookingCalendar() {
   });
 
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const userData = JSON.parse(userStr);
+      setUser(userData);
+      setBotLink(`https://t.me/YOUR_BOT_USERNAME?start=${userData.id}`);
+    }
     loadUnits();
     loadBookings();
   }, []);
@@ -468,26 +476,58 @@ export default function BookingCalendar() {
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
               <Icon name="MessageCircle" size={48} className="flex-shrink-0" />
-              <div>
-                <h3 className="text-xl font-bold mb-2">AI-менеджер в Telegram</h3>
+              <div className="w-full">
+                <h3 className="text-xl font-bold mb-2">🤖 AI-менеджер в Telegram</h3>
                 <p className="text-blue-100 mb-4">
-                  Клиенты смогут бронировать через Telegram-бота с AI-ассистентом. 
-                  Бот автоматически проверит доступность, рассчитает цену и создаст бронирование.
+                  Ваш персональный бот принимает бронирования 24/7. Клиенты пишут боту, AI-ассистент отвечает на вопросы и автоматически создаёт бронирования.
                 </p>
+                
+                {botLink && (
+                  <div className="bg-white/90 rounded-lg p-4 mt-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">📱 Ваша ссылка для клиентов:</h4>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        value={botLink} 
+                        readOnly 
+                        className="bg-white text-gray-900 border-gray-300 font-mono text-sm"
+                      />
+                      <Button
+                        onClick={() => {
+                          navigator.clipboard.writeText(botLink);
+                          alert('Ссылка скопирована!');
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                      >
+                        <Icon name="Copy" size={16} />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Отправьте эту ссылку клиентам или разместите на сайте. Каждый клиент получит персонального AI-менеджера.
+                    </p>
+                  </div>
+                )}
+
                 <div className="bg-white/20 rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold mb-2">Как создать Telegram-бота:</h4>
+                  <h4 className="font-semibold mb-2">⚙️ Настройка Telegram-бота:</h4>
                   <ol className="list-decimal list-inside space-y-1 text-sm">
                     <li>Откройте @BotFather в Telegram</li>
                     <li>Отправьте команду /newbot</li>
-                    <li>Укажите имя и username бота</li>
-                    <li>Скопируйте токен и сохраните его в секретах проекта</li>
-                    <li>Я создам backend для обработки сообщений</li>
+                    <li>Укажите имя и username бота (например: tourconnect_bot)</li>
+                    <li>Скопируйте токен и добавьте в секреты проекта выше ⬆️</li>
+                    <li>Настройте webhook командой в @BotFather или я это сделаю автоматически</li>
                   </ol>
                 </div>
-                <Badge className="bg-white text-blue-600 mt-4">
-                  <Icon name="Sparkles" className="mr-1" size={14} />
-                  Готово к настройке
-                </Badge>
+                
+                <div className="flex gap-3 mt-4">
+                  <Badge className="bg-green-500 text-white">
+                    <Icon name="Check" className="mr-1" size={14} />
+                    Backend готов
+                  </Badge>
+                  <Badge className="bg-white text-blue-600">
+                    <Icon name="Sparkles" className="mr-1" size={14} />
+                    OpenAI подключен
+                  </Badge>
+                </div>
               </div>
             </div>
           </CardContent>

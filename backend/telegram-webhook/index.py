@@ -5,28 +5,7 @@ from datetime import datetime, timedelta
 import requests
 import time
 
-# Глобальный кэш IAM токена
-_yandex_iam_cache = {'token': None, 'expires_at': 0}
 
-def get_yandex_iam_token() -> str:
-    '''Получает IAM токен Яндекс с кэшированием'''
-    global _yandex_iam_cache
-    
-    if _yandex_iam_cache['token'] and time.time() < _yandex_iam_cache['expires_at'] - 300:
-        return _yandex_iam_cache['token']
-    
-    iam_response = requests.post(
-        'https://iam.api.cloud.yandex.net/iam/v1/tokens',
-        json={'yandexPassportOauthToken': os.environ.get('YANDEX_GPT_API_KEY')},
-        timeout=5
-    )
-    
-    iam_data = iam_response.json()
-    token = iam_data['iamToken']
-    expires_at = time.time() + 3600
-    
-    _yandex_iam_cache = {'token': token, 'expires_at': expires_at}
-    return token
 
 def handler(event: dict, context) -> dict:
     '''
@@ -389,16 +368,16 @@ def handler(event: dict, context) -> dict:
         full_prompt += 'Ассистент:'
         
         try:
-            iam_token = get_yandex_iam_token()
+            api_key = os.environ.get('YANDEX_GPT_API_KEY')
             
             yandex_response = requests.post(
                 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion',
                 headers={
-                    'Authorization': f'Bearer {iam_token}',
+                    'Authorization': f'Api-Key {api_key}',
                     'Content-Type': 'application/json'
                 },
                 json={
-                    'modelUri': 'gpt://b1guhkbkdu1nslp18ouu/yandexgpt-lite/latest',
+                    'modelUri': 'gpt://b1gchej4nfugh1f9dq1h/yandexgpt/rc',
                     'completionOptions': {
                         'temperature': 0.6,
                         'maxTokens': 1000

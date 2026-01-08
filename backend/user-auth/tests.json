@@ -1,10 +1,10 @@
 {
   "tests": [
     {
-      "name": "Test redirect",
+      "name": "Test OAuth flow initialized",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 302,
+      "expectedStatus": 200,
       "bodyMatcher": "partial"
     }
   ]

@@ -10,28 +10,45 @@ const AuthCallback = () => {
   const [telegramLink, setTelegramLink] = useState<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const error = params.get('error');
-    const telegram = params.get('telegram_invite');
+    const handleAuth = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const error = params.get('error');
 
-    if (error) {
-      setStatus('error');
-      return;
-    }
-
-    if (token) {
-      localStorage.setItem('auth_token', token);
-      setStatus('success');
-      
-      if (telegram) {
-        setTelegramLink(telegram);
-      } else {
-        setTimeout(() => navigate('/simulator'), 2000);
+      if (error) {
+        setStatus('error');
+        return;
       }
-    } else {
-      setStatus('error');
-    }
+
+      if (!code) {
+        setStatus('error');
+        return;
+      }
+
+      try {
+        const authUrl = 'https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70';
+        const response = await fetch(`${authUrl}?code=${code}`);
+        const data = await response.json();
+
+        if (data.success && data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setStatus('success');
+          
+          if (!data.user.telegram_invited) {
+            setTelegramLink('https://t.me/+QgiLIa1gFRY4Y2Iy');
+          } else {
+            setTimeout(() => navigate('/simulator'), 2000);
+          }
+        } else {
+          setStatus('error');
+        }
+      } catch (err) {
+        console.error('Auth error:', err);
+        setStatus('error');
+      }
+    };
+
+    handleAuth();
   }, [navigate]);
 
   if (status === 'loading') {

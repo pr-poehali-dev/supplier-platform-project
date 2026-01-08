@@ -497,6 +497,7 @@ def handler(event: dict, context) -> dict:
                     assistant_message = '❌ К сожалению, эти даты уже заняты. Могу предложить другие даты?'
             
             except Exception as e:
+                print(f'Booking creation error: {type(e).__name__}: {str(e)}')
                 assistant_message = f'❌ Ошибка при создании бронирования. Попробуйте ещё раз.'
         
         cur.execute(f"""

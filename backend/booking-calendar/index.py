@@ -84,6 +84,27 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
+        # DELETE /delete-booking - удалить бронирование
+        if method == 'DELETE' and action == 'delete-booking':
+            booking_id = query_params.get('booking_id')
+            if not booking_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'booking_id is required'}),
+                    'isBase64Encoded': False
+                }
+            
+            cur.execute(f"DELETE FROM bookings WHERE id = {booking_id}")
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Booking deleted successfully'}),
+                'isBase64Encoded': False
+            }
+        
         # POST /create-booking - создать бронирование вручную
         if method == 'POST' and action == 'create-booking':
             body = json.loads(event.get('body', '{}'))

@@ -130,6 +130,20 @@ export default function BookingCalendar() {
     }
   };
 
+  const deleteBooking = async (bookingId: number) => {
+    try {
+      const response = await fetch(`${API_URL}?action=delete-booking&booking_id=${bookingId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        await loadBookings();
+      }
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+    }
+  };
+
   const changeMonth = (delta: number) => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1));
   };
@@ -160,6 +174,7 @@ export default function BookingCalendar() {
           currentDate={currentDate}
           bookings={bookings}
           onChangeMonth={changeMonth}
+          onDeleteBooking={deleteBooking}
           renderBookingButton={
             <BookingDialog
               selectedUnit={selectedUnit}

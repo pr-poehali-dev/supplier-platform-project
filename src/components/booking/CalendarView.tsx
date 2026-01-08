@@ -21,6 +21,7 @@ interface CalendarViewProps {
   currentDate: Date;
   bookings: Booking[];
   onChangeMonth: (delta: number) => void;
+  onDeleteBooking?: (bookingId: number) => Promise<void>;
   renderBookingButton?: React.ReactNode;
 }
 
@@ -29,6 +30,7 @@ export default function CalendarView({
   currentDate,
   bookings,
   onChangeMonth,
+  onDeleteBooking,
   renderBookingButton
 }: CalendarViewProps) {
   const monthNames = [
@@ -47,16 +49,27 @@ export default function CalendarView({
     return { daysInMonth, startingDayOfWeek, year, month };
   };
 
-  const isDateBooked = (day: number) => {
-    if (!selectedUnit) return false;
+  const getBookingForDate = (day: number) => {
+    if (!selectedUnit) return null;
     
     const { year, month } = getDaysInMonth(currentDate);
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
-    return bookings.some(booking => {
+    return bookings.find(booking => {
       if (booking.unit_id !== selectedUnit.id) return false;
       return dateStr >= booking.check_in && dateStr < booking.check_out;
-    });
+    }) || null;
+  };
+
+  const isDateBooked = (day: number) => {
+    return getBookingForDate(day) !== null;
+  };
+
+  const handleDeleteBooking = async (bookingId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onDeleteBooking) return;
+    if (!confirm('Удалить это бронирование?')) return;
+    await onDeleteBooking(bookingId);
   };
 
   const renderCalendar = () => {
@@ -68,7 +81,8 @@ export default function CalendarView({
     }
     
     for (let day = 1; day <= daysInMonth; day++) {
-      const isBooked = isDateBooked(day);
+      const booking = getBookingForDate(day);
+      const isBooked = booking !== null;
       const isToday = new Date().getDate() === day && 
                       new Date().getMonth() === currentDate.getMonth() &&
                       new Date().getFullYear() === currentDate.getFullYear();
@@ -76,17 +90,28 @@ export default function CalendarView({
       days.push(
         <div
           key={day}
-          className={`h-16 border border-gray-200 p-2 transition-colors ${
+          className={`h-16 border border-gray-200 p-2 transition-colors relative group ${
             isBooked 
-              ? 'bg-red-100 cursor-not-allowed' 
+              ? 'bg-red-100 cursor-pointer hover:bg-red-200' 
               : 'bg-white hover:bg-blue-50 cursor-pointer'
           } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
         >
           <div className="text-sm font-semibold">{day}</div>
-          {isBooked && (
-            <Badge variant="destructive" className="text-xs mt-1">
-              Занято
-            </Badge>
+          {isBooked && booking && (
+            <>
+              <Badge variant="destructive" className="text-xs mt-1">
+                Занято
+              </Badge>
+              {onDeleteBooking && (
+                <button
+                  onClick={(e) => handleDeleteBooking(booking.id, e)}
+                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                  title="Удалить бронирование"
+                >
+                  <Icon name="X" size={12} />
+                </button>
+              )}
+            </>
           )}
         </div>
       );

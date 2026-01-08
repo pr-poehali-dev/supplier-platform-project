@@ -1,8 +1,42 @@
 import json
 import os
 import psycopg2
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
+import time
+
+# Глобальный кэш токена GigaChat
+_gigachat_token_cache = {'token': None, 'expires_at': 0}
+
+def get_gigachat_token(request_id: str) -> str:
+    '''Получает токен GigaChat с кэшированием'''
+    global _gigachat_token_cache
+    
+    # Если токен еще действителен (с запасом 5 минут), возвращаем его
+    if _gigachat_token_cache['token'] and time.time() < _gigachat_token_cache['expires_at'] - 300:
+        return _gigachat_token_cache['token']
+    
+    # Получаем новый токен
+    auth_response = requests.post(
+        'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
+        headers={
+            'Authorization': f'Basic {os.environ.get("GIGACHAT_API_KEY")}',
+            'RqUID': request_id,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        data={'scope': 'GIGACHAT_API_PERS'},
+        verify=False,
+        timeout=10
+    )
+    
+    token_data = auth_response.json()
+    access_token = token_data['access_token']
+    expires_at = token_data.get('expires_at', 0) / 1000  # конвертируем ms в секунды
+    
+    # Сохраняем в кэш
+    _gigachat_token_cache = {'token': access_token, 'expires_at': expires_at}
+    
+    return access_token
 
 def handler(event: dict, context) -> dict:
     '''
@@ -357,39 +391,44 @@ def handler(event: dict, context) -> dict:
 
 Текущая дата: {datetime.now().strftime('%Y-%m-%d')}"""
         
-        # Формируем сообщения для OpenAI
-        openai_messages = [{'role': 'system', 'content': system_prompt}]
+        # Формируем сообщения для GigaChat
+        gigachat_messages = [{'role': 'system', 'content': system_prompt}]
         for msg in messages:
-            openai_messages.append({'role': msg['role'], 'content': msg['content']})
+            gigachat_messages.append({'role': msg['role'], 'content': msg['content']})
         
         try:
-            # Запрос к OpenAI API
-            openai_response = requests.post(
-                'https://api.openai.com/v1/chat/completions',
+            # Получаем токен GigaChat (с упрощённой логикой)
+            access_token = get_gigachat_token(context.request_id)
+            
+            # Запрос к GigaChat с таймаутом
+            gigachat_response = requests.post(
+                'https://gigachat.devices.sberbank.ru/api/v1/chat/completions',
                 headers={
-                    'Authorization': f'Bearer {os.environ.get("OPENAI_API_KEY")}',
+                    'Authorization': f'Bearer {access_token}',
                     'Content-Type': 'application/json'
                 },
                 json={
-                    'model': 'gpt-4o-mini',
-                    'messages': openai_messages,
+                    'model': 'GigaChat',
+                    'messages': gigachat_messages,
                     'temperature': 0.6,
-                    'max_tokens': 1000
+                    'max_tokens': 800
                 },
-                timeout=15
+                verify=False,
+                timeout=20
             )
             
-            print(f'OpenAI status: {openai_response.status_code}')
-            
-            if openai_response.status_code != 200:
-                print(f'OpenAI error response: {openai_response.text[:500]}')
-                send_telegram_message(chat_id, '❌ Проблема с API ключом OpenAI. Свяжитесь с администратором.')
+            if gigachat_response.status_code != 200:
+                print(f'GigaChat error: {gigachat_response.status_code} - {gigachat_response.text[:300]}')
+                send_telegram_message(chat_id, 'Извините, сервис временно перегружен. Попробуйте через минуту.')
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
             
-            openai_data = openai_response.json()
-            assistant_message = openai_data.get('choices', [{}])[0].get('message', {}).get('content', 'Извините, произошла ошибка. Попробуйте позже.')
+            gigachat_data = gigachat_response.json()
+            assistant_message = gigachat_data.get('choices', [{}])[0].get('message', {}).get('content', 'Извините, произошла ошибка. Попробуйте позже.')
+        except requests.Timeout:
+            send_telegram_message(chat_id, 'Извините, ответ занял слишком много времени. Попробуйте задать вопрос проще.')
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         except Exception as e:
-            print(f'OpenAI error: {type(e).__name__}: {str(e)[:200]}')
+            print(f'GigaChat unexpected error: {type(e).__name__}: {str(e)[:200]}')
             send_telegram_message(chat_id, '❌ Сервис временно недоступен. Попробуйте позже.')
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         

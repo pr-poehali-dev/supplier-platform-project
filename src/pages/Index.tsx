@@ -70,6 +70,18 @@ const Index = () => {
                   Админ
                 </Button>
               )}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  localStorage.removeItem('user');
+                  setUser(null);
+                  navigate('/');
+                }}
+                className="border-gray-300 text-gray-600 hover:bg-gray-100"
+              >
+                <Icon name="LogOut" className="mr-2" size={16} />
+                Выйти
+              </Button>
             </div>
           ) : (
             <Button 

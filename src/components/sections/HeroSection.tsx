@@ -53,18 +53,10 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
             <p className="text-xl text-gray-600">
               Помогаем предпринимателям открыть и развить бизнес в сфере туризма России. Инструменты, советы и сообщество единомышленников.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Button 
-                size="lg" 
-                className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg"
-                onClick={() => navigate('/diagnostics')}
-              >
-                Диагностика бизнеса
-                <Icon name="ArrowRight" className="ml-2" size={20} />
-              </Button>
-              <Button size="lg" variant="outline" className="text-lg" onClick={() => navigate('/club')}>
-                Клуб партнёров
-              </Button>
+            <div className="bg-gradient-to-r from-primary/10 to-secondary/10 border-2 border-primary/30 rounded-2xl p-6 mt-6">
+              <p className="text-lg font-semibold text-primary">
+                🎁 Первые 20 пользователей получают премиум функции бесплатно
+              </p>
             </div>
           </div>
           <div className="relative animate-float">
@@ -77,7 +69,7 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 mt-20">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-20">
           <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/simulator')}>
             <div className="h-3 bg-gradient-to-r from-blue-500 to-cyan-600"></div>
             <CardContent className="pt-8">
@@ -105,15 +97,15 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
                 <Icon name="Crown" className="text-white" size={32} />
               </div>
               <Badge className="mb-3 bg-purple-50 text-purple-700 border-purple-200">
-                👑 Премиум доступ
+                👥 Комьюнити
               </Badge>
               <h3 className="text-2xl font-bold font-heading mb-3">Закрытый клуб</h3>
               <p className="text-gray-600 mb-4">
-                Элитное сообщество профессионалов туризма с 500+ партнёрами
+                Элитное сообщество профессионалов туризма
               </p>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="text-xs">Сеть партнёров</Badge>
-                <Badge variant="outline" className="text-xs">Менеджер 24/7</Badge>
+                <Badge variant="outline" className="text-xs">Эксперты</Badge>
               </div>
             </CardContent>
           </Card>
@@ -134,6 +126,26 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="text-xs">AI-ассистент</Badge>
                 <Badge variant="outline" className="text-xs">Автобронирование</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/diagnostics')}>
+            <div className="h-3 bg-gradient-to-r from-orange-500 to-red-600"></div>
+            <CardContent className="pt-8">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Icon name="Target" className="text-white" size={32} />
+              </div>
+              <Badge className="mb-3 bg-orange-50 text-orange-700 border-orange-200">
+                ✨ Бесплатно
+              </Badge>
+              <h3 className="text-2xl font-bold font-heading mb-3">Диагностика бизнеса</h3>
+              <p className="text-gray-600 mb-4">
+                Найдите точки роста и риски вашего проекта за 10 минут
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="text-xs">Анализ 6 блоков</Badge>
+                <Badge variant="outline" className="text-xs">Рекомендации</Badge>
               </div>
             </CardContent>
           </Card>

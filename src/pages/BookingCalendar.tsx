@@ -4,6 +4,7 @@ import UnitsManagement, { Unit } from '@/components/booking/UnitsManagement';
 import CalendarView, { Booking } from '@/components/booking/CalendarView';
 import BookingDialog from '@/components/booking/BookingDialog';
 import TelegramBotCard from '@/components/booking/TelegramBotCard';
+import OwnerTelegramSetup from '@/components/booking/OwnerTelegramSetup';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 
@@ -183,7 +184,10 @@ export default function BookingCalendar() {
           }
         />
 
-        <TelegramBotCard botLink={botLink} />
+        <div className="grid md:grid-cols-2 gap-6 mt-6">
+          <TelegramBotCard botLink={botLink} />
+          <OwnerTelegramSetup />
+        </div>
       </div>
     </div>
   );

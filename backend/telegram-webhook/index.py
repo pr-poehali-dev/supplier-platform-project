@@ -168,6 +168,14 @@ def handler(event: dict, context) -> dict:
                             WHERE id = {pending_id}
                         """)
                         
+                        # Получаем owner_id из conversations
+                        cur.execute(f"""
+                            SELECT user_id FROM conversations
+                            WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
+                        """)
+                        owner_result = cur.fetchone()
+                        owner_id_from_conv = owner_result[0] if owner_result else None
+                        
                         conn.commit()
                         
                         send_telegram_message(
@@ -177,6 +185,22 @@ def handler(event: dict, context) -> dict:
                             f'📅 {check_in} — {check_out}\n\n'
                             f'Ждем вас! При заезде назовите номер брони.'
                         )
+                        
+                        # Уведомление владельцу
+                        if owner_id_from_conv:
+                            cur.execute(f"SELECT name FROM units WHERE id = {unit_id}")
+                            unit_name_row = cur.fetchone()
+                            unit_name_notify = unit_name_row[0] if unit_name_row else 'Объект'
+                            
+                            notify_owner(
+                                owner_id_from_conv,
+                                f'💰 <b>Оплата подтверждена!</b>\n\n'
+                                f'Объект: {unit_name_notify}\n'
+                                f'Гость: {guest_name}\n'
+                                f'Даты: {check_in} — {check_out}\n'
+                                f'Сумма: {int(amount)} ₽\n'
+                                f'Бронь №{booking_id}'
+                            )
                     else:
                         cur.execute(f"""
                             UPDATE pending_bookings
@@ -218,7 +242,36 @@ def handler(event: dict, context) -> dict:
         if text.startswith('/start'):
             parts = text.split(' ')
             if len(parts) > 1:
-                owner_id = int(parts[1])
+                param = parts[1]
+                
+                # Проверяем, это владелец или клиент
+                if param.startswith('owner_'):
+                    owner_id = int(param.replace('owner_', ''))
+                    
+                    # Сохраняем chat_id владельца в conversations
+                    cur.execute(f"""
+                        INSERT INTO conversations (user_id, channel, channel_user_id, status)
+                        VALUES ({owner_id}, 'telegram', '{chat_id}', 'owner')
+                        ON CONFLICT (channel, channel_user_id) 
+                        DO UPDATE SET user_id = {owner_id}, status = 'owner'
+                    """)
+                    conn.commit()
+                    cur.close()
+                    conn.close()
+                    
+                    send_telegram_message(
+                        chat_id,
+                        f'✅ <b>Уведомления подключены!</b>\n\n'
+                        f'Здравствуйте! Теперь вы будете получать уведомления о:\n\n'
+                        f'📋 Новых бронированиях\n'
+                        f'💰 Подтверждениях оплаты\n'
+                        f'📸 Скриншотах от клиентов\n\n'
+                        f'Проверьте админ-панель для управления бронями.'
+                    )
+                    
+                    return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
+                
+                owner_id = int(param)
                 
                 cur.execute(f"""
                     SELECT id FROM users WHERE id = {owner_id}
@@ -397,6 +450,18 @@ def handler(event: dict, context) -> dict:
                         pending_id = cur.fetchone()[0]
                         conn.commit()
                         
+                        # Уведомление владельцу о новой брони
+                        notify_owner(
+                            owner_id,
+                            f'📋 <b>Новая бронь!</b>\n\n'
+                            f'Объект: {unit_name}\n'
+                            f'Гость: {booking_data["guest_name"]}\n'
+                            f'Телефон: {booking_data.get("guest_phone", "—")}\n'
+                            f'Даты: {booking_data["check_in"]} — {booking_data["check_out"]}\n'
+                            f'Сумма: {int(total_price)} ₽\n\n'
+                            f'⏳ Ожидает оплаты (№{pending_id})'
+                        )
+                        
                         payment_text = (
                             f'\n\n💳 Оплатите {int(total_price)} руб.\n'
                             f'Система: {payment_system.upper()}\n'
@@ -470,3 +535,25 @@ def send_telegram_message(chat_id: int, text: str):
         urllib.request.urlopen(req)
     except Exception as e:
         print(f'Failed to send Telegram message: {e}')
+
+
+def notify_owner(owner_id: int, message: str):
+    '''Отправляет уведомление владельцу турбазы'''
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    
+    # Получаем telegram_chat_id владельца (только если status='owner')
+    cur.execute(f"""
+        SELECT channel_user_id FROM conversations
+        WHERE user_id = {owner_id} 
+        AND channel = 'telegram'
+        AND status = 'owner'
+        LIMIT 1
+    """)
+    
+    owner_chat = cur.fetchone()
+    cur.close()
+    conn.close()
+    
+    if owner_chat:
+        send_telegram_message(int(owner_chat[0]), f'🔔 <b>Уведомление</b>\n\n{message}')

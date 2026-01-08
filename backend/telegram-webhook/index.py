@@ -52,11 +52,165 @@ def handler(event: dict, context) -> dict:
         message = update['message']
         chat_id = message['chat']['id']
         text = message.get('text', '')
+        photo = message.get('photo')
         user_id = message['from']['id']
         username = message['from'].get('username', '')
         first_name = message['from'].get('first_name', 'Гость')
         
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        
+        # Обработка фото (скриншота оплаты)
+        if photo:
+            cur = conn.cursor()
+            
+            # Ищем pending booking для этого чата
+            cur.execute(f"""
+                SELECT id, unit_id, amount, guest_name
+                FROM pending_bookings
+                WHERE telegram_chat_id = {chat_id}
+                AND verification_status = 'pending'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+            
+            pending = cur.fetchone()
+            if not pending:
+                send_telegram_message(chat_id, '❌ Не найдено неоплаченных броней. Сначала создайте бронирование.')
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
+            
+            pending_id, unit_id, amount, guest_name = pending
+            
+            # Получаем URL фото (берем самое большое)
+            file_id = photo[-1]['file_id']
+            
+            try:
+                import requests
+                import boto3
+                from base64 import b64decode
+                
+                bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+                
+                # Получаем информацию о файле
+                file_info_response = requests.get(f'https://api.telegram.org/bot{bot_token}/getFile?file_id={file_id}')
+                file_path = file_info_response.json()['result']['file_path']
+                
+                # Скачиваем файл
+                file_url = f'https://api.telegram.org/file/bot{bot_token}/{file_path}'
+                photo_response = requests.get(file_url)
+                photo_bytes = photo_response.content
+                
+                # Загружаем в S3
+                s3 = boto3.client('s3',
+                    endpoint_url='https://bucket.poehali.dev',
+                    aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                    aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+                )
+                
+                s3_key = f'payment_screenshots/{pending_id}_{chat_id}.jpg'
+                s3.put_object(Bucket='files', Key=s3_key, Body=photo_bytes, ContentType='image/jpeg')
+                
+                screenshot_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{s3_key}"
+                
+                # AI проверка скриншота
+                if OPENAI_AVAILABLE:
+                    client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+                    
+                    # Конвертируем байты в base64 для GPT-4 Vision
+                    import base64
+                    base64_image = base64.b64encode(photo_bytes).decode('utf-8')
+                    
+                    verification_response = client.chat.completions.create(
+                        model='gpt-4o-mini',
+                        messages=[{
+                            'role': 'user',
+                            'content': [
+                                {
+                                    'type': 'text',
+                                    'text': f'Проверь этот скриншот оплаты. Ожидаемая сумма: {int(amount)} руб. Получатель: любой. Проверь: 1) Это чек/скриншот оплаты? 2) Сумма совпадает (±50 руб допустимо)? 3) Оплата успешна? Ответь ТОЛЬКО: VERIFIED или REJECTED и причину одним предложением.'
+                                },
+                                {
+                                    'type': 'image_url',
+                                    'image_url': {'url': f'data:image/jpeg;base64,{base64_image}'}
+                                }
+                            ]
+                        }],
+                        max_tokens=100
+                    )
+                    
+                    ai_result = verification_response.choices[0].message.content
+                    
+                    if 'VERIFIED' in ai_result.upper():
+                        # Создаем подтвержденное бронирование
+                        cur.execute(f"""
+                            SELECT check_in, check_out, guest_contact
+                            FROM pending_bookings
+                            WHERE id = {pending_id}
+                        """)
+                        check_in, check_out, guest_contact = cur.fetchone()
+                        
+                        cur.execute(f"""
+                            INSERT INTO bookings 
+                            (unit_id, guest_name, guest_phone, check_in, check_out, 
+                             guests_count, total_price, status, source)
+                            VALUES ({unit_id}, '{guest_name.replace("'", "''")}', '{guest_contact.replace("'", "''")}',
+                                    '{check_in}', '{check_out}', 1, {amount}, 'confirmed', 'telegram')
+                            RETURNING id
+                        """)
+                        
+                        booking_id = cur.fetchone()[0]
+                        
+                        # Обновляем pending booking
+                        cur.execute(f"""
+                            UPDATE pending_bookings
+                            SET payment_screenshot_url = '{screenshot_url}',
+                                verification_status = 'verified',
+                                verification_notes = '{ai_result.replace("'", "''")}'
+                            WHERE id = {pending_id}
+                        """)
+                        
+                        conn.commit()
+                        
+                        send_telegram_message(
+                            chat_id,
+                            f'✅ Оплата подтверждена!\n\n'
+                            f'🎉 Ваше бронирование активировано (№{booking_id})\n'
+                            f'📅 {check_in} — {check_out}\n\n'
+                            f'Ждем вас! При заезде назовите номер брони.'
+                        )
+                    else:
+                        cur.execute(f"""
+                            UPDATE pending_bookings
+                            SET payment_screenshot_url = '{screenshot_url}',
+                                verification_notes = '{ai_result.replace("'", "''")}'
+                            WHERE id = {pending_id}
+                        """)
+                        conn.commit()
+                        
+                        send_telegram_message(
+                            chat_id,
+                            f'⚠️ Не удалось подтвердить оплату.\n\n'
+                            f'Причина: {ai_result}\n\n'
+                            f'Пожалуйста, отправьте четкий скриншот чека или свяжитесь с владельцем.'
+                        )
+                else:
+                    cur.execute(f"""
+                        UPDATE pending_bookings
+                        SET payment_screenshot_url = '{screenshot_url}'
+                        WHERE id = {pending_id}
+                    """)
+                    conn.commit()
+                    
+                    send_telegram_message(
+                        chat_id,
+                        '📸 Скриншот получен! Владелец проверит оплату и подтвердит бронь вручную.'
+                    )
+                
+            except Exception as e:
+                send_telegram_message(chat_id, f'❌ Ошибка обработки фото: {str(e)[:100]}')
+            
+            cur.close()
+            conn.close()
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         cur = conn.cursor()
         
         owner_id = None
@@ -208,32 +362,55 @@ def handler(event: dict, context) -> dict:
                         nights = (check_out - check_in).days
                         total_price = base_price * nights
                         
+                        # Получаем платежную ссылку для объекта
                         cur.execute(f"""
-                            INSERT INTO bookings 
-                            (unit_id, guest_name, guest_phone, check_in, check_out, 
-                             guests_count, total_price, status, source)
-                            VALUES ({booking_data['unit_id']}, '{booking_data['guest_name'].replace("'", "''")}', 
-                                    '{booking_data.get('guest_phone', '').replace("'", "''")}', '{booking_data['check_in']}', 
-                                    '{booking_data['check_out']}', {booking_data.get('guests_count', 1)}, 
-                                    {total_price}, 'tentative', 'telegram')
+                            SELECT payment_link, payment_system, recipient_name
+                            FROM payment_links
+                            WHERE unit_id = {booking_data['unit_id']}
+                            LIMIT 1
+                        """)
+                        
+                        payment_row = cur.fetchone()
+                        payment_link_template = payment_row[0] if payment_row else ''
+                        payment_system = payment_row[1] if payment_row else 'sbp'
+                        recipient_name = payment_row[2] if payment_row else ''
+                        
+                        # Генерируем персональную ссылку с суммой
+                        cur.execute(f"SELECT name FROM units WHERE id = {booking_data['unit_id']}")
+                        unit_name = cur.fetchone()[0]
+                        
+                        description = f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
+                        payment_link = payment_link_template.replace('{amount}', str(int(total_price))).replace('{description}', description)
+                        
+                        # Создаем pending booking (ждет оплаты)
+                        cur.execute(f"""
+                            INSERT INTO pending_bookings 
+                            (unit_id, check_in, check_out, guest_name, guest_contact, 
+                             telegram_chat_id, amount, payment_link, verification_status)
+                            VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
+                                    '{booking_data['guest_name'].replace("'", "''")}', 
+                                    '{booking_data.get('guest_phone', '').replace("'", "''")}',
+                                    {chat_id}, {total_price}, '{payment_link.replace("'", "''")}', 'pending')
                             RETURNING id
                         """)
                         
-                        booking_id = cur.fetchone()[0]
-                        
-                        cur.execute(f"""
-                            INSERT INTO conversation_bookings (conversation_id, booking_id)
-                            VALUES ({conversation_id}, {booking_id})
-                        """)
-                        
+                        pending_id = cur.fetchone()[0]
                         conn.commit()
                         
-                        payment_link = os.environ.get('PAYMENT_LINK', '')
-                        payment_text = f'\n\n💳 Оплатите {int(total_price)} руб. по ссылке:\n{payment_link}\n\nПосле оплаты отправьте скриншот чека для подтверждения.' if payment_link else '\n\nВладелец свяжется с вами для подтверждения и оплаты.'
+                        payment_text = (
+                            f'\n\n💳 Оплатите {int(total_price)} руб.\n'
+                            f'Система: {payment_system.upper()}\n'
+                        )
+                        if recipient_name:
+                            payment_text += f'Получатель: {recipient_name}\n'
+                        if payment_link:
+                            payment_text += f'Ссылка: {payment_link}\n'
+                        
+                        payment_text += '\n📸 После оплаты отправьте скриншот чека — я проверю и подтвержу бронь!'
                         
                         assistant_message = (
-                            f'✅ Бронирование создано!\n\n'
-                            f'📋 Номер брони: {booking_id}\n'
+                            f'✅ Предварительная бронь создана!\n\n'
+                            f'📋 Номер: {pending_id}\n'
                             f'💰 Стоимость: {int(total_price)} руб. за {nights} ночей{payment_text}'
                         )
                     else:

@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import PaymentLinksManager from '@/components/admin/PaymentLinksManager';
+import PendingBookingsManager from '@/components/admin/PendingBookingsManager';
 
 interface User {
   id: number;
@@ -221,6 +223,14 @@ const Admin = () => {
               </p>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mb-8">
+          <PaymentLinksManager />
+        </div>
+
+        <div className="mb-8">
+          <PendingBookingsManager />
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">

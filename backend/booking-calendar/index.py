@@ -38,6 +38,165 @@ def handler(event: dict, context) -> dict:
         query_params = event.get('queryStringParameters') or {}
         action = query_params.get('action', '')
         
+        # GET /get_payment_links - получить платежные ссылки
+        if method == 'GET' and action == 'get_payment_links':
+            cur.execute("""
+                SELECT pl.id, pl.unit_id, u.name, pl.payment_system, 
+                       pl.payment_link, pl.recipient_name
+                FROM payment_links pl
+                JOIN units u ON pl.unit_id = u.id
+                ORDER BY u.id
+            """)
+            
+            links = []
+            for row in cur.fetchall():
+                links.append({
+                    'id': row[0],
+                    'unit_id': row[1],
+                    'unit_name': row[2],
+                    'payment_system': row[3],
+                    'payment_link': row[4],
+                    'recipient_name': row[5]
+                })
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'links': links}),
+                'isBase64Encoded': False
+            }
+        
+        # GET /get_pending_bookings - получить ожидающие брони
+        if method == 'GET' and action == 'get_pending_bookings':
+            cur.execute("""
+                SELECT pb.id, u.name, pb.check_in, pb.check_out, pb.guest_name, 
+                       pb.guest_contact, pb.amount, pb.payment_screenshot_url,
+                       pb.verification_status, pb.verification_notes, pb.created_at
+                FROM pending_bookings pb
+                JOIN units u ON pb.unit_id = u.id
+                WHERE pb.verification_status IN ('pending', 'verified')
+                ORDER BY pb.created_at DESC
+            """)
+            
+            bookings = []
+            for row in cur.fetchall():
+                bookings.append({
+                    'id': row[0],
+                    'unit_name': row[1],
+                    'check_in': row[2].isoformat(),
+                    'check_out': row[3].isoformat(),
+                    'guest_name': row[4],
+                    'guest_contact': row[5],
+                    'amount': float(row[6]),
+                    'payment_screenshot_url': row[7],
+                    'verification_status': row[8],
+                    'verification_notes': row[9],
+                    'created_at': row[10].isoformat()
+                })
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'bookings': bookings}),
+                'isBase64Encoded': False
+            }
+        
+        # POST /approve_booking - подтвердить бронь вручную
+        if method == 'POST' and action == 'approve_booking':
+            body = json.loads(event.get('body', '{}'))
+            booking_id = body.get('booking_id')
+            
+            cur.execute(f"""
+                SELECT unit_id, check_in, check_out, guest_name, guest_contact, amount
+                FROM pending_bookings
+                WHERE id = {booking_id}
+            """)
+            
+            pending = cur.fetchone()
+            if not pending:
+                return {
+                    'statusCode': 404,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Booking not found'}),
+                    'isBase64Encoded': False
+                }
+            
+            unit_id, check_in, check_out, guest_name, guest_contact, amount = pending
+            
+            cur.execute(f"""
+                INSERT INTO bookings 
+                (unit_id, guest_name, guest_phone, check_in, check_out, 
+                 guests_count, total_price, status, source)
+                VALUES ({unit_id}, '{guest_name.replace("'", "''")}', '{guest_contact.replace("'", "''")}',
+                        '{check_in}', '{check_out}', 1, {amount}, 'confirmed', 'telegram')
+                RETURNING id
+            """)
+            
+            new_booking_id = cur.fetchone()[0]
+            
+            cur.execute(f"""
+                UPDATE pending_bookings
+                SET verification_status = 'verified'
+                WHERE id = {booking_id}
+            """)
+            
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'booking_id': new_booking_id, 'message': 'Booking approved'}),
+                'isBase64Encoded': False
+            }
+        
+        # POST /reject_booking - отклонить бронь
+        if method == 'POST' and action == 'reject_booking':
+            body = json.loads(event.get('body', '{}'))
+            booking_id = body.get('booking_id')
+            
+            cur.execute(f"""
+                UPDATE pending_bookings
+                SET verification_status = 'rejected'
+                WHERE id = {booking_id}
+            """)
+            
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Booking rejected'}),
+                'isBase64Encoded': False
+            }
+        
+        # POST /save_payment_link - сохранить платежную ссылку
+        if method == 'POST' and action == 'save_payment_link':
+            body = json.loads(event.get('body', '{}'))
+            unit_id = body.get('unit_id')
+            payment_system = body.get('payment_system', 'sbp')
+            payment_link = body.get('payment_link', '')
+            recipient_name = body.get('recipient_name', '')
+            
+            # Upsert - обновить или создать
+            cur.execute(f"""
+                INSERT INTO payment_links (unit_id, payment_system, payment_link, recipient_name, updated_at)
+                VALUES ({unit_id}, '{payment_system}', '{payment_link.replace("'", "''")}', 
+                        '{recipient_name.replace("'", "''")}', NOW())
+                ON CONFLICT (unit_id, payment_system) 
+                DO UPDATE SET 
+                    payment_link = '{payment_link.replace("'", "''")}',
+                    recipient_name = '{recipient_name.replace("'", "''")}',
+                    updated_at = NOW()
+            """)
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Payment link saved successfully'}),
+                'isBase64Encoded': False
+            }
+        
         # POST /create-unit - создать новый объект
         if method == 'POST' and action == 'create-unit':
             body = json.loads(event.get('body', '{}'))

@@ -225,6 +225,48 @@ const Admin = () => {
           </Card>
         </div>
 
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Icon name="MessageCircle" size={24} />
+              Ссылка на бота для клиентов
+            </CardTitle>
+            <CardDescription>
+              Отправьте эту ссылку клиентам для начала общения в Telegram
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Input 
+                readOnly 
+                value={`https://t.me/TourConnectSupBot?start=${JSON.parse(localStorage.getItem('user') || '{}').id}`}
+                className="font-mono text-sm"
+              />
+              <Button
+                onClick={() => {
+                  const userStr = localStorage.getItem('user');
+                  if (userStr) {
+                    const user = JSON.parse(userStr);
+                    const link = `https://t.me/TourConnectSupBot?start=${user.id}`;
+                    navigator.clipboard.writeText(link);
+                    toast({
+                      title: 'Скопировано!',
+                      description: 'Ссылка скопирована в буфер обмена'
+                    });
+                  }
+                }}
+                className="shrink-0"
+              >
+                <Icon name="Copy" size={20} className="mr-2" />
+                Копировать
+              </Button>
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              Клиенты, перешедшие по этой ссылке, смогут забронировать ваши объекты через бота
+            </p>
+          </CardContent>
+        </Card>
+
         <div className="mb-8">
           <PaymentLinksManager />
         </div>

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Unit } from './UnitsManagement';
 
 export interface Booking {
@@ -33,6 +35,7 @@ export default function CalendarView({
   onDeleteBooking,
   renderBookingButton
 }: CalendarViewProps) {
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const monthNames = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
@@ -90,6 +93,7 @@ export default function CalendarView({
       days.push(
         <div
           key={day}
+          onClick={() => booking && setSelectedBooking(booking)}
           className={`h-16 border border-gray-200 p-2 transition-colors relative group ${
             isBooked 
               ? 'bg-red-100 cursor-pointer hover:bg-red-200' 
@@ -123,54 +127,123 @@ export default function CalendarView({
   if (!selectedUnit) return null;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>{selectedUnit.name}</CardTitle>
-            <CardDescription>Календарь занятости</CardDescription>
-          </div>
-          <div className="flex items-center gap-4">
-            {renderBookingButton}
-            <Button variant="outline" size="sm" onClick={() => onChangeMonth(-1)}>
-              <Icon name="ChevronLeft" size={20} />
-            </Button>
-            <span className="font-semibold text-lg min-w-[200px] text-center">
-              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => onChangeMonth(1)}>
-              <Icon name="ChevronRight" size={20} />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map((day) => (
-            <div key={day} className="text-center font-semibold text-sm text-gray-600 p-2">
-              {day}
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>{selectedUnit.name}</CardTitle>
+              <CardDescription>Календарь занятости • Кликните на занятую дату для просмотра деталей</CardDescription>
             </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {renderCalendar()}
-        </div>
-        
-        <div className="flex gap-4 mt-6 justify-center">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-white border-2 border-gray-200 rounded"></div>
-            <span className="text-sm">Свободно</span>
+            <div className="flex items-center gap-4">
+              {renderBookingButton}
+              <Button variant="outline" size="sm" onClick={() => onChangeMonth(-1)}>
+                <Icon name="ChevronLeft" size={20} />
+              </Button>
+              <span className="font-semibold text-lg min-w-[200px] text-center">
+                {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+              </span>
+              <Button variant="outline" size="sm" onClick={() => onChangeMonth(1)}>
+                <Icon name="ChevronRight" size={20} />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-100 border-2 border-red-200 rounded"></div>
-            <span className="text-sm">Занято</span>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map((day) => (
+              <div key={day} className="text-center font-semibold text-sm text-gray-600 p-2">
+                {day}
+              </div>
+            ))}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-white border-2 border-blue-500 rounded"></div>
-            <span className="text-sm">Сегодня</span>
+          <div className="grid grid-cols-7 gap-1">
+            {renderCalendar()}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+          
+          <div className="flex gap-4 mt-6 justify-center">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-white border-2 border-gray-200 rounded"></div>
+              <span className="text-sm">Свободно</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-100 border-2 border-red-200 rounded"></div>
+              <span className="text-sm">Занято</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-white border-2 border-blue-500 rounded"></div>
+              <span className="text-sm">Сегодня</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Модальное окно с деталями бронирования */}
+      <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Детали бронирования #{selectedBooking?.id}</DialogTitle>
+          </DialogHeader>
+          {selectedBooking && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Объект</p>
+                  <p className="font-semibold">{selectedBooking.unit_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Статус</p>
+                  <Badge variant={selectedBooking.status === 'confirmed' ? 'default' : 'secondary'}>
+                    {selectedBooking.status === 'confirmed' ? 'Подтверждено' : 'Предварительно'}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Заезд</p>
+                  <p className="font-semibold">{new Date(selectedBooking.check_in).toLocaleDateString('ru-RU')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Выезд</p>
+                  <p className="font-semibold">{new Date(selectedBooking.check_out).toLocaleDateString('ru-RU')}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Гость</p>
+                <p className="font-semibold">{selectedBooking.guest_name}</p>
+              </div>
+
+              {selectedBooking.guest_phone && (
+                <div>
+                  <p className="text-sm text-gray-500">Телефон</p>
+                  <p className="font-semibold">{selectedBooking.guest_phone}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm text-gray-500">Стоимость</p>
+                <p className="text-2xl font-bold text-green-600">{selectedBooking.total_price} ₽</p>
+              </div>
+
+              {onDeleteBooking && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    onDeleteBooking(selectedBooking.id);
+                    setSelectedBooking(null);
+                  }}
+                  className="w-full"
+                >
+                  <Icon name="Trash2" size={16} className="mr-2" />
+                  Удалить бронирование
+                </Button>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

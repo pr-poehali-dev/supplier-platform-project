@@ -4,6 +4,7 @@ import psycopg2
 from datetime import datetime, timedelta
 import requests
 import time
+import urllib.parse
 
 
 
@@ -408,6 +409,22 @@ def handler(event: dict, context) -> dict:
                 json_end = assistant_message.rfind('}') + 1
                 booking_data = json.loads(assistant_message[json_start:json_end])
                 
+                # Проверяем, что unit_id существует и принадлежит owner_id
+                cur.execute(f"""
+                    SELECT base_price, name FROM units 
+                    WHERE id = {booking_data['unit_id']} AND created_by = {owner_id}
+                """)
+                unit_row = cur.fetchone()
+                
+                if not unit_row:
+                    print(f"Invalid unit_id: {booking_data['unit_id']} for owner: {owner_id}")
+                    assistant_message = '❌ Объект не найден. Попробуйте выбрать другой вариант.'
+                    raise ValueError('Invalid unit_id')
+                
+                base_price = float(unit_row[0])
+                unit_name = unit_row[1]
+                
+                # Проверяем доступность дат
                 cur.execute(f"""
                     SELECT COUNT(*) FROM bookings
                     WHERE unit_id = {booking_data['unit_id']}
@@ -417,36 +434,31 @@ def handler(event: dict, context) -> dict:
                 """)
                 
                 if cur.fetchone()[0] == 0:
-                    cur.execute(f"SELECT base_price FROM units WHERE id = {booking_data['unit_id']}")
-                    base_price_row = cur.fetchone()
+                    check_in = datetime.strptime(booking_data['check_in'], '%Y-%m-%d').date()
+                    check_out = datetime.strptime(booking_data['check_out'], '%Y-%m-%d').date()
+                    nights = (check_out - check_in).days
+                    total_price = base_price * nights
                     
-                    if base_price_row:
-                        base_price = float(base_price_row[0])
-                        
-                        check_in = datetime.strptime(booking_data['check_in'], '%Y-%m-%d').date()
-                        check_out = datetime.strptime(booking_data['check_out'], '%Y-%m-%d').date()
-                        nights = (check_out - check_in).days
-                        total_price = base_price * nights
-                        
-                        # Получаем платежную ссылку для объекта
-                        cur.execute(f"""
-                            SELECT payment_link, payment_system, recipient_name
-                            FROM payment_links
-                            WHERE unit_id = {booking_data['unit_id']}
-                            LIMIT 1
-                        """)
-                        
-                        payment_row = cur.fetchone()
-                        payment_link_template = payment_row[0] if payment_row else ''
-                        payment_system = payment_row[1] if payment_row else 'sbp'
-                        recipient_name = payment_row[2] if payment_row else ''
-                        
-                        # Генерируем персональную ссылку с суммой
-                        cur.execute(f"SELECT name FROM units WHERE id = {booking_data['unit_id']}")
-                        unit_name = cur.fetchone()[0]
-                        
-                        description = f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
+                    # Получаем платежную ссылку для объекта
+                    cur.execute(f"""
+                        SELECT payment_link, payment_system, recipient_name
+                        FROM payment_links
+                        WHERE unit_id = {booking_data['unit_id']}
+                        LIMIT 1
+                    """)
+                    
+                    payment_row = cur.fetchone()
+                    payment_link_template = payment_row[0] if payment_row else ''
+                    payment_system = payment_row[1] if payment_row else 'sbp'
+                    recipient_name = payment_row[2] if payment_row else ''
+                    
+                    # Генерируем СБП ссылку
+                    description = f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
+                    if payment_link_template:
                         payment_link = payment_link_template.replace('{amount}', str(int(total_price))).replace('{description}', description)
+                    else:
+                        # Если ссылки нет, генерируем стандартную СБП ссылку
+                        payment_link = f"https://qr.nspk.ru/profi/cash.html?sum={int(total_price)}&comment={urllib.parse.quote(description)}"
                         
                         # Создаем pending booking (ждет оплаты)
                         cur.execute(f"""

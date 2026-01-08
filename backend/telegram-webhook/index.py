@@ -79,7 +79,6 @@ def handler(event: dict, context) -> dict:
             file_id = photo[-1]['file_id']
             
             try:
-                import requests
                 import boto3
                 from base64 import b64decode
                 

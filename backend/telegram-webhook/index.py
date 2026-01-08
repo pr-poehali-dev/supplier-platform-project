@@ -381,6 +381,11 @@ def handler(event: dict, context) -> dict:
             
             print(f'OpenAI status: {openai_response.status_code}')
             
+            if openai_response.status_code != 200:
+                print(f'OpenAI error response: {openai_response.text[:500]}')
+                send_telegram_message(chat_id, '❌ Проблема с API ключом OpenAI. Свяжитесь с администратором.')
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
+            
             openai_data = openai_response.json()
             assistant_message = openai_data.get('choices', [{}])[0].get('message', {}).get('content', 'Извините, произошла ошибка. Попробуйте позже.')
         except Exception as e:

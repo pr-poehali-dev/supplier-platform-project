@@ -383,9 +383,13 @@ def handler(event: dict, context) -> dict:
                 timeout=15
             )
             
-            if chatgpt_response.status_code != 200:
+            if chatgpt_response.status_code not in [200, 201]:
                 print(f'Polza.ai error: {chatgpt_response.status_code} - {chatgpt_response.text[:300]}')
-                send_telegram_message(chat_id, 'Извините, сервис временно недоступен. Попробуйте через минуту.')
+                error_data = chatgpt_response.json()
+                if chatgpt_response.status_code == 402:
+                    send_telegram_message(chat_id, '⚠️ Недостаточно средств на балансе Polza.ai. Пополните баланс.')
+                else:
+                    send_telegram_message(chat_id, 'Извините, сервис временно недоступен. Попробуйте через минуту.')
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
             
             chatgpt_data = chatgpt_response.json()

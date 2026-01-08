@@ -5,38 +5,28 @@ from datetime import datetime, timedelta
 import requests
 import time
 
-# Глобальный кэш токена GigaChat
-_gigachat_token_cache = {'token': None, 'expires_at': 0}
+# Глобальный кэш IAM токена
+_yandex_iam_cache = {'token': None, 'expires_at': 0}
 
-def get_gigachat_token(request_id: str) -> str:
-    '''Получает токен GigaChat с кэшированием'''
-    global _gigachat_token_cache
+def get_yandex_iam_token() -> str:
+    '''Получает IAM токен Яндекс с кэшированием'''
+    global _yandex_iam_cache
     
-    # Если токен еще действителен (с запасом 5 минут), возвращаем его
-    if _gigachat_token_cache['token'] and time.time() < _gigachat_token_cache['expires_at'] - 300:
-        return _gigachat_token_cache['token']
+    if _yandex_iam_cache['token'] and time.time() < _yandex_iam_cache['expires_at'] - 300:
+        return _yandex_iam_cache['token']
     
-    # Получаем новый токен
-    auth_response = requests.post(
-        'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
-        headers={
-            'Authorization': f'Basic {os.environ.get("GIGACHAT_API_KEY")}',
-            'RqUID': request_id,
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        data={'scope': 'GIGACHAT_API_PERS'},
-        verify=False,
-        timeout=10
+    iam_response = requests.post(
+        'https://iam.api.cloud.yandex.net/iam/v1/tokens',
+        json={'yandexPassportOauthToken': os.environ.get('YANDEX_GPT_API_KEY')},
+        timeout=5
     )
     
-    token_data = auth_response.json()
-    access_token = token_data['access_token']
-    expires_at = token_data.get('expires_at', 0) / 1000  # конвертируем ms в секунды
+    iam_data = iam_response.json()
+    token = iam_data['iamToken']
+    expires_at = time.time() + 3600
     
-    # Сохраняем в кэш
-    _gigachat_token_cache = {'token': access_token, 'expires_at': expires_at}
-    
-    return access_token
+    _yandex_iam_cache = {'token': token, 'expires_at': expires_at}
+    return token
 
 def handler(event: dict, context) -> dict:
     '''
@@ -391,44 +381,48 @@ def handler(event: dict, context) -> dict:
 
 Текущая дата: {datetime.now().strftime('%Y-%m-%d')}"""
         
-        # Формируем сообщения для GigaChat
-        gigachat_messages = [{'role': 'system', 'content': system_prompt}]
+        # Формируем промпт для YandexGPT
+        full_prompt = system_prompt + '\n\n'
         for msg in messages:
-            gigachat_messages.append({'role': msg['role'], 'content': msg['content']})
+            role = 'Пользователь' if msg['role'] == 'user' else 'Ассистент'
+            full_prompt += f"{role}: {msg['content']}\n"
+        full_prompt += 'Ассистент:'
         
         try:
-            # Получаем токен GigaChat (с упрощённой логикой)
-            access_token = get_gigachat_token(context.request_id)
+            iam_token = get_yandex_iam_token()
             
-            # Запрос к GigaChat с таймаутом
-            gigachat_response = requests.post(
-                'https://gigachat.devices.sberbank.ru/api/v1/chat/completions',
+            yandex_response = requests.post(
+                'https://llm.api.cloud.yandex.net/foundationModels/v1/completion',
                 headers={
-                    'Authorization': f'Bearer {access_token}',
+                    'Authorization': f'Bearer {iam_token}',
                     'Content-Type': 'application/json'
                 },
                 json={
-                    'model': 'GigaChat',
-                    'messages': gigachat_messages,
-                    'temperature': 0.6,
-                    'max_tokens': 800
+                    'modelUri': 'gpt://b1guhkbkdu1nslp18ouu/yandexgpt-lite/latest',
+                    'completionOptions': {
+                        'temperature': 0.6,
+                        'maxTokens': 1000
+                    },
+                    'messages': [
+                        {'role': 'system', 'text': system_prompt},
+                        *[{'role': msg['role'], 'text': msg['content']} for msg in messages]
+                    ]
                 },
-                verify=False,
-                timeout=20
+                timeout=15
             )
             
-            if gigachat_response.status_code != 200:
-                print(f'GigaChat error: {gigachat_response.status_code} - {gigachat_response.text[:300]}')
-                send_telegram_message(chat_id, 'Извините, сервис временно перегружен. Попробуйте через минуту.')
+            if yandex_response.status_code != 200:
+                print(f'YandexGPT error: {yandex_response.status_code} - {yandex_response.text[:300]}')
+                send_telegram_message(chat_id, 'Извините, сервис временно недоступен. Попробуйте через минуту.')
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
             
-            gigachat_data = gigachat_response.json()
-            assistant_message = gigachat_data.get('choices', [{}])[0].get('message', {}).get('content', 'Извините, произошла ошибка. Попробуйте позже.')
+            yandex_data = yandex_response.json()
+            assistant_message = yandex_data['result']['alternatives'][0]['message']['text']
         except requests.Timeout:
-            send_telegram_message(chat_id, 'Извините, ответ занял слишком много времени. Попробуйте задать вопрос проще.')
+            send_telegram_message(chat_id, 'Извините, ответ занял слишком много времени.')
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         except Exception as e:
-            print(f'GigaChat unexpected error: {type(e).__name__}: {str(e)[:200]}')
+            print(f'YandexGPT error: {type(e).__name__}: {str(e)[:200]}')
             send_telegram_message(chat_id, '❌ Сервис временно недоступен. Попробуйте позже.')
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         

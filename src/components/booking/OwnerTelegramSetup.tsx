@@ -19,8 +19,11 @@ export const OwnerTelegramSetup = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d');
       const data = await response.json();
+      console.log('Bot info response:', data);
       if (data.bot_username) {
         setBotUsername(data.bot_username);
+      } else {
+        console.error('No bot_username in response:', data);
       }
     } catch (error) {
       console.error('Failed to load bot info:', error);
@@ -55,7 +58,16 @@ export const OwnerTelegramSetup = () => {
 
   const openBot = () => {
     if (botUsername && userId) {
-      window.open(`https://t.me/${botUsername}?start=owner_${userId}`, '_blank');
+      const url = `https://t.me/${botUsername}?start=owner_${userId}`;
+      console.log('Opening bot URL:', url);
+      window.open(url, '_blank');
+    } else {
+      console.error('Cannot open bot: botUsername=', botUsername, 'userId=', userId);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить информацию о боте. Обновите страницу.',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -93,11 +105,11 @@ export const OwnerTelegramSetup = () => {
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={openBot} className="flex-1">
+          <Button onClick={openBot} className="flex-1" disabled={!botUsername || !userId}>
             <Icon name="Send" size={16} className="mr-2" />
-            Открыть бота
+            {!botUsername ? 'Загрузка...' : 'Открыть бота'}
           </Button>
-          <Button onClick={copyLink} variant="outline">
+          <Button onClick={copyLink} variant="outline" disabled={!botUsername || !userId}>
             <Icon name="Copy" size={16} className="mr-2" />
             Копировать ссылку
           </Button>

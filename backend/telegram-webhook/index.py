@@ -248,13 +248,27 @@ def handler(event: dict, context) -> dict:
                 if param.startswith('owner_'):
                     owner_id = int(param.replace('owner_', ''))
                     
-                    # Сохраняем chat_id владельца в conversations
+                    # Проверяем, есть ли уже запись для этого chat_id
                     cur.execute(f"""
-                        INSERT INTO conversations (user_id, channel, channel_user_id, status)
-                        VALUES ({owner_id}, 'telegram', '{chat_id}', 'owner')
-                        ON CONFLICT (channel, channel_user_id) 
-                        DO UPDATE SET user_id = {owner_id}, status = 'owner'
+                        SELECT id FROM conversations
+                        WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
                     """)
+                    existing = cur.fetchone()
+                    
+                    if existing:
+                        # Обновляем существующую запись
+                        cur.execute(f"""
+                            UPDATE conversations
+                            SET user_id = {owner_id}, status = 'owner'
+                            WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
+                        """)
+                    else:
+                        # Создаем новую запись
+                        cur.execute(f"""
+                            INSERT INTO conversations (user_id, channel, channel_user_id, status)
+                            VALUES ({owner_id}, 'telegram', '{chat_id}', 'owner')
+                        """)
+                    
                     conn.commit()
                     cur.close()
                     conn.close()
@@ -281,14 +295,28 @@ def handler(event: dict, context) -> dict:
                     send_telegram_message(chat_id, '❌ Неверная ссылка. Свяжитесь с владельцем турбазы.')
                     return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
                 
+                # Проверяем существующую беседу
                 cur.execute(f"""
-                    INSERT INTO conversations (user_id, channel, channel_user_id, status)
-                    VALUES ({owner_id}, 'telegram', '{chat_id}', 'active')
-                    ON CONFLICT (channel, channel_user_id) 
-                    DO UPDATE SET user_id = {owner_id}
-                    RETURNING id
+                    SELECT id FROM conversations
+                    WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
                 """)
-                conversation_id = cur.fetchone()[0]
+                existing_conv = cur.fetchone()
+                
+                if existing_conv:
+                    conversation_id = existing_conv[0]
+                    cur.execute(f"""
+                        UPDATE conversations
+                        SET user_id = {owner_id}, status = 'active'
+                        WHERE id = {conversation_id}
+                    """)
+                else:
+                    cur.execute(f"""
+                        INSERT INTO conversations (user_id, channel, channel_user_id, status)
+                        VALUES ({owner_id}, 'telegram', '{chat_id}', 'active')
+                        RETURNING id
+                    """)
+                    conversation_id = cur.fetchone()[0]
+                
                 conn.commit()
                 
                 send_telegram_message(

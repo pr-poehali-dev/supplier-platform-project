@@ -38,7 +38,63 @@ def handler(event: dict, context) -> dict:
         query_params = event.get('queryStringParameters') or {}
         action = query_params.get('action', '')
         
-        # POST /ai-chat - чат с AI-менеджером
+        # POST /create-unit - создать новый объект
+        if method == 'POST' and action == 'create-unit':
+            body = json.loads(event.get('body', '{}'))
+            name = body.get('name', '')
+            unit_type = body.get('type', 'house')
+            description = body.get('description', '')
+            base_price = float(body.get('base_price', 0))
+            max_guests = int(body.get('max_guests', 2))
+            
+            cur.execute(f"""
+                INSERT INTO units (name, type, description, base_price, max_guests)
+                VALUES ('{name.replace("'", "''")}', '{unit_type}', '{description.replace("'", "''")}', {base_price}, {max_guests})
+                RETURNING id
+            """)
+            unit_id = cur.fetchone()[0]
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'id': unit_id, 'message': 'Unit created successfully'}),
+                'isBase64Encoded': False
+            }
+        
+        # GET /bookings - получить все бронирования
+        if method == 'GET' and action == 'bookings':
+            cur.execute("""
+                SELECT b.id, b.unit_id, u.name, b.check_in, b.check_out, 
+                       b.guest_name, b.guest_phone, b.total_price, b.status
+                FROM bookings b
+                JOIN units u ON b.unit_id = u.id
+                WHERE b.status != 'cancelled'
+                ORDER BY b.check_in DESC
+            """)
+            
+            bookings = []
+            for row in cur.fetchall():
+                bookings.append({
+                    'id': row[0],
+                    'unit_id': row[1],
+                    'unit_name': row[2],
+                    'check_in': row[3].isoformat(),
+                    'check_out': row[4].isoformat(),
+                    'guest_name': row[5],
+                    'guest_phone': row[6],
+                    'total_price': float(row[7]),
+                    'status': row[8]
+                })
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'bookings': bookings}),
+                'isBase64Encoded': False
+            }
+        
+        # POST /ai-chat - чат с AI-менеджером (для Telegram/WhatsApp)
         if method == 'POST' and action == 'ai-chat':
             if not OPENAI_AVAILABLE:
                 return {

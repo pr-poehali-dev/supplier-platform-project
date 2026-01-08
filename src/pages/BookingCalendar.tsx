@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 
@@ -17,27 +18,37 @@ interface Unit {
   max_guests: number;
 }
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
+interface Booking {
+  id: number;
+  unit_id: number;
+  unit_name: string;
+  check_in: string;
+  check_out: string;
+  guest_name: string;
+  guest_phone: string;
+  total_price: number;
+  status: string;
 }
 
 export default function BookingCalendar() {
   const [units, setUnits] = useState<Unit[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
-  const [availability, setAvailability] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-
-  // AI Chat
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [conversationId, setConversationId] = useState<number | null>(null);
-  const [chatLoading, setChatLoading] = useState(false);
+  
+  // Форма добавления объекта
+  const [showAddUnit, setShowAddUnit] = useState(false);
+  const [newUnit, setNewUnit] = useState({
+    name: '',
+    type: 'house',
+    description: '',
+    base_price: '',
+    max_guests: ''
+  });
 
   useEffect(() => {
     loadUnits();
+    loadBookings();
   }, []);
 
   const loadUnits = async () => {
@@ -45,69 +56,109 @@ export default function BookingCalendar() {
       const response = await fetch(`${API_URL}?action=units`);
       const data = await response.json();
       setUnits(data.units || []);
+      if (data.units?.length > 0 && !selectedUnit) {
+        setSelectedUnit(data.units[0]);
+      }
     } catch (error) {
       console.error('Error loading units:', error);
     }
   };
 
-  const checkAvailability = async () => {
-    if (!selectedUnit || !checkIn || !checkOut) return;
-
-    setLoading(true);
+  const loadBookings = async () => {
     try {
-      const response = await fetch(
-        `${API_URL}?action=availability&unit_id=${selectedUnit.id}&check_in=${checkIn}&check_out=${checkOut}`
-      );
+      const response = await fetch(`${API_URL}?action=bookings`);
       const data = await response.json();
-      setAvailability(data);
+      setBookings(data.bookings || []);
     } catch (error) {
-      console.error('Error checking availability:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error loading bookings:', error);
     }
   };
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim()) return;
-
-    const userMessage: Message = { role: 'user', content: inputMessage };
-    setMessages([...messages, userMessage]);
-    setInputMessage('');
-    setChatLoading(true);
-
+  const addUnit = async () => {
     try {
-      const response = await fetch(`${API_URL}?action=ai-chat`, {
+      const response = await fetch(`${API_URL}?action=create-unit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: inputMessage,
-          conversation_id: conversationId
-        })
+        body: JSON.stringify(newUnit)
       });
-
-      const data = await response.json();
-
-      if (data.conversation_id && !conversationId) {
-        setConversationId(data.conversation_id);
-      }
-
-      const assistantMessage: Message = { role: 'assistant', content: data.message };
-      setMessages([...messages, userMessage, assistantMessage]);
-
-      if (data.booking_created) {
+      
+      if (response.ok) {
+        setShowAddUnit(false);
+        setNewUnit({ name: '', type: 'house', description: '', base_price: '', max_guests: '' });
         loadUnits();
       }
     } catch (error) {
-      console.error('Error sending message:', error);
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: 'Произошла ошибка. Попробуйте ещё раз.'
-      };
-      setMessages([...messages, userMessage, errorMessage]);
-    } finally {
-      setChatLoading(false);
+      console.error('Error adding unit:', error);
     }
   };
+
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    return { daysInMonth, startingDayOfWeek, year, month };
+  };
+
+  const isDateBooked = (day: number) => {
+    if (!selectedUnit) return false;
+    
+    const { year, month } = getDaysInMonth(currentDate);
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    return bookings.some(booking => {
+      if (booking.unit_id !== selectedUnit.id) return false;
+      return dateStr >= booking.check_in && dateStr < booking.check_out;
+    });
+  };
+
+  const renderCalendar = () => {
+    const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
+    const days = [];
+    
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(<div key={`empty-${i}`} className="h-16 border border-gray-100"></div>);
+    }
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const isBooked = isDateBooked(day);
+      const isToday = new Date().getDate() === day && 
+                      new Date().getMonth() === currentDate.getMonth() &&
+                      new Date().getFullYear() === currentDate.getFullYear();
+      
+      days.push(
+        <div
+          key={day}
+          className={`h-16 border border-gray-200 p-2 transition-colors ${
+            isBooked 
+              ? 'bg-red-100 cursor-not-allowed' 
+              : 'bg-white hover:bg-blue-50 cursor-pointer'
+          } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
+        >
+          <div className="text-sm font-semibold">{day}</div>
+          {isBooked && (
+            <Badge variant="destructive" className="text-xs mt-1">
+              Занято
+            </Badge>
+          )}
+        </div>
+      );
+    }
+    
+    return days;
+  };
+
+  const changeMonth = (delta: number) => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1));
+  };
+
+  const monthNames = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
@@ -115,193 +166,194 @@ export default function BookingCalendar() {
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             <Icon name="Calendar" className="inline-block mr-2" size={36} />
-            TourConnect - Система бронирования
+            Календарь бронирования
           </h1>
           <p className="text-gray-600">
-            Календарь с AI-менеджером для турбаз и гостевых домов
+            Управляйте бронированиями для турбаз и гостевых домов
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Левая колонка - Календарь и проверка доступности */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Доступные объекты</CardTitle>
-                <CardDescription>Выберите домик или баню для бронирования</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {units.map((unit) => (
-                  <div
-                    key={unit.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                      selectedUnit?.id === unit.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setSelectedUnit(unit)}
-                  >
-                    <div className="flex justify-between items-start">
+        {/* Выбор объекта */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex justify-between items-center">
+              <span>Объекты для бронирования</span>
+              <Dialog open={showAddUnit} onOpenChange={setShowAddUnit}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Icon name="Plus" className="mr-2" size={16} />
+                    Добавить объект
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Добавить новый объект</DialogTitle>
+                    <DialogDescription>
+                      Создайте новый номер или домик для бронирования
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label htmlFor="unitName">Название</Label>
+                      <Input
+                        id="unitName"
+                        placeholder="Домик №1"
+                        value={newUnit.name}
+                        onChange={(e) => setNewUnit({...newUnit, name: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="unitType">Тип</Label>
+                      <select
+                        id="unitType"
+                        className="w-full p-2 border rounded-md"
+                        value={newUnit.type}
+                        onChange={(e) => setNewUnit({...newUnit, type: e.target.value})}
+                      >
+                        <option value="house">Домик</option>
+                        <option value="room">Номер</option>
+                        <option value="bathhouse">Баня</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="unitDescription">Описание</Label>
+                      <Input
+                        id="unitDescription"
+                        placeholder="2 спальни, кухня, терраса"
+                        value={newUnit.description}
+                        onChange={(e) => setNewUnit({...newUnit, description: e.target.value})}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <h3 className="font-semibold text-lg">{unit.name}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{unit.description}</p>
-                        <div className="flex gap-4 mt-2 text-sm">
-                          <span className="flex items-center gap-1">
-                            <Icon name="Users" size={16} />
-                            До {unit.max_guests} гостей
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Icon name="Home" size={16} />
-                            {unit.type === 'house' ? 'Домик' : 'Баня'}
-                          </span>
-                        </div>
+                        <Label htmlFor="unitPrice">Цена за ночь</Label>
+                        <Input
+                          id="unitPrice"
+                          type="number"
+                          placeholder="5000"
+                          value={newUnit.base_price}
+                          onChange={(e) => setNewUnit({...newUnit, base_price: e.target.value})}
+                        />
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-blue-600">
-                          {unit.base_price.toLocaleString()} ₽
-                        </p>
-                        <p className="text-xs text-gray-500">за ночь</p>
+                      <div>
+                        <Label htmlFor="unitGuests">Макс. гостей</Label>
+                        <Input
+                          id="unitGuests"
+                          type="number"
+                          placeholder="4"
+                          value={newUnit.max_guests}
+                          onChange={(e) => setNewUnit({...newUnit, max_guests: e.target.value})}
+                        />
                       </div>
                     </div>
+                    <Button onClick={addUnit} className="w-full">
+                      Создать объект
+                    </Button>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Проверка доступности</CardTitle>
-                <CardDescription>Выберите даты для бронирования</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="checkIn">Заезд</Label>
-                    <Input
-                      id="checkIn"
-                      type="date"
-                      value={checkIn}
-                      onChange={(e) => setCheckIn(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="checkOut">Выезд</Label>
-                    <Input
-                      id="checkOut"
-                      type="date"
-                      value={checkOut}
-                      onChange={(e) => setCheckOut(e.target.value)}
-                      min={checkIn || new Date().toISOString().split('T')[0]}
-                    />
+                </DialogContent>
+              </Dialog>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {units.map((unit) => (
+                <div
+                  key={unit.id}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    selectedUnit?.id === unit.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setSelectedUnit(unit)}
+                >
+                  <h3 className="font-semibold text-lg">{unit.name}</h3>
+                  <p className="text-sm text-gray-600 mt-1">{unit.description}</p>
+                  <div className="flex justify-between items-center mt-3">
+                    <span className="flex items-center gap-1 text-sm">
+                      <Icon name="Users" size={14} />
+                      До {unit.max_guests} гостей
+                    </span>
+                    <span className="font-bold text-blue-600">
+                      {unit.base_price.toLocaleString()} ₽
+                    </span>
                   </div>
                 </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-                <Button
-                  onClick={checkAvailability}
-                  disabled={!selectedUnit || !checkIn || !checkOut || loading}
-                  className="w-full"
-                >
-                  {loading ? 'Проверка...' : 'Проверить доступность'}
-                </Button>
-
-                {availability && (
-                  <div
-                    className={`p-4 rounded-lg ${
-                      availability.available
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-red-50 border border-red-200'
-                    }`}
-                  >
-                    {availability.available ? (
-                      <>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Icon name="CheckCircle" className="text-green-600" size={24} />
-                          <h4 className="font-semibold text-green-900">Доступно для бронирования</h4>
-                        </div>
-                        <p className="text-green-800">
-                          <strong>{availability.nights}</strong> ночей
-                        </p>
-                        <p className="text-2xl font-bold text-green-900 mt-2">
-                          {availability.total_price.toLocaleString()} ₽
-                        </p>
-                      </>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Icon name="XCircle" className="text-red-600" size={24} />
-                        <h4 className="font-semibold text-red-900">Даты заняты</h4>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Правая колонка - AI Чат */}
-          <Card className="flex flex-col h-[700px]">
+        {/* Календарь */}
+        {selectedUnit && (
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Icon name="Bot" size={24} />
-                AI-Менеджер бронирования
-              </CardTitle>
-              <CardDescription>
-                Задайте вопросы или забронируйте объект через чат
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>{selectedUnit.name}</CardTitle>
+                  <CardDescription>Календарь занятости</CardDescription>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Button variant="outline" size="sm" onClick={() => changeMonth(-1)}>
+                    <Icon name="ChevronLeft" size={20} />
+                  </Button>
+                  <span className="font-semibold text-lg min-w-[200px] text-center">
+                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => changeMonth(1)}>
+                    <Icon name="ChevronRight" size={20} />
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-y-auto mb-4 space-y-4 border rounded-lg p-4 bg-gray-50">
-                {messages.length === 0 && (
-                  <div className="text-center text-gray-500 py-12">
-                    <Icon name="MessageCircle" size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>Начните диалог с AI-менеджером</p>
-                    <p className="text-sm mt-2">Например: "Хочу забронировать домик на выходные"</p>
-                  </div>
-                )}
-                {messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] p-3 rounded-lg ${
-                        msg.role === 'user'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-white border border-gray-200'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
-                    </div>
+            <CardContent>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map((day) => (
+                  <div key={day} className="text-center font-semibold text-sm text-gray-600 p-2">
+                    {day}
                   </div>
                 ))}
-                {chatLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-white border border-gray-200 p-3 rounded-lg">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
-
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Напишите сообщение..."
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !chatLoading && sendMessage()}
-                  disabled={chatLoading}
-                />
-                <Button onClick={sendMessage} disabled={chatLoading || !inputMessage.trim()}>
-                  <Icon name="Send" size={20} />
-                </Button>
+              <div className="grid grid-cols-7 gap-1">
+                {renderCalendar()}
+              </div>
+              
+              <div className="flex gap-4 mt-6 justify-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-white border-2 border-gray-200 rounded"></div>
+                  <span className="text-sm">Свободно</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-100 border-2 border-red-200 rounded"></div>
+                  <span className="text-sm">Занято</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-white border-2 border-blue-500 rounded"></div>
+                  <span className="text-sm">Сегодня</span>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </div>
+        )}
+
+        {/* Информация о Telegram боте */}
+        <Card className="mt-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <Icon name="MessageCircle" size={48} className="flex-shrink-0" />
+              <div>
+                <h3 className="text-xl font-bold mb-2">AI-менеджер в Telegram</h3>
+                <p className="text-blue-100 mb-4">
+                  Клиенты могут бронировать номера через чат-бота в Telegram или WhatsApp. 
+                  AI-ассистент проверит доступность, рассчитает цену и создаст бронирование автоматически.
+                </p>
+                <Badge className="bg-white text-blue-600">
+                  <Icon name="Sparkles" className="mr-1" size={14} />
+                  Скоро доступно
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

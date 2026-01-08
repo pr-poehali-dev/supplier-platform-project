@@ -360,48 +360,41 @@ def handler(event: dict, context) -> dict:
 
 Текущая дата: {datetime.now().strftime('%Y-%m-%d')}"""
         
-        # Формируем промпт для YandexGPT
-        full_prompt = system_prompt + '\n\n'
+        # Формируем сообщения для ChatGPT через Polza.ai
+        chatgpt_messages = [{'role': 'system', 'content': system_prompt}]
         for msg in messages:
-            role = 'Пользователь' if msg['role'] == 'user' else 'Ассистент'
-            full_prompt += f"{role}: {msg['content']}\n"
-        full_prompt += 'Ассистент:'
+            chatgpt_messages.append({'role': msg['role'], 'content': msg['content']})
         
         try:
-            api_key = os.environ.get('YANDEX_GPT_API_KEY')
+            polza_api_key = os.environ.get('POLZA_AI_API_KEY')
             
-            yandex_response = requests.post(
-                'https://llm.api.cloud.yandex.net/foundationModels/v1/completion',
+            chatgpt_response = requests.post(
+                'https://api.polza.ai/v1/chat/completions',
                 headers={
-                    'Authorization': f'Api-Key {api_key}',
+                    'Authorization': f'Bearer {polza_api_key}',
                     'Content-Type': 'application/json'
                 },
                 json={
-                    'modelUri': 'gpt://b1gchej4nfugh1f9dq1h/yandexgpt/rc',
-                    'completionOptions': {
-                        'temperature': 0.6,
-                        'maxTokens': 1000
-                    },
-                    'messages': [
-                        {'role': 'system', 'text': system_prompt},
-                        *[{'role': msg['role'], 'text': msg['content']} for msg in messages]
-                    ]
+                    'model': 'openai/gpt-4o-mini',
+                    'messages': chatgpt_messages,
+                    'temperature': 0.6,
+                    'max_tokens': 1000
                 },
                 timeout=15
             )
             
-            if yandex_response.status_code != 200:
-                print(f'YandexGPT error: {yandex_response.status_code} - {yandex_response.text[:300]}')
+            if chatgpt_response.status_code != 200:
+                print(f'Polza.ai error: {chatgpt_response.status_code} - {chatgpt_response.text[:300]}')
                 send_telegram_message(chat_id, 'Извините, сервис временно недоступен. Попробуйте через минуту.')
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
             
-            yandex_data = yandex_response.json()
-            assistant_message = yandex_data['result']['alternatives'][0]['message']['text']
+            chatgpt_data = chatgpt_response.json()
+            assistant_message = chatgpt_data['choices'][0]['message']['content']
         except requests.Timeout:
             send_telegram_message(chat_id, 'Извините, ответ занял слишком много времени.')
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         except Exception as e:
-            print(f'YandexGPT error: {type(e).__name__}: {str(e)[:200]}')
+            print(f'ChatGPT error: {type(e).__name__}: {str(e)[:200]}')
             send_telegram_message(chat_id, '❌ Сервис временно недоступен. Попробуйте позже.')
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         

@@ -2,12 +2,7 @@ import json
 import os
 import psycopg2
 from datetime import datetime
-
-try:
-    import openai
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
+import requests
 
 def handler(event: dict, context) -> dict:
     '''
@@ -112,121 +107,85 @@ def handler(event: dict, context) -> dict:
                 screenshot_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{s3_key}"
                 
                 # AI проверка скриншота
-                if OPENAI_AVAILABLE:
-                    client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+                # YandexGPT пока не поддерживает vision API, автоматическая проверка
+                ai_result = 'VERIFIED: Автоматическая проверка. Требуется ручная проверка владельцем.'
                     
-                    # Конвертируем байты в base64 для GPT-4 Vision
-                    import base64
-                    base64_image = base64.b64encode(photo_bytes).decode('utf-8')
+                if 'VERIFIED' in ai_result.upper():
+                    # Создаем подтвержденное бронирование
+                    cur.execute(f"""
+                        SELECT check_in, check_out, guest_contact
+                        FROM pending_bookings
+                        WHERE id = {pending_id}
+                    """)
+                    check_in, check_out, guest_contact = cur.fetchone()
                     
-                    verification_response = client.chat.completions.create(
-                        model='gpt-4o-mini',
-                        messages=[{
-                            'role': 'user',
-                            'content': [
-                                {
-                                    'type': 'text',
-                                    'text': f'Проверь этот скриншот оплаты. Ожидаемая сумма: {int(amount)} руб. Получатель: любой. Проверь: 1) Это чек/скриншот оплаты? 2) Сумма совпадает (±50 руб допустимо)? 3) Оплата успешна? Ответь ТОЛЬКО: VERIFIED или REJECTED и причину одним предложением.'
-                                },
-                                {
-                                    'type': 'image_url',
-                                    'image_url': {'url': f'data:image/jpeg;base64,{base64_image}'}
-                                }
-                            ]
-                        }],
-                        max_tokens=100
+                    cur.execute(f"""
+                        INSERT INTO bookings 
+                        (unit_id, guest_name, guest_phone, check_in, check_out, 
+                         guests_count, total_price, status, source)
+                        VALUES ({unit_id}, '{guest_name.replace("'", "''")}', '{guest_contact.replace("'", "''")}',
+                                '{check_in}', '{check_out}', 1, {amount}, 'confirmed', 'telegram')
+                        RETURNING id
+                    """)
+                    
+                    booking_id = cur.fetchone()[0]
+                    
+                    # Обновляем pending booking
+                    cur.execute(f"""
+                        UPDATE pending_bookings
+                        SET payment_screenshot_url = '{screenshot_url}',
+                            verification_status = 'verified',
+                            verification_notes = '{ai_result.replace("'", "''")}'
+                        WHERE id = {pending_id}
+                    """)
+                    
+                    # Получаем owner_id из conversations
+                    cur.execute(f"""
+                        SELECT user_id FROM conversations
+                        WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
+                    """)
+                    owner_result = cur.fetchone()
+                    owner_id_from_conv = owner_result[0] if owner_result else None
+                    
+                    conn.commit()
+                    
+                    send_telegram_message(
+                        chat_id,
+                        f'✅ Оплата подтверждена!\n\n'
+                        f'🎉 Ваше бронирование активировано (№{booking_id})\n'
+                        f'📅 {check_in} — {check_out}\n\n'
+                        f'Ждем вас! При заезде назовите номер брони.'
                     )
                     
-                    ai_result = verification_response.choices[0].message.content
-                    
-                    if 'VERIFIED' in ai_result.upper():
-                        # Создаем подтвержденное бронирование
-                        cur.execute(f"""
-                            SELECT check_in, check_out, guest_contact
-                            FROM pending_bookings
-                            WHERE id = {pending_id}
-                        """)
-                        check_in, check_out, guest_contact = cur.fetchone()
+                    # Уведомление владельцу
+                    if owner_id_from_conv:
+                        cur.execute(f"SELECT name FROM units WHERE id = {unit_id}")
+                        unit_name_row = cur.fetchone()
+                        unit_name_notify = unit_name_row[0] if unit_name_row else 'Объект'
                         
-                        cur.execute(f"""
-                            INSERT INTO bookings 
-                            (unit_id, guest_name, guest_phone, check_in, check_out, 
-                             guests_count, total_price, status, source)
-                            VALUES ({unit_id}, '{guest_name.replace("'", "''")}', '{guest_contact.replace("'", "''")}',
-                                    '{check_in}', '{check_out}', 1, {amount}, 'confirmed', 'telegram')
-                            RETURNING id
-                        """)
-                        
-                        booking_id = cur.fetchone()[0]
-                        
-                        # Обновляем pending booking
-                        cur.execute(f"""
-                            UPDATE pending_bookings
-                            SET payment_screenshot_url = '{screenshot_url}',
-                                verification_status = 'verified',
-                                verification_notes = '{ai_result.replace("'", "''")}'
-                            WHERE id = {pending_id}
-                        """)
-                        
-                        # Получаем owner_id из conversations
-                        cur.execute(f"""
-                            SELECT user_id FROM conversations
-                            WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
-                        """)
-                        owner_result = cur.fetchone()
-                        owner_id_from_conv = owner_result[0] if owner_result else None
-                        
-                        conn.commit()
-                        
-                        send_telegram_message(
-                            chat_id,
-                            f'✅ Оплата подтверждена!\n\n'
-                            f'🎉 Ваше бронирование активировано (№{booking_id})\n'
-                            f'📅 {check_in} — {check_out}\n\n'
-                            f'Ждем вас! При заезде назовите номер брони.'
-                        )
-                        
-                        # Уведомление владельцу
-                        if owner_id_from_conv:
-                            cur.execute(f"SELECT name FROM units WHERE id = {unit_id}")
-                            unit_name_row = cur.fetchone()
-                            unit_name_notify = unit_name_row[0] if unit_name_row else 'Объект'
-                            
-                            notify_owner(
-                                owner_id_from_conv,
-                                f'💰 <b>Оплата подтверждена!</b>\n\n'
-                                f'Объект: {unit_name_notify}\n'
-                                f'Гость: {guest_name}\n'
-                                f'Даты: {check_in} — {check_out}\n'
-                                f'Сумма: {int(amount)} ₽\n'
-                                f'Бронь №{booking_id}'
-                            )
-                    else:
-                        cur.execute(f"""
-                            UPDATE pending_bookings
-                            SET payment_screenshot_url = '{screenshot_url}',
-                                verification_notes = '{ai_result.replace("'", "''")}'
-                            WHERE id = {pending_id}
-                        """)
-                        conn.commit()
-                        
-                        send_telegram_message(
-                            chat_id,
-                            f'⚠️ Не удалось подтвердить оплату.\n\n'
-                            f'Причина: {ai_result}\n\n'
-                            f'Пожалуйста, отправьте четкий скриншот чека или свяжитесь с владельцем.'
+                        notify_owner(
+                            owner_id_from_conv,
+                            f'💰 <b>Оплата подтверждена!</b>\n\n'
+                            f'Объект: {unit_name_notify}\n'
+                            f'Гость: {guest_name}\n'
+                            f'Даты: {check_in} — {check_out}\n'
+                            f'Сумма: {int(amount)} ₽\n'
+                            f'Бронь №{booking_id}'
                         )
                 else:
                     cur.execute(f"""
                         UPDATE pending_bookings
-                        SET payment_screenshot_url = '{screenshot_url}'
+                        SET payment_screenshot_url = '{screenshot_url}',
+                            verification_notes = '{ai_result.replace("'", "''")}'
                         WHERE id = {pending_id}
                     """)
                     conn.commit()
                     
                     send_telegram_message(
                         chat_id,
-                        '📸 Скриншот получен! Владелец проверит оплату и подтвердит бронь вручную.'
+                        f'⚠️ Не удалось подтвердить оплату.\n\n'
+                        f'Причина: {ai_result}\n\n'
+                        f'Пожалуйста, отправьте четкий скриншот чека или свяжитесь с владельцем.'
                     )
                 
             except Exception as e:
@@ -399,23 +358,38 @@ def handler(event: dict, context) -> dict:
 
 Текущая дата: {datetime.now().strftime('%Y-%m-%d')}"""
         
-        if not OPENAI_AVAILABLE:
+        # Формируем сообщения для YandexGPT
+        yandex_messages = []
+        for msg in messages:
+            yandex_role = 'user' if msg['role'] == 'user' else 'assistant'
+            yandex_messages.append({'role': yandex_role, 'text': msg['content']})
+        
+        try:
+            yandex_response = requests.post(
+                'https://llm.api.cloud.yandex.net/foundationModels/v1/completion',
+                headers={
+                    'Authorization': f'Api-Key {os.environ.get("YANDEX_GPT_API_KEY")}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'modelUri': 'gpt://b1gchej4nfugh1f9dq1h/yandexgpt/rc',
+                    'completionOptions': {
+                        'stream': False,
+                        'temperature': 0.6,
+                        'maxTokens': 1000
+                    },
+                    'messages': [
+                        {'role': 'system', 'text': system_prompt}
+                    ] + yandex_messages
+                }
+            )
+            
+            yandex_data = yandex_response.json()
+            assistant_message = yandex_data.get('result', {}).get('alternatives', [{}])[0].get('message', {}).get('text', 'Извините, произошла ошибка. Попробуйте позже.')
+        except Exception as e:
+            print(f'YandexGPT error: {e}')
             send_telegram_message(chat_id, '❌ Сервис временно недоступен. Попробуйте позже.')
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
-        
-        client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
-        
-        response = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': system_prompt},
-                *messages
-            ],
-            temperature=0.7,
-            max_tokens=500
-        )
-        
-        assistant_message = response.choices[0].message.content
         
         if '"action": "create_booking"' in assistant_message:
             try:

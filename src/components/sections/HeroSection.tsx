@@ -118,22 +118,22 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/diagnostics')}>
+          <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/booking-calendar')}>
             <div className="h-3 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
             <CardContent className="pt-8">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Icon name="Target" className="text-white" size={32} />
+                <Icon name="Calendar" className="text-white" size={32} />
               </div>
               <Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">
-                ✨ Бесплатно
+                🤖 AI-менеджер
               </Badge>
-              <h3 className="text-2xl font-bold font-heading mb-3">Диагностика бизнеса</h3>
+              <h3 className="text-2xl font-bold font-heading mb-3">Календарь бронирования</h3>
               <p className="text-gray-600 mb-4">
-                Найдите точки роста и риски вашего проекта за 10 минут
+                Система бронирования с AI-помощником для турбаз и отелей
               </p>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="text-xs">Анализ 6 блоков</Badge>
-                <Badge variant="outline" className="text-xs">Рекомендации</Badge>
+                <Badge variant="outline" className="text-xs">AI-ассистент</Badge>
+                <Badge variant="outline" className="text-xs">Автобронирование</Badge>
               </div>
             </CardContent>
           </Card>

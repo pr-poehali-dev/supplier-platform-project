@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Get units list",
+      "method": "GET",
+      "path": "/?action=units",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Check availability",
+      "method": "GET",
+      "path": "/?action=availability&unit_id=1&check_in=2026-02-15&check_out=2026-02-17",
+      "expectedStatus": 200
+    }
+  ]
+}

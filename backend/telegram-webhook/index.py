@@ -383,10 +383,13 @@ def handler(event: dict, context) -> dict:
                 }
             )
             
+            print(f'YandexGPT status: {yandex_response.status_code}')
+            print(f'YandexGPT response: {yandex_response.text[:500]}')
+            
             yandex_data = yandex_response.json()
             assistant_message = yandex_data.get('result', {}).get('alternatives', [{}])[0].get('message', {}).get('text', 'Извините, произошла ошибка. Попробуйте позже.')
         except Exception as e:
-            print(f'YandexGPT error: {e}')
+            print(f'YandexGPT error: {type(e).__name__}: {str(e)[:200]}')
             send_telegram_message(chat_id, '❌ Сервис временно недоступен. Попробуйте позже.')
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         

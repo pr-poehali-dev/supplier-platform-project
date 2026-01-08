@@ -62,6 +62,96 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
+        # DELETE /delete-unit - удалить объект
+        if method == 'DELETE' and action == 'delete-unit':
+            unit_id = query_params.get('unit_id')
+            if not unit_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'unit_id is required'}),
+                    'isBase64Encoded': False
+                }
+            
+            cur.execute(f"DELETE FROM bookings WHERE unit_id = {unit_id}")
+            cur.execute(f"DELETE FROM units WHERE id = {unit_id}")
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Unit deleted successfully'}),
+                'isBase64Encoded': False
+            }
+        
+        # POST /create-booking - создать бронирование вручную
+        if method == 'POST' and action == 'create-booking':
+            body = json.loads(event.get('body', '{}'))
+            unit_id = body.get('unit_id')
+            check_in = body.get('check_in')
+            check_out = body.get('check_out')
+            guest_name = body.get('guest_name', '')
+            guest_phone = body.get('guest_phone', '')
+            
+            if not all([unit_id, check_in, check_out, guest_name]):
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Missing required fields'}),
+                    'isBase64Encoded': False
+                }
+            
+            # Проверяем доступность
+            cur.execute(f"""
+                SELECT COUNT(*) FROM bookings
+                WHERE unit_id = {unit_id}
+                AND status IN ('tentative', 'confirmed')
+                AND check_in < '{check_out}'
+                AND check_out > '{check_in}'
+            """)
+            
+            if cur.fetchone()[0] > 0:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Dates are already booked'}),
+                    'isBase64Encoded': False
+                }
+            
+            # Получаем цену и рассчитываем стоимость
+            cur.execute(f"SELECT base_price FROM units WHERE id = {unit_id}")
+            base_price = float(cur.fetchone()[0])
+            
+            check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
+            check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
+            nights = (check_out_date - check_in_date).days
+            total_price = base_price * nights
+            
+            # Создаём бронирование
+            cur.execute(f"""
+                INSERT INTO bookings 
+                (unit_id, guest_name, guest_phone, check_in, check_out, 
+                 guests_count, total_price, status, source)
+                VALUES ({unit_id}, '{guest_name.replace("'", "''")}', '{guest_phone.replace("'", "''")}', 
+                        '{check_in}', '{check_out}', 1, {total_price}, 'confirmed', 'manual')
+                RETURNING id
+            """)
+            
+            booking_id = cur.fetchone()[0]
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({
+                    'id': booking_id,
+                    'total_price': total_price,
+                    'nights': nights,
+                    'message': 'Booking created successfully'
+                }),
+                'isBase64Encoded': False
+            }
+        
         # GET /bookings - получить все бронирования
         if method == 'GET' and action == 'bookings':
             cur.execute("""

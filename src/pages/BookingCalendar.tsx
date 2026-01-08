@@ -36,7 +36,6 @@ export default function BookingCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   
-  // Форма добавления объекта
   const [showAddUnit, setShowAddUnit] = useState(false);
   const [newUnit, setNewUnit] = useState({
     name: '',
@@ -44,6 +43,14 @@ export default function BookingCalendar() {
     description: '',
     base_price: '',
     max_guests: ''
+  });
+
+  const [showAddBooking, setShowAddBooking] = useState(false);
+  const [newBooking, setNewBooking] = useState({
+    check_in: '',
+    check_out: '',
+    guest_name: '',
+    guest_phone: ''
   });
 
   useEffect(() => {
@@ -75,6 +82,11 @@ export default function BookingCalendar() {
   };
 
   const addUnit = async () => {
+    if (!newUnit.name || !newUnit.base_price || !newUnit.max_guests) {
+      alert('Заполните все поля');
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}?action=create-unit`, {
         method: 'POST',
@@ -85,10 +97,61 @@ export default function BookingCalendar() {
       if (response.ok) {
         setShowAddUnit(false);
         setNewUnit({ name: '', type: 'house', description: '', base_price: '', max_guests: '' });
-        loadUnits();
+        await loadUnits();
       }
     } catch (error) {
       console.error('Error adding unit:', error);
+    }
+  };
+
+  const deleteUnit = async (unitId: number) => {
+    if (!confirm('Удалить этот объект? Все бронирования также будут удалены.')) return;
+    
+    try {
+      const response = await fetch(`${API_URL}?action=delete-unit&unit_id=${unitId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        if (selectedUnit?.id === unitId) {
+          setSelectedUnit(null);
+        }
+        await loadUnits();
+        await loadBookings();
+      }
+    } catch (error) {
+      console.error('Error deleting unit:', error);
+    }
+  };
+
+  const createBooking = async () => {
+    if (!selectedUnit || !newBooking.check_in || !newBooking.check_out || !newBooking.guest_name) {
+      alert('Заполните все обязательные поля');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}?action=create-booking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          unit_id: selectedUnit.id,
+          ...newBooking
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setShowAddBooking(false);
+        setNewBooking({ check_in: '', check_out: '', guest_name: '', guest_phone: '' });
+        await loadBookings();
+      } else {
+        alert(data.error || 'Ошибка создания бронирования');
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Ошибка создания бронирования');
     }
   };
 
@@ -173,7 +236,6 @@ export default function BookingCalendar() {
           </p>
         </div>
 
-        {/* Выбор объекта */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex justify-between items-center">
@@ -194,7 +256,7 @@ export default function BookingCalendar() {
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div>
-                      <Label htmlFor="unitName">Название</Label>
+                      <Label htmlFor="unitName">Название *</Label>
                       <Input
                         id="unitName"
                         placeholder="Домик №1"
@@ -226,7 +288,7 @@ export default function BookingCalendar() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="unitPrice">Цена за ночь</Label>
+                        <Label htmlFor="unitPrice">Цена за ночь *</Label>
                         <Input
                           id="unitPrice"
                           type="number"
@@ -236,7 +298,7 @@ export default function BookingCalendar() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="unitGuests">Макс. гостей</Label>
+                        <Label htmlFor="unitGuests">Макс. гостей *</Label>
                         <Input
                           id="unitGuests"
                           type="number"
@@ -259,23 +321,30 @@ export default function BookingCalendar() {
               {units.map((unit) => (
                 <div
                   key={unit.id}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  className={`p-4 border-2 rounded-lg relative transition-all ${
                     selectedUnit?.id === unit.id
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => setSelectedUnit(unit)}
                 >
-                  <h3 className="font-semibold text-lg">{unit.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{unit.description}</p>
-                  <div className="flex justify-between items-center mt-3">
-                    <span className="flex items-center gap-1 text-sm">
-                      <Icon name="Users" size={14} />
-                      До {unit.max_guests} гостей
-                    </span>
-                    <span className="font-bold text-blue-600">
-                      {unit.base_price.toLocaleString()} ₽
-                    </span>
+                  <button
+                    onClick={() => deleteUnit(unit.id)}
+                    className="absolute top-2 right-2 p-1 rounded-full hover:bg-red-100 text-red-600"
+                  >
+                    <Icon name="Trash2" size={16} />
+                  </button>
+                  <div onClick={() => setSelectedUnit(unit)} className="cursor-pointer">
+                    <h3 className="font-semibold text-lg pr-8">{unit.name}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{unit.description}</p>
+                    <div className="flex justify-between items-center mt-3">
+                      <span className="flex items-center gap-1 text-sm">
+                        <Icon name="Users" size={14} />
+                        До {unit.max_guests} гостей
+                      </span>
+                      <span className="font-bold text-blue-600">
+                        {unit.base_price.toLocaleString()} ₽
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -283,7 +352,6 @@ export default function BookingCalendar() {
           </CardContent>
         </Card>
 
-        {/* Календарь */}
         {selectedUnit && (
           <Card>
             <CardHeader>
@@ -293,6 +361,67 @@ export default function BookingCalendar() {
                   <CardDescription>Календарь занятости</CardDescription>
                 </div>
                 <div className="flex items-center gap-4">
+                  <Dialog open={showAddBooking} onOpenChange={setShowAddBooking}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">
+                        <Icon name="Plus" className="mr-2" size={16} />
+                        Создать бронь
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Создать бронирование</DialogTitle>
+                        <DialogDescription>
+                          Добавить новое бронирование для {selectedUnit.name}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="checkIn">Заезд *</Label>
+                            <Input
+                              id="checkIn"
+                              type="date"
+                              value={newBooking.check_in}
+                              onChange={(e) => setNewBooking({...newBooking, check_in: e.target.value})}
+                              min={new Date().toISOString().split('T')[0]}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="checkOut">Выезд *</Label>
+                            <Input
+                              id="checkOut"
+                              type="date"
+                              value={newBooking.check_out}
+                              onChange={(e) => setNewBooking({...newBooking, check_out: e.target.value})}
+                              min={newBooking.check_in || new Date().toISOString().split('T')[0]}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="guestName">Имя гостя *</Label>
+                          <Input
+                            id="guestName"
+                            placeholder="Иван Иванов"
+                            value={newBooking.guest_name}
+                            onChange={(e) => setNewBooking({...newBooking, guest_name: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="guestPhone">Телефон</Label>
+                          <Input
+                            id="guestPhone"
+                            placeholder="+7 (999) 123-45-67"
+                            value={newBooking.guest_phone}
+                            onChange={(e) => setNewBooking({...newBooking, guest_phone: e.target.value})}
+                          />
+                        </div>
+                        <Button onClick={createBooking} className="w-full">
+                          Создать бронирование
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                   <Button variant="outline" size="sm" onClick={() => changeMonth(-1)}>
                     <Icon name="ChevronLeft" size={20} />
                   </Button>
@@ -335,7 +464,6 @@ export default function BookingCalendar() {
           </Card>
         )}
 
-        {/* Информация о Telegram боте */}
         <Card className="mt-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
@@ -343,12 +471,22 @@ export default function BookingCalendar() {
               <div>
                 <h3 className="text-xl font-bold mb-2">AI-менеджер в Telegram</h3>
                 <p className="text-blue-100 mb-4">
-                  Клиенты могут бронировать номера через чат-бота в Telegram или WhatsApp. 
-                  AI-ассистент проверит доступность, рассчитает цену и создаст бронирование автоматически.
+                  Клиенты смогут бронировать через Telegram-бота с AI-ассистентом. 
+                  Бот автоматически проверит доступность, рассчитает цену и создаст бронирование.
                 </p>
-                <Badge className="bg-white text-blue-600">
+                <div className="bg-white/20 rounded-lg p-4 mt-4">
+                  <h4 className="font-semibold mb-2">Как создать Telegram-бота:</h4>
+                  <ol className="list-decimal list-inside space-y-1 text-sm">
+                    <li>Откройте @BotFather в Telegram</li>
+                    <li>Отправьте команду /newbot</li>
+                    <li>Укажите имя и username бота</li>
+                    <li>Скопируйте токен и сохраните его в секретах проекта</li>
+                    <li>Я создам backend для обработки сообщений</li>
+                  </ol>
+                </div>
+                <Badge className="bg-white text-blue-600 mt-4">
                   <Icon name="Sparkles" className="mr-1" size={14} />
-                  Скоро доступно
+                  Готово к настройке
                 </Badge>
               </div>
             </div>

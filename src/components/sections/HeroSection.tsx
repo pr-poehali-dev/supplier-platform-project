@@ -77,24 +77,66 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mt-20">
-          {tools.map((tool, index) => (
-            <Card 
-              key={index} 
-              className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-none overflow-hidden cursor-pointer"
-              style={{ animationDelay: `${index * 100}ms` }}
-              onClick={() => navigate(tool.action)}
-            >
-              <div className={`h-2 bg-gradient-to-r ${tool.gradient}`}></div>
-              <CardContent className="pt-6">
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${tool.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <Icon name={tool.icon as any} className="text-white" size={24} />
-                </div>
-                <h3 className="text-xl font-bold font-heading mb-2">{tool.title}</h3>
-                <p className="text-gray-600">{tool.description}</p>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid md:grid-cols-3 gap-8 mt-20">
+          <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/simulator')}>
+            <div className="h-3 bg-gradient-to-r from-blue-500 to-cyan-600"></div>
+            <CardContent className="pt-8">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Icon name="Calculator" className="text-white" size={32} />
+              </div>
+              <Badge className="mb-3 bg-blue-50 text-blue-700 border-blue-200">
+                📊 Бесплатный инструмент
+              </Badge>
+              <h3 className="text-2xl font-bold font-heading mb-3">Симулятор отельера</h3>
+              <p className="text-gray-600 mb-4">
+                Рассчитайте потенциальную прибыль вашего глемпинга или базы отдыха
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="text-xs">Расчёт прибыли</Badge>
+                <Badge variant="outline" className="text-xs">Прогноз загрузки</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/club')}>
+            <div className="h-3 bg-gradient-to-r from-purple-500 to-pink-600"></div>
+            <CardContent className="pt-8">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Icon name="Crown" className="text-white" size={32} />
+              </div>
+              <Badge className="mb-3 bg-purple-50 text-purple-700 border-purple-200">
+                👑 Премиум доступ
+              </Badge>
+              <h3 className="text-2xl font-bold font-heading mb-3">Закрытый клуб</h3>
+              <p className="text-gray-600 mb-4">
+                Элитное сообщество профессионалов туризма с 500+ партнёрами
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="text-xs">Сеть партнёров</Badge>
+                <Badge variant="outline" className="text-xs">Менеджер 24/7</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/diagnostics')}>
+            <div className="h-3 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
+            <CardContent className="pt-8">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Icon name="Target" className="text-white" size={32} />
+              </div>
+              <Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">
+                ✨ Бесплатно
+              </Badge>
+              <h3 className="text-2xl font-bold font-heading mb-3">Диагностика бизнеса</h3>
+              <p className="text-gray-600 mb-4">
+                Найдите точки роста и риски вашего проекта за 10 минут
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="text-xs">Анализ 6 блоков</Badge>
+                <Badge variant="outline" className="text-xs">Рекомендации</Badge>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>

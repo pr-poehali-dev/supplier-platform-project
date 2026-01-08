@@ -11,9 +11,21 @@ const ContactSection = () => {
 
   const handleContactSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name');
+    const email = formData.get('email');
+    const company = formData.get('company') || 'Не указана';
+    const message = formData.get('message');
+    
+    const subject = `Новая заявка от ${name}`;
+    const body = `Имя: ${name}%0D%0AEmail: ${email}%0D%0AКомпания: ${company}%0D%0A%0D%0AСообщение:%0D%0A${message}`;
+    
+    window.location.href = `mailto:admin@tourconnect.ru?subject=${encodeURIComponent(subject)}&body=${body}`;
+    
     toast({
-      title: 'Заявка отправлена!',
-      description: 'Мы свяжемся с вами в ближайшее время.',
+      title: 'Открыт почтовый клиент',
+      description: 'Отправьте письмо через вашу почтовую программу',
     });
   };
 
@@ -45,6 +57,7 @@ const ContactSection = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700">Имя</label>
                   <Input 
+                    name="name"
                     placeholder="Ваше имя" 
                     required 
                     className="border-gray-300 focus:border-primary"
@@ -53,6 +66,7 @@ const ContactSection = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700">Email</label>
                   <Input 
+                    name="email"
                     type="email" 
                     placeholder="your@email.com" 
                     required 
@@ -63,6 +77,7 @@ const ContactSection = () => {
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700">Компания</label>
                 <Input 
+                  name="company"
                   placeholder="Название компании" 
                   className="border-gray-300 focus:border-primary"
                 />
@@ -70,6 +85,7 @@ const ContactSection = () => {
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700">Сообщение</label>
                 <Textarea 
+                  name="message"
                   placeholder="Расскажите о вашем бизнесе и целях сотрудничества" 
                   rows={5}
                   required

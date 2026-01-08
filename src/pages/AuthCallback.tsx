@@ -37,7 +37,7 @@ const AuthCallback = () => {
           if (!data.user.telegram_invited) {
             setTelegramLink('https://t.me/+QgiLIa1gFRY4Y2Iy');
           } else {
-            setTimeout(() => navigate('/simulator'), 2000);
+            setTimeout(() => navigate('/'), 2000);
           }
         } else {
           setStatus('error');
@@ -106,7 +106,7 @@ const AuthCallback = () => {
                 <Button
                   onClick={() => {
                     window.open(telegramLink, '_blank');
-                    setTimeout(() => navigate('/simulator'), 1000);
+                    setTimeout(() => navigate('/'), 1000);
                   }}
                   className="w-full bg-blue-500 hover:bg-blue-600"
                 >
@@ -115,16 +115,16 @@ const AuthCallback = () => {
                 </Button>
               </div>
               <Button
-                onClick={() => navigate('/simulator')}
+                onClick={() => navigate('/')}
                 variant="outline"
                 className="w-full"
               >
-                Пропустить и перейти к калькулятору
+                Перейти к инструментам
               </Button>
             </div>
           ) : (
-            <Button onClick={() => navigate('/simulator')} className="w-full">
-              Перейти к калькулятору
+            <Button onClick={() => navigate('/')} className="w-full">
+              Перейти к инструментам
             </Button>
           )}
         </CardContent>

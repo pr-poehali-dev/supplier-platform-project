@@ -33,11 +33,23 @@ const Admin = () => {
   const [emailMessage, setEmailMessage] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
       navigate('/auth');
       return;
     }
+    
+    const user = JSON.parse(userStr);
+    if (!user.is_admin) {
+      toast({
+        title: 'Доступ запрещен',
+        description: 'У вас нет прав администратора',
+        variant: 'destructive'
+      });
+      navigate('/');
+      return;
+    }
+    
     fetchUsers();
   }, [navigate]);
 

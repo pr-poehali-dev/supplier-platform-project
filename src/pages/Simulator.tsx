@@ -26,8 +26,8 @@ const Simulator = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
       navigate('/auth');
     }
   }, [navigate]);

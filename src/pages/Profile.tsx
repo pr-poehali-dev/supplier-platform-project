@@ -9,8 +9,13 @@ import { useState, useEffect } from 'react';
 const Profile = () => {
   const navigate = useNavigate();
   const [results, setResults] = useState(getDiagnosticsResults());
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
     setResults(getDiagnosticsResults());
   }, []);
 
@@ -60,8 +65,21 @@ const Profile = () => {
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 font-heading">Личный кабинет</h1>
-          <p className="text-gray-600">История ваших диагностик</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold mb-2 font-heading">Личный кабинет</h1>
+              <p className="text-gray-600">История ваших диагностик</p>
+            </div>
+            {user?.is_admin && (
+              <Button
+                onClick={() => navigate('/admin')}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
+              >
+                <Icon name="Shield" className="mr-2" size={20} />
+                Админ-панель
+              </Button>
+            )}
+          </div>
         </div>
 
         {results.length === 0 ? (

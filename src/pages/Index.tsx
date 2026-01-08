@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -11,6 +11,14 @@ import ContactSection from '@/components/sections/ContactSection';
 const Index = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('home');
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+  }, []);
 
   const scrollToSection = (section: string) => {
     setActiveSection(section);
@@ -41,12 +49,36 @@ const Index = () => {
               </button>
             ))}
           </div>
-          <Button 
-            className="bg-gradient-to-r from-primary to-secondary hover:opacity-90"
-            onClick={() => navigate('/auth')}
-          >
-            Войти
-          </Button>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                {user.avatar_url && (
+                  <img src={user.avatar_url} alt={user.full_name} className="w-8 h-8 rounded-full" />
+                )}
+                <span className="font-medium text-gray-700">{user.full_name || user.email}</span>
+              </button>
+              {user.is_admin && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/admin')}
+                  className="border-purple-500 text-purple-600 hover:bg-purple-50"
+                >
+                  <Icon name="Shield" className="mr-2" size={16} />
+                  Админ
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Button 
+              className="bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+              onClick={() => navigate('/auth')}
+            >
+              Войти
+            </Button>
+          )}
         </div>
       </nav>
 

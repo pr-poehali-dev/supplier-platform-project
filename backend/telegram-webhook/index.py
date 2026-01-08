@@ -357,39 +357,49 @@ def handler(event: dict, context) -> dict:
 
 Текущая дата: {datetime.now().strftime('%Y-%m-%d')}"""
         
-        # Формируем сообщения для YandexGPT
-        yandex_messages = []
+        # Формируем сообщения для GigaChat
+        gigachat_messages = [{'role': 'system', 'content': system_prompt}]
         for msg in messages:
-            yandex_role = 'user' if msg['role'] == 'user' else 'assistant'
-            yandex_messages.append({'role': yandex_role, 'text': msg['content']})
+            gigachat_messages.append({'role': msg['role'], 'content': msg['content']})
         
         try:
-            yandex_response = requests.post(
-                'https://llm.api.cloud.yandex.net/foundationModels/v1/completion',
+            # Получаем access token для GigaChat
+            auth_response = requests.post(
+                'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
                 headers={
-                    'Authorization': f'Api-Key {os.environ.get("YANDEX_GPT_API_KEY")}',
+                    'Authorization': f'Basic {os.environ.get("GIGACHAT_API_KEY")}',
+                    'RqUID': context.request_id,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                data={'scope': 'GIGACHAT_API_PERS'},
+                verify=False
+            )
+            
+            access_token = auth_response.json()['access_token']
+            
+            # Запрос к GigaChat
+            gigachat_response = requests.post(
+                'https://gigachat.devices.sberbank.ru/api/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {access_token}',
                     'Content-Type': 'application/json'
                 },
                 json={
-                    'modelUri': 'gpt://b1gchej4nfugh1f9dq1h/yandexgpt/rc',
-                    'completionOptions': {
-                        'stream': False,
-                        'temperature': 0.6,
-                        'maxTokens': 1000
-                    },
-                    'messages': [
-                        {'role': 'system', 'text': system_prompt}
-                    ] + yandex_messages
-                }
+                    'model': 'GigaChat',
+                    'messages': gigachat_messages,
+                    'temperature': 0.6,
+                    'max_tokens': 1000
+                },
+                verify=False
             )
             
-            print(f'YandexGPT status: {yandex_response.status_code}')
-            print(f'YandexGPT response: {yandex_response.text[:500]}')
+            print(f'GigaChat status: {gigachat_response.status_code}')
+            print(f'GigaChat response: {gigachat_response.text[:500]}')
             
-            yandex_data = yandex_response.json()
-            assistant_message = yandex_data.get('result', {}).get('alternatives', [{}])[0].get('message', {}).get('text', 'Извините, произошла ошибка. Попробуйте позже.')
+            gigachat_data = gigachat_response.json()
+            assistant_message = gigachat_data.get('choices', [{}])[0].get('message', {}).get('content', 'Извините, произошла ошибка. Попробуйте позже.')
         except Exception as e:
-            print(f'YandexGPT error: {type(e).__name__}: {str(e)[:200]}')
+            print(f'GigaChat error: {type(e).__name__}: {str(e)[:200]}')
             send_telegram_message(chat_id, '❌ Сервис временно недоступен. Попробуйте позже.')
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         

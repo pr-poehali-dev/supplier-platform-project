@@ -7,6 +7,7 @@ import DiagnosticsIntro from '@/components/diagnostics/DiagnosticsIntro';
 import DiagnosticsNavBar from '@/components/diagnostics/DiagnosticsNavBar';
 import DiagnosticsQuestion from '@/components/diagnostics/DiagnosticsQuestion';
 import { diagnosticsBlocks } from '@/components/diagnostics/diagnosticsData';
+import SubscriptionGuard from '@/components/SubscriptionGuard';
 
 const Diagnostics = () => {
   const navigate = useNavigate();
@@ -42,14 +43,17 @@ const Diagnostics = () => {
 
   if (!started) {
     return (
-      <DiagnosticsIntro
-        diagnosticsBlocks={diagnosticsBlocks}
-        onStart={() => setStarted(true)}
-      />
+      <SubscriptionGuard feature="hasDiagnostics" featureName="диагностики бизнеса">
+        <DiagnosticsIntro
+          diagnosticsBlocks={diagnosticsBlocks}
+          onStart={() => setStarted(true)}
+        />
+      </SubscriptionGuard>
     );
   }
 
   return (
+    <SubscriptionGuard feature="hasDiagnostics" featureName="диагностики бизнеса">
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
       <Button
         variant="ghost"
@@ -111,7 +115,7 @@ const Diagnostics = () => {
           </Button>
         </div>
       </div>
-    </div>
+    </SubscriptionGuard>
   );
 };
 

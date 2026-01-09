@@ -90,22 +90,22 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/club')}>
+          <Card className="border-none shadow-2xl overflow-hidden group hover:shadow-3xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/pricing')}>
             <div className="h-3 bg-gradient-to-r from-purple-500 to-pink-600"></div>
             <CardContent className="pt-8">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Icon name="Crown" className="text-white" size={32} />
               </div>
               <Badge className="mb-3 bg-purple-50 text-purple-700 border-purple-200">
-                👥 Комьюнити
+                👥 Нетворкинг
               </Badge>
               <h3 className="text-2xl font-bold font-heading mb-3">Закрытый клуб</h3>
               <p className="text-gray-600 mb-4">
-                Элитное сообщество профессионалов туризма
+                Сообщество, партнёрства и доступ к инструментам
               </p>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="text-xs">Сеть партнёров</Badge>
-                <Badge variant="outline" className="text-xs">Эксперты</Badge>
+                <Badge variant="outline" className="text-xs">Нетворкинг</Badge>
+                <Badge variant="outline" className="text-xs">От 2490₽/мес</Badge>
               </div>
             </CardContent>
           </Card>

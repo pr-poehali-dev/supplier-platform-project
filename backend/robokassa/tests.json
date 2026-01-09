@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Create payment link",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "plan_id": "pro",
+        "amount": 5990,
+        "email": "test@example.com",
+        "phone": "+79001234567",
+        "name": "Test User"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "payment_url": "string",
+        "inv_id": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

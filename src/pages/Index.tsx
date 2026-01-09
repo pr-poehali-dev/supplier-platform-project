@@ -33,21 +33,85 @@ const Index = () => {
           <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
             TourConnect
           </h1>
-          <div className="hidden md:flex gap-6">
-            {['home', 'blog', 'about', 'contact'].map((section) => (
-              <button
-                key={section}
-                onClick={() => scrollToSection(section)}
-                className={`font-medium transition-colors hover:text-primary ${
-                  activeSection === section ? 'text-primary' : 'text-gray-600'
-                }`}
-              >
-                {section === 'home' && 'Главная'}
-                {section === 'blog' && 'Блог'}
-                {section === 'about' && 'О нас'}
-                {section === 'contact' && 'Контакты'}
+          <div className="hidden md:flex gap-6 items-center">
+            <button
+              onClick={() => scrollToSection('home')}
+              className={`font-medium transition-colors hover:text-primary ${
+                activeSection === 'home' ? 'text-primary' : 'text-gray-600'
+              }`}
+            >
+              Главная
+            </button>
+            
+            <div className="relative group">
+              <button className="font-medium text-gray-600 hover:text-primary transition-colors flex items-center gap-1">
+                Инструменты
+                <Icon name="ChevronDown" size={16} />
               </button>
-            ))}
+              <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <div className="py-2">
+                  <a href="/booking-calendar" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                    <Icon name="Calendar" size={18} className="text-primary" />
+                    <div>
+                      <div className="font-medium text-gray-900">Календарь</div>
+                      <div className="text-xs text-gray-500">Управление бронью</div>
+                    </div>
+                  </a>
+                  <a href="/diagnostics" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                    <Icon name="Activity" size={18} className="text-secondary" />
+                    <div>
+                      <div className="font-medium text-gray-900">Диагностика</div>
+                      <div className="text-xs text-gray-500">Анализ бизнеса</div>
+                    </div>
+                  </a>
+                  <a href="/simulator" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                    <Icon name="TrendingUp" size={18} className="text-accent" />
+                    <div>
+                      <div className="font-medium text-gray-900">Симулятор</div>
+                      <div className="text-xs text-gray-500">Расчёт прибыли</div>
+                    </div>
+                  </a>
+                  <a href="/club" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                    <Icon name="Users" size={18} className="text-purple-600" />
+                    <div>
+                      <div className="font-medium text-gray-900">Клуб</div>
+                      <div className="text-xs text-gray-500">Нетворкинг</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/pricing')}
+              className="font-medium text-gray-600 hover:text-primary transition-colors"
+            >
+              Цены
+            </button>
+            <button
+              onClick={() => scrollToSection('blog')}
+              className={`font-medium transition-colors hover:text-primary ${
+                activeSection === 'blog' ? 'text-primary' : 'text-gray-600'
+              }`}
+            >
+              Блог
+            </button>
+            <button
+              onClick={() => scrollToSection('about')}
+              className={`font-medium transition-colors hover:text-primary ${
+                activeSection === 'about' ? 'text-primary' : 'text-gray-600'
+              }`}
+            >
+              О нас
+            </button>
+            <button
+              onClick={() => scrollToSection('contact')}
+              className={`font-medium transition-colors hover:text-primary ${
+                activeSection === 'contact' ? 'text-primary' : 'text-gray-600'
+              }`}
+            >
+              Контакты
+            </button>
           </div>
           {user ? (
             <div className="flex items-center gap-3">

@@ -7,10 +7,14 @@ import CalendarView, { Booking } from '@/components/booking/CalendarView';
 import BookingDialog from '@/components/booking/BookingDialog';
 import TelegramBotCard from '@/components/booking/TelegramBotCard';
 import OwnerTelegramSetup from '@/components/booking/OwnerTelegramSetup';
+import SubscriptionGuard from '@/components/SubscriptionGuard';
+import { canAddUnit, getSubscriptionLimits } from '@/utils/subscription';
+import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 
 export default function BookingCalendar() {
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [units, setUnits] = useState<Unit[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -62,6 +66,16 @@ export default function BookingCalendar() {
   }) => {
     if (!newUnit.name || !newUnit.base_price || !newUnit.max_guests) {
       alert('Заполните все поля');
+      return;
+    }
+
+    if (!canAddUnit(units.length)) {
+      const limits = getSubscriptionLimits();
+      toast({
+        title: 'Достигнут лимит номеров',
+        description: `Ваш тариф позволяет создать до ${limits.maxUnits} номеров. Обновите подписку для добавления новых.`,
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -153,53 +167,55 @@ export default function BookingCalendar() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/')}
-        className="fixed top-4 left-4 gap-2 z-50"
-      >
-        <Icon name="Home" size={20} />
-        На главную
-      </Button>
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            <Icon name="Calendar" className="inline-block mr-2" size={36} />
-            Календарь бронирования
-          </h1>
-          <p className="text-gray-600">
-            Управляйте бронированиями для турбаз и гостевых домов
-          </p>
-        </div>
+    <SubscriptionGuard feature="hasCalendar" featureName="календаря бронирования">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/')}
+          className="fixed top-4 left-4 gap-2 z-50"
+        >
+          <Icon name="Home" size={20} />
+          На главную
+        </Button>
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8 text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <Icon name="Calendar" className="inline-block mr-2" size={36} />
+              Календарь бронирования
+            </h1>
+            <p className="text-gray-600">
+              Управляйте бронированиями для турбаз и гостевых домов
+            </p>
+          </div>
 
-        <UnitsManagement
-          units={units}
-          selectedUnit={selectedUnit}
-          onSelectUnit={setSelectedUnit}
-          onAddUnit={addUnit}
-          onDeleteUnit={deleteUnit}
-        />
+          <UnitsManagement
+            units={units}
+            selectedUnit={selectedUnit}
+            onSelectUnit={setSelectedUnit}
+            onAddUnit={addUnit}
+            onDeleteUnit={deleteUnit}
+          />
 
-        <CalendarView
-          selectedUnit={selectedUnit}
-          currentDate={currentDate}
-          bookings={bookings}
-          onChangeMonth={changeMonth}
-          onDeleteBooking={deleteBooking}
-          renderBookingButton={
-            <BookingDialog
-              selectedUnit={selectedUnit}
-              onCreateBooking={createBooking}
-            />
-          }
-        />
+          <CalendarView
+            selectedUnit={selectedUnit}
+            currentDate={currentDate}
+            bookings={bookings}
+            onChangeMonth={changeMonth}
+            onDeleteBooking={deleteBooking}
+            renderBookingButton={
+              <BookingDialog
+                selectedUnit={selectedUnit}
+                onCreateBooking={createBooking}
+              />
+            }
+          />
 
-        <div className="grid md:grid-cols-2 gap-6 mt-6">
-          <TelegramBotCard botLink={botLink} />
-          <OwnerTelegramSetup />
+          <div className="grid md:grid-cols-2 gap-6 mt-6">
+            <TelegramBotCard botLink={botLink} />
+            <OwnerTelegramSetup />
+          </div>
         </div>
       </div>
-    </div>
+    </SubscriptionGuard>
   );
 }

@@ -116,6 +116,7 @@ const Index = () => {
                 <li><button onClick={() => scrollToSection('about')} className="hover:text-white transition-colors">О нас</button></li>
                 <li><button onClick={() => scrollToSection('blog')} className="hover:text-white transition-colors">Блог</button></li>
                 <li><button onClick={() => scrollToSection('contact')} className="hover:text-white transition-colors">Контакты</button></li>
+                <li><a href="/oferta" className="hover:text-white transition-colors">Публичная оферта</a></li>
               </ul>
             </div>
             <div>

@@ -10,6 +10,7 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import PaymentLinksManager from '@/components/admin/PaymentLinksManager';
 import PendingBookingsManager from '@/components/admin/PendingBookingsManager';
+import SubscriptionManager from '@/components/admin/SubscriptionManager';
 
 interface User {
   id: number;
@@ -21,6 +22,8 @@ interface User {
   last_login: string;
   telegram_invited: boolean;
   is_admin: boolean;
+  subscription_plan?: string;
+  subscription_expires_at?: string;
 }
 
 const Admin = () => {
@@ -333,6 +336,8 @@ const Admin = () => {
               </Button>
             </CardContent>
           </Card>
+
+          <SubscriptionManager users={users} onUpdate={fetchUsers} />
 
           <Card>
             <CardHeader>

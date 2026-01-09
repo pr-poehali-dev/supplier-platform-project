@@ -63,7 +63,8 @@ def handler(event: dict, context) -> dict:
             
             cur.execute(f"""
                 SELECT id, email, full_name, provider, avatar_url, 
-                       created_at, last_login, telegram_invited, is_admin
+                       created_at, last_login, telegram_invited, is_admin,
+                       subscription_plan, subscription_expires_at
                 FROM users
                 ORDER BY created_at DESC
                 LIMIT {limit} OFFSET {offset}
@@ -80,7 +81,9 @@ def handler(event: dict, context) -> dict:
                     'created_at': row[5].isoformat() if row[5] else None,
                     'last_login': row[6].isoformat() if row[6] else None,
                     'telegram_invited': row[7],
-                    'is_admin': row[8]
+                    'is_admin': row[8],
+                    'subscription_plan': row[9] or 'none',
+                    'subscription_expires_at': row[10].isoformat() if row[10] else None
                 })
             
             cur.execute("SELECT COUNT(*) FROM users")

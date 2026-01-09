@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get subscriptions list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "users": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

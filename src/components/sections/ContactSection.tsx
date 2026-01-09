@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,25 +9,53 @@ import { useToast } from '@/hooks/use-toast';
 
 const ContactSection = () => {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleContactSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     const formData = new FormData(e.currentTarget);
-    const name = formData.get('name');
-    const email = formData.get('email');
-    const company = formData.get('company') || 'Не указана';
-    const message = formData.get('message');
+    const data = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      company: formData.get('company') || 'Не указана',
+      message: formData.get('message')
+    };
     
-    const subject = `Новая заявка от ${name}`;
-    const body = `Имя: ${name}%0D%0AEmail: ${email}%0D%0AКомпания: ${company}%0D%0A%0D%0AСообщение:%0D%0A${message}`;
-    
-    window.location.href = `mailto:admin@tourconnect.ru?subject=${encodeURIComponent(subject)}&body=${body}`;
-    
-    toast({
-      title: 'Открыт почтовый клиент',
-      description: 'Отправьте письмо через вашу почтовую программу',
-    });
+    try {
+      const response = await fetch('https://functions.poehali.dev/d00d6394-685d-4e42-9d5e-b5f3a12b31d1', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast({
+          title: '✅ Заявка отправлена!',
+          description: 'Мы свяжемся с вами в ближайшее время',
+        });
+        (e.target as HTMLFormElement).reset();
+      } else {
+        toast({
+          title: '❌ Ошибка отправки',
+          description: result.error || 'Попробуйте позже или напишите на email',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Ошибка отправки',
+        description: 'Проверьте интернет-соединение',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -95,10 +124,20 @@ const ContactSection = () => {
               <Button 
                 type="submit" 
                 size="lg" 
+                disabled={isSubmitting}
                 className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg"
               >
-                Отправить заявку
-                <Icon name="ArrowRight" className="ml-2" size={20} />
+                {isSubmitting ? (
+                  <>
+                    <Icon name="Loader2" className="mr-2 animate-spin" size={20} />
+                    Отправка...
+                  </>
+                ) : (
+                  <>
+                    Отправить заявку
+                    <Icon name="ArrowRight" className="ml-2" size={20} />
+                  </>
+                )}
               </Button>
             </form>
           </CardContent>

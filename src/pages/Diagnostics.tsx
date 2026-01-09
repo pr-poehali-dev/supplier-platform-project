@@ -51,6 +51,14 @@ const Diagnostics = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+      <Button
+        variant="ghost"
+        onClick={() => navigate('/')}
+        className="fixed top-4 left-4 gap-2 z-50"
+      >
+        <Icon name="Home" size={20} />
+        На главную
+      </Button>
       <DiagnosticsNavBar
         answeredQuestions={answeredQuestions}
         totalQuestions={totalQuestions}

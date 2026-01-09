@@ -7,6 +7,14 @@ const Oferta = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-blue-50/30">
+      <Button
+        variant="ghost"
+        onClick={() => navigate('/')}
+        className="fixed top-4 left-4 gap-2 z-50"
+      >
+        <Icon name="Home" size={20} />
+        На главную
+      </Button>
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-lg z-50 border-b border-gray-200">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 

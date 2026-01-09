@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import UnitsManagement, { Unit } from '@/components/booking/UnitsManagement';
 import CalendarView, { Booking } from '@/components/booking/CalendarView';
@@ -9,6 +11,7 @@ import OwnerTelegramSetup from '@/components/booking/OwnerTelegramSetup';
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 
 export default function BookingCalendar() {
+  const navigate = useNavigate();
   const [units, setUnits] = useState<Unit[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -151,6 +154,14 @@ export default function BookingCalendar() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <Button
+        variant="ghost"
+        onClick={() => navigate('/')}
+        className="fixed top-4 left-4 gap-2 z-50"
+      >
+        <Icon name="Home" size={20} />
+        На главную
+      </Button>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">

@@ -115,6 +115,7 @@ const Diagnostics = () => {
           </Button>
         </div>
       </div>
+    </div>
     </SubscriptionGuard>
   );
 };

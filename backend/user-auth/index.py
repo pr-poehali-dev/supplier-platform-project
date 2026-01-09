@@ -27,7 +27,8 @@ def handler(event: dict, context) -> dict:
         return handle_callback(code)
     
     # Иначе - инициируем авторизацию
-    redirect_uri = query.get('redirect_uri', 'https://tourconnect.ru/auth/callback')
+    # ВАЖНО: redirect_uri должен ТОЧНО совпадать с зарегистрированным в Яндекс OAuth
+    redirect_uri = 'https://tourconnect.ru/auth/callback'
     yandex_id = os.environ.get('YANDEX_CLIENT_ID')
     
     if not yandex_id:
@@ -38,7 +39,7 @@ def handler(event: dict, context) -> dict:
             'isBase64Encoded': False
         }
     
-    auth_url = f"https://oauth.yandex.ru/authorize?client_id={yandex_id}&response_type=code&redirect_uri={redirect_uri}"
+    auth_url = f"https://oauth.yandex.ru/authorize?client_id={yandex_id}&response_type=code&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}"
     
     return {
         'statusCode': 302,

@@ -115,6 +115,15 @@ const ContactSection = () => {
             </CardContent>
           </Card>
         </div>
+
+        <div className="mt-8 text-center">
+          <a 
+            href="/oferta" 
+            className="text-sm text-gray-500 hover:text-primary transition-colors underline"
+          >
+            Публичная оферта
+          </a>
+        </div>
       </div>
     </section>
   );

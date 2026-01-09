@@ -28,7 +28,7 @@ def handler(event: dict, context) -> dict:
     
     # Иначе - инициируем авторизацию
     # ВАЖНО: redirect_uri должен ТОЧНО совпадать с зарегистрированным в Яндекс OAuth
-    redirect_uri = 'https://tourconnect.ru/auth/callback'
+    redirect_uri = 'https://tourconnect.ru'
     yandex_id = os.environ.get('YANDEX_CLIENT_ID')
     
     if not yandex_id:

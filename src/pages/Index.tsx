@@ -14,11 +14,21 @@ const Index = () => {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    // Проверка OAuth callback
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    
+    if (code) {
+      // Если есть code - перенаправляем на AuthCallback
+      navigate('/auth/callback' + window.location.search);
+      return;
+    }
+    
     const userStr = localStorage.getItem('user');
     if (userStr) {
       setUser(JSON.parse(userStr));
     }
-  }, []);
+  }, [navigate]);
 
   const scrollToSection = (section: string) => {
     setActiveSection(section);

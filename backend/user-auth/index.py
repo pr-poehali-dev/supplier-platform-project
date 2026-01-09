@@ -27,7 +27,7 @@ def handler(event: dict, context) -> dict:
         return handle_callback(code)
     
     # Иначе - инициируем авторизацию
-    redirect_uri = query.get('redirect_uri', 'https://preview--supplier-platform-project.poehali.dev/auth/callback')
+    redirect_uri = query.get('redirect_uri', 'https://tourconnect.ru/auth/callback')
     yandex_id = os.environ.get('YANDEX_CLIENT_ID')
     
     if not yandex_id:

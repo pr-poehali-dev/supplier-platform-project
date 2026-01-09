@@ -3,12 +3,56 @@ import os
 import hashlib
 import psycopg2
 from urllib.parse import parse_qs
+import urllib.request
 
 
 def calculate_signature(*args) -> str:
     """Создание MD5 подписи по документации Robokassa"""
     joined = ':'.join(str(arg) for arg in args)
     return hashlib.md5(joined.encode()).hexdigest().upper()
+
+
+def send_telegram_message(chat_id: int, text: str):
+    '''Отправляет сообщение в Telegram через Bot API'''
+    token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not token:
+        return
+    
+    url = f'https://api.telegram.org/bot{token}/sendMessage'
+    data = json.dumps({
+        'chat_id': chat_id,
+        'text': text,
+        'parse_mode': 'HTML'
+    }).encode('utf-8')
+    
+    req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+    
+    try:
+        urllib.request.urlopen(req)
+    except Exception as e:
+        print(f'Failed to send Telegram message: {e}')
+
+
+def notify_owner(owner_id: int, message: str):
+    '''Отправляет уведомление владельцу турбазы'''
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Получаем telegram_chat_id владельца (только если status='owner')
+    cur.execute("""
+        SELECT channel_user_id FROM conversations
+        WHERE user_id = %s
+        AND channel = 'telegram'
+        AND status = 'owner'
+        LIMIT 1
+    """, (owner_id,))
+    
+    owner_chat = cur.fetchone()
+    cur.close()
+    conn.close()
+    
+    if owner_chat:
+        send_telegram_message(int(owner_chat[0]), f'🔔 <b>Уведомление</b>\n\n{message}')
 
 
 def get_db_connection():
@@ -92,10 +136,68 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 404, 'headers': HEADERS, 'body': 'Order not found', 'isBase64Encoded': False}
 
     conn.commit()
+    
+    # Проверяем, есть ли pending_booking с этим robokassa_inv_id
+    cur.execute("""
+        SELECT pb.id, pb.unit_id, pb.check_in, pb.check_out, pb.guest_name, pb.guest_contact, pb.telegram_chat_id, u.name
+        FROM pending_bookings pb
+        JOIN units u ON pb.unit_id = u.id
+        WHERE pb.robokassa_inv_id = %s AND pb.verification_status = 'pending'
+    """, (int(inv_id),))
+    
+    pending_booking = cur.fetchone()
+    
+    if pending_booking:
+        pending_id, unit_id, check_in, check_out, guest_name, guest_contact, telegram_chat_id, unit_name = pending_booking
+        
+        # Создаем подтвержденное бронирование
+        cur.execute("""
+            INSERT INTO bookings 
+            (unit_id, guest_name, guest_phone, check_in, check_out, 
+             guests_count, total_price, status, source)
+            VALUES (%s, %s, %s, %s, %s, 1, %s, 'confirmed', 'telegram')
+            RETURNING id
+        """, (unit_id, guest_name, guest_contact, check_in, check_out, float(out_sum)))
+        
+        booking_id = cur.fetchone()[0]
+        
+        # Обновляем pending_booking
+        cur.execute("""
+            UPDATE pending_bookings
+            SET verification_status = 'verified',
+                verification_notes = 'Robokassa payment confirmed'
+            WHERE id = %s
+        """, (pending_id,))
+        
+        conn.commit()
+        
+        # Отправляем уведомление клиенту
+        if telegram_chat_id:
+            send_telegram_message(
+                telegram_chat_id,
+                f'✅ <b>Оплата подтверждена!</b>\n\n'
+                f'🎉 Ваше бронирование активировано (№{booking_id})\n'
+                f'🏠 {unit_name}\n'
+                f'📅 {check_in} — {check_out}\n\n'
+                f'Ждем вас! При заезде назовите номер брони.'
+            )
+        
+        # Уведомление владельцу
+        cur.execute("SELECT created_by FROM units WHERE id = %s", (unit_id,))
+        owner_id_row = cur.fetchone()
+        if owner_id_row:
+            owner_id = owner_id_row[0]
+            notify_owner(
+                owner_id,
+                f'💰 <b>Оплата подтверждена!</b>\n\n'
+                f'Объект: {unit_name}\n'
+                f'Гость: {guest_name}\n'
+                f'Даты: {check_in} — {check_out}\n'
+                f'Сумма: {int(float(out_sum))} ₽\n'
+                f'Бронь №{booking_id}'
+            )
+    
     cur.close()
     conn.close()
-
-    # TODO: Отправить уведомление (email, telegram) после успешной оплаты
-    # order_id, order_number, user_email = result
 
     return {'statusCode': 200, 'headers': HEADERS, 'body': f'OK{inv_id}', 'isBase64Encoded': False}

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import requests
 import time
 import urllib.parse
+import hashlib
 
 
 
@@ -452,23 +453,28 @@ def handler(event: dict, context) -> dict:
                     payment_system = payment_row[1] if payment_row else 'sbp'
                     recipient_name = payment_row[2] if payment_row else ''
                     
-                    # Генерируем СБП ссылку
-                    description = f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
-                    if payment_link_template:
-                        payment_link = payment_link_template.replace('{amount}', str(int(total_price))).replace('{description}', description)
-                    else:
-                        # Если ссылки нет, генерируем стандартную СБП ссылку
-                        payment_link = f"https://qr.nspk.ru/profi/cash.html?sum={int(total_price)}&comment={urllib.parse.quote(description)}"
+                    # Создаем заказ в Robokassa
+                    try:
+                        robokassa_result = create_robokassa_payment(
+                            amount=total_price,
+                            user_name=booking_data['guest_name'],
+                            user_email=booking_data.get('guest_email', f'guest{chat_id}@telegram.bot'),
+                            user_phone=booking_data.get('guest_phone', ''),
+                            description=f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
+                        )
+                        
+                        payment_link = robokassa_result['payment_url']
+                        robokassa_inv_id = robokassa_result.get('robokassa_inv_id')
                         
                         # Создаем pending booking (ждет оплаты)
                         cur.execute(f"""
                             INSERT INTO pending_bookings 
                             (unit_id, check_in, check_out, guest_name, guest_contact, 
-                             telegram_chat_id, amount, payment_link, verification_status)
+                             telegram_chat_id, amount, payment_link, verification_status, robokassa_inv_id)
                             VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
                                     '{booking_data['guest_name'].replace("'", "''")}', 
                                     '{booking_data.get('guest_phone', '').replace("'", "''")}',
-                                    {chat_id}, {total_price}, '{payment_link.replace("'", "''")}', 'pending')
+                                    {chat_id}, {total_price}, '{payment_link.replace("'", "''")}', 'pending', {robokassa_inv_id if robokassa_inv_id else 'NULL'})
                             RETURNING id
                         """)
                         
@@ -487,21 +493,41 @@ def handler(event: dict, context) -> dict:
                             f'⏳ Ожидает оплаты (№{pending_id})'
                         )
                         
-                        payment_text = (
-                            f'\n\n💳 Оплатите {int(total_price)} руб.\n'
-                            f'Система: {payment_system.upper()}\n'
+                        assistant_message = (
+                            f'✅ Предварительная бронь создана!\n\n'
+                            f'📋 Номер: {pending_id}\n'
+                            f'🏠 Объект: {unit_name}\n'
+                            f'📅 Даты: {booking_data["check_in"]} — {booking_data["check_out"]}\n'
+                            f'💰 Стоимость: {int(total_price)} руб. за {nights} ночей\n\n'
+                            f'💳 Для подтверждения брони оплатите по ссылке:\n{payment_link}\n\n'
+                            f'После оплаты бронь автоматически подтвердится!'
                         )
-                        if recipient_name:
-                            payment_text += f'Получатель: {recipient_name}\n'
-                        if payment_link:
-                            payment_text += f'Ссылка: {payment_link}\n'
+                    except Exception as e:
+                        print(f'Robokassa payment creation error: {str(e)}')
+                        # Fallback на СБП
+                        description = f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
+                        payment_link = f"https://qr.nspk.ru/profi/cash.html?sum={int(total_price)}&comment={urllib.parse.quote(description)}"
                         
-                        payment_text += '\n📸 После оплаты отправьте скриншот чека — я проверю и подтвержу бронь!'
+                        cur.execute(f"""
+                            INSERT INTO pending_bookings 
+                            (unit_id, check_in, check_out, guest_name, guest_contact, 
+                             telegram_chat_id, amount, payment_link, verification_status)
+                            VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
+                                    '{booking_data['guest_name'].replace("'", "''")}', 
+                                    '{booking_data.get('guest_phone', '').replace("'", "''")}',
+                                    {chat_id}, {total_price}, '{payment_link.replace("'", "''")}', 'pending')
+                            RETURNING id
+                        """)
+                        
+                        pending_id = cur.fetchone()[0]
+                        conn.commit()
                         
                         assistant_message = (
                             f'✅ Предварительная бронь создана!\n\n'
                             f'📋 Номер: {pending_id}\n'
-                            f'💰 Стоимость: {int(total_price)} руб. за {nights} ночей{payment_text}'
+                            f'💰 Стоимость: {int(total_price)} руб.\n\n'
+                            f'💳 Оплатите по ссылке СБП:\n{payment_link}\n\n'
+                            f'📸 После оплаты отправьте скриншот чека'
                         )
                     else:
                         assistant_message = '❌ Объект не найден. Попробуйте выбрать другой вариант.'
@@ -583,3 +609,36 @@ def notify_owner(owner_id: int, message: str):
     
     if owner_chat:
         send_telegram_message(int(owner_chat[0]), f'🔔 <b>Уведомление</b>\n\n{message}')
+
+
+def create_robokassa_payment(amount: float, user_name: str, user_email: str, user_phone: str, description: str) -> dict:
+    '''Создает заказ в Robokassa и возвращает payment_url'''
+    merchant_login = os.environ.get('ROBOKASSA_MERCHANT_LOGIN')
+    password_1 = os.environ.get('ROBOKASSA_PASSWORD_1')
+    
+    if not merchant_login or not password_1:
+        raise ValueError('Robokassa credentials not configured')
+    
+    import random
+    robokassa_inv_id = random.randint(100000, 2147483647)
+    amount_str = f"{amount:.2f}"
+    
+    # Подпись: MerchantLogin:OutSum:InvId:Password#1
+    signature_string = f"{merchant_login}:{amount_str}:{robokassa_inv_id}:{password_1}"
+    signature = hashlib.md5(signature_string.encode()).hexdigest()
+    
+    payment_url = (
+        f"https://auth.robokassa.ru/Merchant/Index.aspx?"
+        f"MerchantLogin={urllib.parse.quote(merchant_login)}&"
+        f"OutSum={amount_str}&"
+        f"InvoiceID={robokassa_inv_id}&"
+        f"SignatureValue={signature}&"
+        f"Email={urllib.parse.quote(user_email)}&"
+        f"Culture=ru&"
+        f"Description={urllib.parse.quote(description)}"
+    )
+    
+    return {
+        'payment_url': payment_url,
+        'robokassa_inv_id': robokassa_inv_id
+    }

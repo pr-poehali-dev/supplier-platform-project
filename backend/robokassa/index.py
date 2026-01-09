@@ -61,6 +61,8 @@ def create_payment_link(event: dict) -> dict:
         signature_string = f"{merchant_login}:{amount}:{inv_id}:{password1}"
         signature = hashlib.md5(signature_string.encode()).hexdigest()
         
+        base_url = os.environ.get('BASE_URL', 'https://tourconnect.poehali.dev')
+        
         params = {
             'MerchantLogin': merchant_login,
             'OutSum': amount,
@@ -71,6 +73,9 @@ def create_payment_link(event: dict) -> dict:
             'Shp_plan': plan_id,
             'Shp_phone': phone,
             'Shp_name': name,
+            'Shp_email': email,
+            'SuccessURL': f"{base_url}/payment/success",
+            'FailURL': f"{base_url}/payment/fail",
             'IsTest': '1' if os.environ.get('ROBOKASSA_TEST_MODE') == '1' else '0'
         }
         

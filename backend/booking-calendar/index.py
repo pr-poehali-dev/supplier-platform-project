@@ -15,6 +15,7 @@ def handler(event: dict, context) -> dict:
     API для работы с календарём бронирований и AI-менеджером турбазы.
     Управляет объектами размещения, проверяет доступность, создаёт бронирования.
     Включает интеллектуального помощника для автоматического общения с клиентами.
+    Поддерживает синхронизацию с внешними календарями (Авито, Яндекс).
     '''
     method = event.get('httpMethod', 'GET')
     
@@ -744,6 +745,238 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
+        # Calendar Sync Endpoints
+        
+        # GET /calendar-export - экспорт календаря в iCal
+        if method == 'GET' and action == 'calendar-export':
+            unit_id = query_params.get('unit_id')
+            if not unit_id:
+                return error_response('unit_id is required', 400)
+            
+            cur.execute(f"""
+                SELECT check_in, check_out, guest_name, id
+                FROM bookings
+                WHERE unit_id = {unit_id} 
+                AND status IN ('confirmed', 'pending')
+                AND check_out >= CURRENT_DATE
+                ORDER BY check_in
+            """)
+            
+            ical = generate_ical_calendar(cur.fetchall())
+            
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'text/calendar; charset=utf-8',
+                    'Content-Disposition': f'inline; filename="calendar_{unit_id}.ics"',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': ical,
+                'isBase64Encoded': False
+            }
+        
+        # GET /calendar-sync-list - список синхронизаций
+        if method == 'GET' and action == 'calendar-sync-list':
+            unit_id = query_params.get('unit_id')
+            
+            if unit_id:
+                cur.execute(f"""
+                    SELECT id, unit_id, platform, calendar_url, is_active, 
+                           last_sync_at, created_at
+                    FROM calendar_sync
+                    WHERE unit_id = {unit_id}
+                    ORDER BY platform
+                """)
+            else:
+                cur.execute("""
+                    SELECT cs.id, cs.unit_id, u.name, cs.platform, cs.calendar_url, 
+                           cs.is_active, cs.last_sync_at, cs.created_at
+                    FROM calendar_sync cs
+                    JOIN units u ON cs.unit_id = u.id
+                    ORDER BY u.id, cs.platform
+                """)
+            
+            syncs = []
+            for row in cur.fetchall():
+                if unit_id:
+                    syncs.append({
+                        'id': row[0],
+                        'unit_id': row[1],
+                        'platform': row[2],
+                        'calendar_url': row[3],
+                        'is_active': row[4],
+                        'last_sync_at': row[5].isoformat() if row[5] else None,
+                        'created_at': row[6].isoformat()
+                    })
+                else:
+                    syncs.append({
+                        'id': row[0],
+                        'unit_id': row[1],
+                        'unit_name': row[2],
+                        'platform': row[3],
+                        'calendar_url': row[4],
+                        'is_active': row[5],
+                        'last_sync_at': row[6].isoformat() if row[6] else None,
+                        'created_at': row[7].isoformat()
+                    })
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'syncs': syncs}),
+                'isBase64Encoded': False
+            }
+        
+        # POST /calendar-sync-add - добавить синхронизацию
+        if method == 'POST' and action == 'calendar-sync-add':
+            body = json.loads(event.get('body', '{}'))
+            unit_id = body.get('unit_id')
+            platform = body.get('platform')
+            calendar_url = body.get('calendar_url', '')
+            
+            if not unit_id or not platform:
+                return error_response('unit_id and platform required', 400)
+            
+            cur.execute(f"""
+                INSERT INTO calendar_sync (unit_id, platform, calendar_url, is_active, created_at)
+                VALUES ({unit_id}, '{platform}', '{calendar_url.replace("'", "''")}', true, NOW())
+                RETURNING id
+            """)
+            
+            sync_id = cur.fetchone()[0]
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'id': sync_id, 'message': 'Sync added'}),
+                'isBase64Encoded': False
+            }
+        
+        # PUT /calendar-sync-update - обновить синхронизацию
+        if method == 'PUT' and action == 'calendar-sync-update':
+            body = json.loads(event.get('body', '{}'))
+            sync_id = body.get('id')
+            calendar_url = body.get('calendar_url')
+            is_active = body.get('is_active')
+            
+            if not sync_id:
+                return error_response('id required', 400)
+            
+            updates = []
+            if calendar_url is not None:
+                updates.append(f"calendar_url = '{calendar_url.replace(\"'\", \"''\")}'"  )
+            if is_active is not None:
+                updates.append(f"is_active = {str(is_active).lower()}")
+            
+            if updates:
+                cur.execute(f"""
+                    UPDATE calendar_sync
+                    SET {', '.join(updates)}
+                    WHERE id = {sync_id}
+                """)
+                conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Sync updated'}),
+                'isBase64Encoded': False
+            }
+        
+        # DELETE /calendar-sync-delete - удалить синхронизацию
+        if method == 'DELETE' and action == 'calendar-sync-delete':
+            sync_id = query_params.get('id')
+            if not sync_id:
+                return error_response('id required', 400)
+            
+            cur.execute(f"""
+                DELETE FROM calendar_sync WHERE id = {sync_id}
+            """)
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Sync deleted'}),
+                'isBase64Encoded': False
+            }
+        
+        # POST /calendar-sync-now - запустить синхронизацию
+        if method == 'POST' and action == 'calendar-sync-now':
+            import requests
+            
+            body = json.loads(event.get('body', '{}'))
+            sync_id = body.get('id')
+            
+            if not sync_id:
+                return error_response('id required', 400)
+            
+            cur.execute(f"""
+                SELECT unit_id, platform, calendar_url, is_active
+                FROM calendar_sync WHERE id = {sync_id}
+            """)
+            
+            sync_row = cur.fetchone()
+            if not sync_row:
+                return error_response('Sync not found', 404)
+            
+            unit_id, platform, calendar_url, is_active = sync_row
+            
+            if not is_active or not calendar_url:
+                return error_response('Sync disabled or URL not set', 400)
+            
+            # Импорт из внешнего календаря
+            try:
+                response = requests.get(calendar_url, timeout=10)
+                response.raise_for_status()
+                events = parse_ical_events(response.text)
+                
+                imported = 0
+                for event in events:
+                    check_in = event['start']
+                    check_out = event['end']
+                    
+                    cur.execute(f"""
+                        SELECT COUNT(*) FROM bookings
+                        WHERE unit_id = {unit_id}
+                        AND status IN ('confirmed', 'pending')
+                        AND (
+                            (check_in <= '{check_in}' AND check_out > '{check_in}')
+                            OR (check_in < '{check_out}' AND check_out >= '{check_out}')
+                        )
+                    """)
+                    
+                    if cur.fetchone()[0] == 0:
+                        cur.execute(f"""
+                            INSERT INTO bookings 
+                            (unit_id, guest_name, guest_phone, check_in, check_out,
+                             guests_count, total_price, status, source)
+                            VALUES ({unit_id}, 'Sync {platform}', 'external',
+                                    '{check_in}', '{check_out}', 1, 0, 'confirmed', '{platform}')
+                        """)
+                        imported += 1
+                
+                cur.execute(f"""
+                    UPDATE calendar_sync
+                    SET last_sync_at = NOW()
+                    WHERE id = {sync_id}
+                """)
+                
+                conn.commit()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({
+                        'message': 'Sync completed',
+                        'imported_events': imported
+                    }),
+                    'isBase64Encoded': False
+                }
+            except Exception as sync_error:
+                return error_response(f'Sync failed: {str(sync_error)}', 500)
+        
         return {
             'statusCode': 404,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -762,3 +995,66 @@ def handler(event: dict, context) -> dict:
     finally:
         cur.close()
         conn.close()
+
+
+def generate_ical_calendar(bookings) -> str:
+    '''Генерирует iCalendar из списка броней'''
+    lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//TourConnect//RU',
+        'CALSCALE:GREGORIAN'
+    ]
+    
+    for booking in bookings:
+        check_in, check_out, guest_name, booking_id = booking
+        dtstart = check_in.strftime('%Y%m%d')
+        dtend = check_out.strftime('%Y%m%d')
+        uid = f'booking-{booking_id}@tourconnect.ru'
+        
+        lines.extend([
+            'BEGIN:VEVENT',
+            f'UID:{uid}',
+            f'DTSTART;VALUE=DATE:{dtstart}',
+            f'DTEND;VALUE=DATE:{dtend}',
+            f'SUMMARY:Забронировано - {guest_name}',
+            'STATUS:CONFIRMED',
+            'END:VEVENT'
+        ])
+    
+    lines.append('END:VCALENDAR')
+    return '\r\n'.join(lines)
+
+
+def parse_ical_events(content: str):
+    '''Парсит события из iCalendar'''
+    events = []
+    lines = content.replace('\r\n ', '').split('\r\n')
+    current = None
+    
+    for line in lines:
+        if line == 'BEGIN:VEVENT':
+            current = {}
+        elif line == 'END:VEVENT' and current:
+            if 'start' in current and 'end' in current:
+                events.append(current)
+            current = None
+        elif current is not None:
+            if line.startswith('DTSTART'):
+                date_str = line.split(':')[1][:8]
+                current['start'] = datetime.strptime(date_str, '%Y%m%d').date()
+            elif line.startswith('DTEND'):
+                date_str = line.split(':')[1][:8]
+                current['end'] = datetime.strptime(date_str, '%Y%m%d').date()
+    
+    return events
+
+
+def error_response(message: str, status_code: int) -> dict:
+    '''Формирует ответ с ошибкой'''
+    return {
+        'statusCode': status_code,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps({'error': message}),
+        'isBase64Encoded': False
+    }

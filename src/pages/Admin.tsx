@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import PaymentLinksManager from '@/components/admin/PaymentLinksManager';
 import PendingBookingsManager from '@/components/admin/PendingBookingsManager';
 import SubscriptionManager from '@/components/admin/SubscriptionManager';
+import CalendarSyncManager from '@/components/admin/CalendarSyncManager';
 
 interface User {
   id: number;
@@ -284,6 +285,10 @@ const Admin = () => {
 
         <div className="mb-8">
           <PendingBookingsManager />
+        </div>
+
+        <div className="mb-8">
+          <CalendarSyncManager />
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">

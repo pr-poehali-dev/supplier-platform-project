@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Test get units",
+      "method": "GET",
+      "path": "/?action=get-units",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "units": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

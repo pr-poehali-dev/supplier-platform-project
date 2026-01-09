@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { getDiagnosticsResults, deleteDiagnosticsResult } from '@/utils/diagnosticsStorage';
+import { getUserSubscription, getPlanName, getPlanEmoji } from '@/utils/subscription';
 import { useState, useEffect } from 'react';
 
 const Profile = () => {
@@ -14,10 +15,28 @@ const Profile = () => {
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      setUser(JSON.parse(userStr));
+      const userData = JSON.parse(userStr);
+      setUser(userData);
     }
     setResults(getDiagnosticsResults());
   }, []);
+
+  const subscriptionPlan = getUserSubscription();
+  const planName = getPlanName(subscriptionPlan);
+  const planEmoji = getPlanEmoji(subscriptionPlan);
+
+  const getSubscriptionExpiryText = () => {
+    if (!user?.subscription_expires_at || subscriptionPlan === 'none') return null;
+    const expiresAt = new Date(user.subscription_expires_at);
+    const now = new Date();
+    const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) return 'Истекла';
+    if (daysLeft === 0) return 'Истекает сегодня';
+    if (daysLeft === 1) return 'Истекает завтра';
+    if (daysLeft <= 7) return `Осталось ${daysLeft} дней`;
+    return `До ${expiresAt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  };
 
   const handleDelete = (id: string) => {
     if (confirm('Удалить этот результат диагностики?')) {
@@ -75,8 +94,30 @@ const Profile = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-4xl font-bold mb-2 font-heading">Личный кабинет</h1>
-              <p className="text-gray-600">История ваших диагностик</p>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-bold font-heading">Личный кабинет</h1>
+                {subscriptionPlan !== 'none' && (
+                  <Badge 
+                    className={
+                      subscriptionPlan === 'start' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white text-lg px-4 py-1' :
+                      subscriptionPlan === 'pro' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-lg px-4 py-1' :
+                      subscriptionPlan === 'business' ? 'bg-gradient-to-r from-purple-500 to-violet-600 text-white text-lg px-4 py-1' :
+                      'bg-gradient-to-r from-red-500 to-rose-600 text-white text-lg px-4 py-1'
+                    }
+                  >
+                    {planEmoji} {planName}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                <p className="text-gray-600">История ваших диагностик</p>
+                {subscriptionPlan !== 'none' && getSubscriptionExpiryText() && (
+                  <Badge variant="outline" className="text-xs">
+                    <Icon name="Clock" size={12} className="mr-1" />
+                    {getSubscriptionExpiryText()}
+                  </Badge>
+                )}
+              </div>
             </div>
             {user?.is_admin && (
               <Button

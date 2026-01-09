@@ -208,10 +208,10 @@ const Pricing = () => {
               size="lg" 
               variant="outline"
               className="bg-white text-gray-900 hover:bg-gray-100 border-white"
-              onClick={() => navigate('/#contact')}
+              onClick={() => window.open('https://t.me/Maxim_Romantsov', '_blank')}
             >
               Свяжитесь с нами
-              <Icon name="ArrowRight" className="ml-2" size={20} />
+              <Icon name="Send" className="ml-2" size={20} />
             </Button>
           </CardContent>
         </Card>

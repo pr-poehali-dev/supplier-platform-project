@@ -47,7 +47,7 @@ const SubscriptionGuard = ({ feature, children, featureName = 'этой функ
           </h1>
           
           <p className="text-xl text-gray-600 mb-8">
-            Для доступа к {featureName} необходима активная подписка на один из тарифов
+            Для доступа к {featureName.replace('календаря бронирования', 'календарю бронирования')} необходима активная подписка на один из тарифов
           </p>
           
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-xl p-6 mb-8">

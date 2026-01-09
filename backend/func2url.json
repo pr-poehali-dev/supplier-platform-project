@@ -1,4 +1,6 @@
 {
+  "robokassa-robokassa-webhook": "https://functions.poehali.dev/7c897dbb-c084-420c-a4e9-27e67abb1e57",
+  "robokassa-robokassa": "https://functions.poehali.dev/a1a4be1c-d18a-43fc-839d-3f01ba50bfb8",
   "chatgpt-polza-chatgpt": "https://functions.poehali.dev/e13712ed-a9c9-41b9-8408-3330a2e22fef",
   "telegram-setup": "https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d",
   "booking-calendar": "https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d",

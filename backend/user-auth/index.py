@@ -20,7 +20,13 @@ def handler(event: dict, context) -> dict:
         }
     
     query = event.get('queryStringParameters', {}) or {}
+    action = query.get('action')
     code = query.get('code')
+    
+    # Обновление профиля
+    if action == 'refresh':
+        return refresh_profile(event)
+    
     
     # Если есть code - это callback от Яндекса
     if code:
@@ -138,7 +144,7 @@ def handle_callback(code: str) -> dict:
                 last_login = NOW(),
                 full_name = EXCLUDED.full_name,
                 avatar_url = EXCLUDED.avatar_url
-            RETURNING id, email, full_name, avatar_url, is_admin
+            RETURNING id, email, full_name, avatar_url, is_admin, subscription_plan, subscription_expires_at
         """, (email, full_name, 'yandex', str(provider_id), avatar_url))
         
         user = cur.fetchone()
@@ -151,13 +157,90 @@ def handle_callback(code: str) -> dict:
             'email': user[1],
             'full_name': user[2],
             'avatar_url': user[3],
-            'is_admin': user[4]
+            'is_admin': user[4],
+            'subscription_plan': user[5],
+            'subscription_expires_at': user[6].isoformat() if user[6] else None
         }
         
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({'success': True, 'user': user_info}),
+            'isBase64Encoded': False
+        }
+        
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': f'Database error: {str(e)}'}),
+            'isBase64Encoded': False
+        }
+
+
+def refresh_profile(event: dict) -> dict:
+    '''Обновляет данные профиля из базы'''
+    headers = event.get('headers', {})
+    user_id_header = headers.get('X-User-Id') or headers.get('x-user-id')
+    
+    if not user_id_header:
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Unauthorized'}),
+            'isBase64Encoded': False
+        }
+    
+    try:
+        user_id = int(user_id_header)
+    except ValueError:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Invalid user ID'}),
+            'isBase64Encoded': False
+        }
+    
+    db_url = os.environ.get('DATABASE_URL')
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+    
+    try:
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        
+        cur.execute(f"""
+            SELECT id, email, full_name, avatar_url, is_admin, 
+                   subscription_plan, subscription_expires_at
+            FROM {schema}.users
+            WHERE id = %s
+        """, (user_id,))
+        
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not user:
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'User not found'}),
+                'isBase64Encoded': False
+            }
+        
+        user_info = {
+            'id': user[0],
+            'email': user[1],
+            'full_name': user[2],
+            'avatar_url': user[3],
+            'is_admin': user[4],
+            'subscription_plan': user[5],
+            'subscription_expires_at': user[6].isoformat() if user[6] else None
+        }
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'user': user_info}),
             'isBase64Encoded': False
         }
         

@@ -38,6 +38,13 @@ const Profile = () => {
     return `До ${expiresAt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
   };
 
+  const refreshProfile = () => {
+    if (confirm('Для обновления данных нужно перезайти в аккаунт. Продолжить?')) {
+      localStorage.removeItem('user');
+      navigate('/auth');
+    }
+  };
+
   const handleDelete = (id: string) => {
     if (confirm('Удалить этот результат диагностики?')) {
       deleteDiagnosticsResult(id);
@@ -119,15 +126,25 @@ const Profile = () => {
                 )}
               </div>
             </div>
-            {user?.is_admin && (
+            <div className="flex gap-2">
               <Button
-                onClick={() => navigate('/admin')}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
+                onClick={refreshProfile}
+                variant="outline"
+                size="sm"
               >
-                <Icon name="Shield" className="mr-2" size={20} />
-                Админ-панель
+                <Icon name="RefreshCw" className="mr-2" size={16} />
+                Перезайти
               </Button>
-            )}
+              {user?.is_admin && (
+                <Button
+                  onClick={() => navigate('/admin')}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
+                >
+                  <Icon name="Shield" className="mr-2" size={20} />
+                  Админ-панель
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

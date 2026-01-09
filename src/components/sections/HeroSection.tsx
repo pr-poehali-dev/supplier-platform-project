@@ -44,7 +44,7 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
               🚀 Платформа нового поколения
             </Badge>
             <h2 className="text-5xl lg:text-6xl font-bold font-heading leading-tight">
-              База знаний для{' '}
+              Инструменты для{' '}
               <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                 бизнеса
               </span>{' '}

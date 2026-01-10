@@ -31,7 +31,7 @@ const planLimits: Record<SubscriptionPlan, SubscriptionLimits> = {
     hasSimulator: true,
   },
   business: {
-    maxUnits: 999,
+    maxUnits: 30,
     hasCalendar: true,
     hasDiagnostics: true,
     hasClub: true,

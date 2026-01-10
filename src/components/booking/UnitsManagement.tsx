@@ -167,11 +167,6 @@ export default function UnitsManagement({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {units.map((unit) => {
-            const availableSlots = unit.available_slots ?? 30;
-            const totalSlots = unit.total_slots ?? 30;
-            const occupancyPercent = ((totalSlots - availableSlots) / totalSlots) * 100;
-            const isLowAvailability = availableSlots < totalSlots * 0.3;
-            
             return (
               <div
                 key={unit.id}
@@ -182,8 +177,14 @@ export default function UnitsManagement({
                 }`}
               >
                 <button
-                  onClick={() => onDeleteUnit(unit.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Удалить объект "${unit.name}"?`)) {
+                      onDeleteUnit(unit.id);
+                    }
+                  }}
                   className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-red-100 text-red-600 transition-colors"
+                  title="Удалить объект"
                 >
                   <Icon name="Trash2" size={16} />
                 </button>
@@ -204,39 +205,14 @@ export default function UnitsManagement({
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{unit.description}</p>
                   )}
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-1 text-gray-600">
-                        <Icon name="Users" size={14} />
-                        До {unit.max_guests} гостей
-                      </span>
-                      <span className="font-bold text-blue-600">
-                        {unit.base_price.toLocaleString()} ₽/ночь
-                      </span>
-                    </div>
-
-                    <div className="pt-3 border-t border-gray-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">
-                          Свободно слотов
-                        </span>
-                        <Badge 
-                          variant={isLowAvailability ? "destructive" : "default"}
-                          className={isLowAvailability ? "bg-red-500" : "bg-green-500"}
-                        >
-                          {availableSlots} / {totalSlots}
-                        </Badge>
-                      </div>
-                      
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className={`h-2.5 rounded-full transition-all ${
-                            isLowAvailability ? 'bg-red-500' : 'bg-green-500'
-                          }`}
-                          style={{ width: `${((totalSlots - occupancyPercent) / totalSlots) * 100}%` }}
-                        />
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1 text-gray-600">
+                      <Icon name="Users" size={14} />
+                      До {unit.max_guests} гостей
+                    </span>
+                    <span className="font-bold text-blue-600">
+                      {unit.base_price.toLocaleString()} ₽/ночь
+                    </span>
                   </div>
                 </div>
               </div>

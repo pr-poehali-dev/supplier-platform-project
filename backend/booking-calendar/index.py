@@ -549,16 +549,38 @@ def handler(event: dict, context) -> dict:
                 ORDER BY id
             """)
             
+            today = datetime.now().date()
+            month_end = today + timedelta(days=30)
+            
             units = []
             for row in cur.fetchall():
+                unit_id = row[0]
+                
+                # Подсчитываем свободные слоты на ближайший месяц
+                cur.execute(f"""
+                    SELECT COUNT(DISTINCT date)
+                    FROM generate_series('{today}'::date, '{month_end}'::date, '1 day'::interval) AS date
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM bookings
+                        WHERE unit_id = {unit_id}
+                        AND status IN ('tentative', 'confirmed')
+                        AND date::date >= check_in
+                        AND date::date < check_out
+                    )
+                """)
+                available_slots = cur.fetchone()[0]
+                total_slots = 30
+                
                 units.append({
-                    'id': row[0],
+                    'id': unit_id,
                     'name': row[1],
                     'type': row[2],
                     'description': row[3],
                     'base_price': float(row[4]),
                     'max_guests': row[5],
-                    'created_at': row[6].isoformat() if row[6] else None
+                    'created_at': row[6].isoformat() if row[6] else None,
+                    'available_slots': available_slots,
+                    'total_slots': total_slots
                 })
             
             return {

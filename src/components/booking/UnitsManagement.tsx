@@ -14,6 +14,8 @@ export interface Unit {
   description: string;
   base_price: number;
   max_guests: number;
+  available_slots?: number;
+  total_slots?: number;
 }
 
 interface UnitsManagementProps {
@@ -128,37 +130,83 @@ export default function UnitsManagement({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {units.map((unit) => (
-            <div
-              key={unit.id}
-              className={`p-4 border-2 rounded-lg relative transition-all ${
-                selectedUnit?.id === unit.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <button
-                onClick={() => onDeleteUnit(unit.id)}
-                className="absolute top-2 right-2 p-1 rounded-full hover:bg-red-100 text-red-600"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {units.map((unit) => {
+            const availableSlots = unit.available_slots ?? 30;
+            const totalSlots = unit.total_slots ?? 30;
+            const occupancyPercent = ((totalSlots - availableSlots) / totalSlots) * 100;
+            const isLowAvailability = availableSlots < totalSlots * 0.3;
+            
+            return (
+              <div
+                key={unit.id}
+                className={`p-5 border-2 rounded-xl relative transition-all shadow-sm hover:shadow-md ${
+                  selectedUnit?.id === unit.id
+                    ? 'border-blue-500 bg-blue-50 shadow-lg'
+                    : 'border-gray-200 hover:border-blue-300 bg-white'
+                }`}
               >
-                <Icon name="Trash2" size={16} />
-              </button>
-              <div onClick={() => onSelectUnit(unit)} className="cursor-pointer">
-                <h3 className="font-semibold text-lg pr-8">{unit.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">{unit.description}</p>
-                <div className="flex justify-between items-center mt-3">
-                  <span className="flex items-center gap-1 text-sm">
-                    <Icon name="Users" size={14} />
-                    До {unit.max_guests} гостей
-                  </span>
-                  <span className="font-bold text-blue-600">
-                    {unit.base_price.toLocaleString()} ₽
-                  </span>
+                <button
+                  onClick={() => onDeleteUnit(unit.id)}
+                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-red-100 text-red-600 transition-colors"
+                >
+                  <Icon name="Trash2" size={16} />
+                </button>
+                
+                <div onClick={() => onSelectUnit(unit)} className="cursor-pointer">
+                  <div className="flex items-start gap-2 mb-3 pr-8">
+                    <div className="mt-1">
+                      <Icon 
+                        name={unit.type === 'house' ? 'Home' : unit.type === 'bathhouse' ? 'Droplet' : 'DoorClosed'} 
+                        size={20} 
+                        className="text-blue-600"
+                      />
+                    </div>
+                    <h3 className="font-bold text-lg leading-tight">{unit.name}</h3>
+                  </div>
+                  
+                  {unit.description && (
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{unit.description}</p>
+                  )}
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1 text-gray-600">
+                        <Icon name="Users" size={14} />
+                        До {unit.max_guests} гостей
+                      </span>
+                      <span className="font-bold text-blue-600">
+                        {unit.base_price.toLocaleString()} ₽/ночь
+                      </span>
+                    </div>
+
+                    <div className="pt-3 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">
+                          Свободно слотов
+                        </span>
+                        <Badge 
+                          variant={isLowAvailability ? "destructive" : "default"}
+                          className={isLowAvailability ? "bg-red-500" : "bg-green-500"}
+                        >
+                          {availableSlots} / {totalSlots}
+                        </Badge>
+                      </div>
+                      
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className={`h-2.5 rounded-full transition-all ${
+                            isLowAvailability ? 'bg-red-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${((totalSlots - occupancyPercent) / totalSlots) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

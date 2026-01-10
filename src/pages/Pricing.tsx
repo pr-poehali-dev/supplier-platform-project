@@ -1,13 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import { getUserSubscription, getPlanName, getPlanEmoji } from '@/utils/subscription';
 
 const Pricing = () => {
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<'start' | 'pro' | 'business' | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const currentPlan = getUserSubscription();
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+  }, []);
 
   const plans = [
     {
@@ -93,12 +103,101 @@ const Pricing = () => {
       </Button>
 
       <div className="container mx-auto px-4 py-20">
+        {currentPlan !== 'none' && user && (
+          <Card className="mb-12 max-w-4xl mx-auto border-2 border-primary shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <Icon name="Crown" className="text-yellow-500" size={28} />
+                Ваша активная подписка
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <div className="mb-4">
+                    <label className="text-sm text-gray-600 mb-1 block">Текущий тариф</label>
+                    <Badge 
+                      className={`text-lg px-4 py-2 ${
+                        currentPlan === 'start' ? 'bg-gradient-to-r from-green-500 to-emerald-600' :
+                        currentPlan === 'pro' ? 'bg-gradient-to-r from-blue-500 to-indigo-600' :
+                        'bg-gradient-to-r from-purple-500 to-violet-600'
+                      } text-white`}
+                    >
+                      {getPlanEmoji(currentPlan)} {getPlanName(currentPlan)}
+                    </Badge>
+                  </div>
+                  {user.subscription_expires_at && (
+                    <div className="mb-4">
+                      <label className="text-sm text-gray-600 mb-1 block">Действует до</label>
+                      <div className="flex items-center gap-2">
+                        <Icon name="Calendar" size={18} />
+                        <span className="text-lg font-semibold">
+                          {new Date(user.subscription_expires_at).toLocaleDateString('ru-RU', { 
+                            day: 'numeric', 
+                            month: 'long', 
+                            year: 'numeric' 
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {user.auto_renew && (
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Автопродление</label>
+                      <Badge variant="outline" className="text-sm">
+                        <Icon name="RefreshCw" size={14} className="mr-1" />
+                        Включено
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex flex-col gap-3">
+                  <Button
+                    onClick={() => {
+                      const currentPlanData = plans.find(p => p.id === currentPlan);
+                      if (currentPlanData) navigate('/payment', { state: { plan: currentPlanData, isRenewal: true } });
+                    }}
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:opacity-90"
+                  >
+                    <Icon name="RefreshCcw" className="mr-2" size={18} />
+                    Продлить подписку
+                  </Button>
+                  
+                  <Button
+                    onClick={() => {
+                      if (confirm('Вы уверены? Подписка будет отменена в конце текущего периода.')) {
+                        alert('Автопродление отключено. Подписка останется активной до ' + 
+                          new Date(user.subscription_expires_at).toLocaleDateString('ru-RU'));
+                      }
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Icon name="XCircle" className="mr-2" size={18} />
+                    Отменить автопродление
+                  </Button>
+                  
+                  <Button
+                    onClick={() => navigate('/profile')}
+                    variant="ghost"
+                    className="w-full"
+                  >
+                    <Icon name="User" className="mr-2" size={18} />
+                    Вернуться в профиль
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="text-center mb-16 animate-fade-in">
           <Badge className="mb-4 bg-gradient-to-r from-primary to-secondary text-white border-none">
-            💎 Выберите тариф
+            💎 {currentPlan !== 'none' ? 'Улучшить тариф' : 'Выберите тариф'}
           </Badge>
           <h1 className="text-5xl lg:text-6xl font-bold font-heading mb-4">
-            Тарифы и подписки
+            {currentPlan !== 'none' ? 'Доступные тарифы' : 'Тарифы и подписки'}
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Получите доступ к инструментам календаря, диагностики и закрытому клубу профессионалов туризма

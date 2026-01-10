@@ -151,9 +151,14 @@ export default function CalendarView({
           <div className="text-sm font-semibold">{day}</div>
           {isBooked && booking && (
             <>
-              <Badge variant="destructive" className="text-xs mt-1">
-                Занято
-              </Badge>
+              <div className="flex items-center gap-1">
+                <Badge variant="destructive" className="text-xs mt-1">
+                  Занято
+                </Badge>
+                {booking.source === 'telegram' && (
+                  <span className="text-sm" title="Бронирование из Telegram">💬</span>
+                )}
+              </div>
               {onDeleteBooking && (
                 <button
                   onClick={(e) => handleDeleteBooking(booking.id, e)}

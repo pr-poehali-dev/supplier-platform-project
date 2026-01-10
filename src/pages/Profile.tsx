@@ -116,13 +116,24 @@ const Profile = () => {
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <p className="text-gray-600">История ваших диагностик</p>
                 {subscriptionPlan !== 'none' && getSubscriptionExpiryText() && (
                   <Badge variant="outline" className="text-xs">
                     <Icon name="Clock" size={12} className="mr-1" />
                     {getSubscriptionExpiryText()}
                   </Badge>
+                )}
+                {subscriptionPlan !== 'none' && (
+                  <Button
+                    onClick={() => navigate('/pricing')}
+                    variant="outline"
+                    size="sm"
+                    className="h-7"
+                  >
+                    <Icon name="Settings" size={14} className="mr-1" />
+                    Управление подпиской
+                  </Button>
                 )}
               </div>
             </div>

@@ -143,6 +143,13 @@ def handler(event: dict, context) -> dict:
                         WHERE id = {pending_id}
                     """)
                     
+                    # Связываем все сообщения этого чата с созданным booking
+                    cur.execute(f"""
+                        UPDATE telegram_messages
+                        SET booking_id = {booking_id}
+                        WHERE telegram_id = {chat_id} AND booking_id IS NULL
+                    """)
+                    
                     # Получаем owner_id из conversations
                     cur.execute(f"""
                         SELECT user_id FROM conversations
@@ -312,6 +319,13 @@ def handler(event: dict, context) -> dict:
             INSERT INTO messages (conversation_id, role, content)
             VALUES ({conversation_id}, 'user', '{text.replace("'", "''")}')
         """)
+        
+        # Сохраняем сообщение пользователя в telegram_messages
+        cur.execute(f"""
+            INSERT INTO telegram_messages (telegram_id, message_text, sender)
+            VALUES ({chat_id}, '{text.replace("'", "''")}', 'user')
+        """)
+        
         conn.commit()
         
         cur.execute(f"""
@@ -542,6 +556,26 @@ def handler(event: dict, context) -> dict:
             INSERT INTO messages (conversation_id, role, content)
             VALUES ({conversation_id}, 'assistant', '{assistant_message.replace("'", "''")}')
         """)
+        
+        # Сохраняем ответ бота в telegram_messages (связываем с booking_id если есть)
+        cur.execute(f"""
+            SELECT id FROM pending_bookings 
+            WHERE telegram_chat_id = {chat_id}
+            ORDER BY created_at DESC LIMIT 1
+        """)
+        pending_booking = cur.fetchone()
+        
+        if pending_booking:
+            cur.execute(f"""
+                INSERT INTO telegram_messages (telegram_id, message_text, sender)
+                VALUES ({chat_id}, '{assistant_message.replace("'", "''")}', 'bot')
+            """)
+        else:
+            cur.execute(f"""
+                INSERT INTO telegram_messages (telegram_id, message_text, sender)
+                VALUES ({chat_id}, '{assistant_message.replace("'", "''")}', 'bot')
+            """)
+        
         conn.commit()
         
         send_telegram_message(chat_id, assistant_message)

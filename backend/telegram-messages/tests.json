@@ -1,0 +1,31 @@
+{
+  "tests": [
+    {
+      "name": "Get telegram messages for booking",
+      "method": "GET",
+      "path": "/?booking_id=1",
+      "headers": {
+        "X-User-Id": "1"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "messages": "array",
+        "total": "number"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Missing booking_id",
+      "method": "GET",
+      "path": "/",
+      "headers": {
+        "X-User-Id": "1"
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "booking_id is required"
+      }
+    }
+  ]
+}

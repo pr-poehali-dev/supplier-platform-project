@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Unit } from './UnitsManagement';
+
+interface TelegramMessage {
+  id: number;
+  telegram_id: number;
+  message_text: string;
+  sender: 'user' | 'bot';
+  created_at: string;
+}
 
 export interface Booking {
   id: number;
@@ -16,6 +25,7 @@ export interface Booking {
   guest_phone: string;
   total_price: number;
   status: string;
+  source?: string;
 }
 
 interface CalendarViewProps {
@@ -36,10 +46,48 @@ export default function CalendarView({
   renderBookingButton
 }: CalendarViewProps) {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const monthNames = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
   ];
+
+  useEffect(() => {
+    if (selectedBooking) {
+      loadTelegramMessages(selectedBooking.id);
+    } else {
+      setTelegramMessages([]);
+    }
+  }, [selectedBooking]);
+
+  const loadTelegramMessages = async (bookingId: number) => {
+    setLoadingMessages(true);
+    try {
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      
+      if (!user?.id) return;
+
+      const response = await fetch(
+        `https://functions.poehali.dev/b08b50dd-ee0f-4534-9865-afdf3582a91b?booking_id=${bookingId}`,
+        {
+          headers: {
+            'X-User-Id': user.id.toString()
+          }
+        }
+      );
+      const data = await response.json();
+      
+      if (data.success) {
+        setTelegramMessages(data.messages || []);
+      }
+    } catch (error) {
+      console.error('Error loading telegram messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -226,6 +274,55 @@ export default function CalendarView({
                 <p className="text-sm text-gray-500">Стоимость</p>
                 <p className="text-2xl font-bold text-green-600">{selectedBooking.total_price} ₽</p>
               </div>
+
+              {/* История переписки из Telegram */}
+              {selectedBooking.source === 'telegram' && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon name="MessageSquare" size={20} className="text-blue-600" />
+                    <p className="font-semibold">История переписки с клиентом</p>
+                  </div>
+                  
+                  {loadingMessages ? (
+                    <div className="text-center py-4">
+                      <Icon name="Loader2" className="animate-spin mx-auto" size={24} />
+                    </div>
+                  ) : telegramMessages.length > 0 ? (
+                    <ScrollArea className="h-[300px] border rounded-lg p-3 bg-gray-50">
+                      <div className="space-y-3">
+                        {telegramMessages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                                msg.sender === 'user'
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white border border-gray-200'
+                              }`}
+                            >
+                              <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p>
+                              <p className={`text-xs mt-1 ${msg.sender === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
+                                {new Date(msg.created_at).toLocaleString('ru-RU', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      История переписки недоступна
+                    </p>
+                  )}
+                </div>
+              )}
 
               {onDeleteBooking && (
                 <Button

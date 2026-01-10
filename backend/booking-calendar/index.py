@@ -337,7 +337,7 @@ def handler(event: dict, context) -> dict:
         if method == 'GET' and action == 'bookings':
             cur.execute("""
                 SELECT b.id, b.unit_id, u.name, b.check_in, b.check_out, 
-                       b.guest_name, b.guest_phone, b.total_price, b.status
+                       b.guest_name, b.guest_phone, b.total_price, b.status, b.source
                 FROM bookings b
                 JOIN units u ON b.unit_id = u.id
                 WHERE b.status != 'cancelled'
@@ -355,7 +355,8 @@ def handler(event: dict, context) -> dict:
                     'guest_name': row[5],
                     'guest_phone': row[6],
                     'total_price': float(row[7]),
-                    'status': row[8]
+                    'status': row[8],
+                    'source': row[9]
                 })
             
             return {

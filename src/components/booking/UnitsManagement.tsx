@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { getUserSubscription, getSubscriptionLimits, canAddUnit } from '@/utils/subscription';
+import { useNavigate } from 'react-router-dom';
 
 export interface Unit {
   id: number;
@@ -33,6 +35,7 @@ export default function UnitsManagement({
   onAddUnit,
   onDeleteUnit
 }: UnitsManagementProps) {
+  const navigate = useNavigate();
   const [showAddUnit, setShowAddUnit] = useState(false);
   const [newUnit, setNewUnit] = useState({
     name: '',
@@ -42,20 +45,52 @@ export default function UnitsManagement({
     max_guests: ''
   });
 
+  const currentPlan = getUserSubscription();
+  const limits = getSubscriptionLimits();
+  const canAdd = canAddUnit(units.length);
+
   const handleAddUnit = async () => {
+    if (!canAdd) {
+      alert(`Достигнут лимит объектов для тарифа ${currentPlan.toUpperCase()}. Улучшите подписку для добавления новых объектов.`);
+      return;
+    }
+    
     await onAddUnit(newUnit);
     setShowAddUnit(false);
     setNewUnit({ name: '', type: 'house', description: '', base_price: '', max_guests: '' });
+  };
+
+  const handleAddButtonClick = () => {
+    if (!canAdd) {
+      if (confirm(`У вас достигнут лимит: ${units.length} из ${limits.maxUnits} объектов.\n\nУлучшить подписку?`)) {
+        navigate('/pricing');
+      }
+      return;
+    }
+    setShowAddUnit(true);
   };
 
   return (
     <Card className="mb-6">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
-          <span>Объекты для бронирования</span>
+          <div className="flex items-center gap-3">
+            <span>Объекты для бронирования</span>
+            <Badge 
+              variant="outline" 
+              className={`${!canAdd ? 'bg-red-50 text-red-700 border-red-300' : 'bg-green-50 text-green-700 border-green-300'}`}
+            >
+              {units.length} / {limits.maxUnits === 999 ? '∞' : limits.maxUnits}
+            </Badge>
+          </div>
           <Dialog open={showAddUnit} onOpenChange={setShowAddUnit}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button 
+                size="sm" 
+                onClick={handleAddButtonClick}
+                variant={!canAdd ? 'outline' : 'default'}
+                className={!canAdd ? 'opacity-60' : ''}
+              >
                 <Icon name="Plus" className="mr-2" size={16} />
                 Добавить объект
               </Button>

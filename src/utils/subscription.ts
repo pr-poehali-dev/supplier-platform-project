@@ -24,7 +24,7 @@ const planLimits: Record<SubscriptionPlan, SubscriptionLimits> = {
     hasSimulator: true,
   },
   pro: {
-    maxUnits: 5,
+    maxUnits: 10,
     hasCalendar: true,
     hasDiagnostics: true,
     hasClub: true,

@@ -269,16 +269,28 @@ def handler(event: dict, context) -> dict:
                     'isBase64Encoded': False
                 }
             
-            cur.execute(f"DELETE FROM bookings WHERE unit_id = {unit_id}")
-            cur.execute(f"DELETE FROM units WHERE id = {unit_id}")
-            conn.commit()
-            
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'message': 'Unit deleted successfully'}),
-                'isBase64Encoded': False
-            }
+            try:
+                cur.execute(f"DELETE FROM price_modifiers WHERE unit_id = {unit_id}")
+                cur.execute(f"DELETE FROM pending_bookings WHERE unit_id = {unit_id}")
+                cur.execute(f"DELETE FROM payment_links WHERE unit_id = {unit_id}")
+                cur.execute(f"DELETE FROM bookings WHERE unit_id = {unit_id}")
+                cur.execute(f"DELETE FROM units WHERE id = {unit_id}")
+                conn.commit()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'message': 'Unit deleted successfully'}),
+                    'isBase64Encoded': False
+                }
+            except Exception as e:
+                conn.rollback()
+                return {
+                    'statusCode': 500,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': f'Failed to delete unit: {str(e)}'}),
+                    'isBase64Encoded': False
+                }
         
         # DELETE /delete-booking - удалить бронирование
         if method == 'DELETE' and action == 'delete-booking':

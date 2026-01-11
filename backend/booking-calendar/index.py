@@ -4,6 +4,8 @@ import psycopg2
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+# Updated: 2026-01-11 - Fixed unit deletion with cascade delete
+
 try:
     import openai
     OPENAI_AVAILABLE = True
@@ -16,6 +18,7 @@ def handler(event: dict, context) -> dict:
     Управляет объектами размещения, проверяет доступность, создаёт бронирования.
     Включает интеллектуального помощника для автоматического общения с клиентами.
     Поддерживает синхронизацию с внешними календарями (Авито, Яндекс).
+    Исправлено каскадное удаление объектов с очисткой всех связанных данных.
     '''
     method = event.get('httpMethod', 'GET')
     

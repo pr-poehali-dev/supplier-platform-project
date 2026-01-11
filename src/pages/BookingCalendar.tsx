@@ -133,7 +133,25 @@ export default function BookingCalendar() {
 
   const deleteUnit = async (unitId: number) => {
     console.log('deleteUnit called with:', unitId);
+    
+    toast({
+      title: 'Удаление объекта',
+      description: 'Пожалуйста, подождите...',
+    });
+    
     try {
+      // Удаляем все бронирования этого объекта сначала
+      const unitBookings = bookings.filter(b => b.unit_id === unitId);
+      console.log(`Found ${unitBookings.length} bookings to delete`);
+      
+      for (const booking of unitBookings) {
+        console.log(`Deleting booking ${booking.id}`);
+        await fetch(`${API_URL}?action=delete-booking&booking_id=${booking.id}`, {
+          method: 'DELETE'
+        });
+      }
+      
+      // Теперь удаляем сам объект
       const url = `${API_URL}?action=delete-unit&unit_id=${unitId}`;
       console.log('Deleting unit, URL:', url);
       

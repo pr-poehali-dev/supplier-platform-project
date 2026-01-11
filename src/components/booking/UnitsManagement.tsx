@@ -25,6 +25,7 @@ interface UnitsManagementProps {
   selectedUnit: Unit | null;
   onSelectUnit: (unit: Unit) => void;
   onAddUnit: (unit: { name: string; type: string; description: string; base_price: string; max_guests: string }) => Promise<void>;
+  onUpdateUnit: (unitId: number, unit: { name: string; type: string; description: string; base_price: string; max_guests: string }) => Promise<void>;
   onDeleteUnit: (unitId: number) => Promise<void>;
 }
 
@@ -33,10 +34,12 @@ export default function UnitsManagement({
   selectedUnit,
   onSelectUnit,
   onAddUnit,
+  onUpdateUnit,
   onDeleteUnit
 }: UnitsManagementProps) {
   const navigate = useNavigate();
   const [showAddUnit, setShowAddUnit] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [newUnit, setNewUnit] = useState({
     name: '',
     type: 'house',
@@ -68,6 +71,23 @@ export default function UnitsManagement({
       return;
     }
     setShowAddUnit(true);
+  };
+
+  const handleEditUnit = (unit: Unit) => {
+    setEditingUnit(unit);
+  };
+
+  const handleUpdateUnit = async () => {
+    if (!editingUnit) return;
+    
+    await onUpdateUnit(editingUnit.id, {
+      name: editingUnit.name,
+      type: editingUnit.type,
+      description: editingUnit.description,
+      base_price: editingUnit.base_price.toString(),
+      max_guests: editingUnit.max_guests.toString()
+    });
+    setEditingUnit(null);
   };
 
   return (
@@ -176,18 +196,30 @@ export default function UnitsManagement({
                     : 'border-gray-200 hover:border-blue-300 bg-white'
                 }`}
               >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm(`Удалить объект "${unit.name}"?`)) {
-                      onDeleteUnit(unit.id);
-                    }
-                  }}
-                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-red-100 text-red-600 transition-colors"
-                  title="Удалить объект"
-                >
-                  <Icon name="Trash2" size={16} />
-                </button>
+                <div className="absolute top-3 right-3 flex gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditUnit(unit);
+                    }}
+                    className="p-1.5 rounded-full hover:bg-blue-100 text-blue-600 transition-colors"
+                    title="Редактировать объект"
+                  >
+                    <Icon name="Pencil" size={16} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Удалить объект "${unit.name}"?`)) {
+                        onDeleteUnit(unit.id);
+                      }
+                    }}
+                    className="p-1.5 rounded-full hover:bg-red-100 text-red-600 transition-colors"
+                    title="Удалить объект"
+                  >
+                    <Icon name="Trash2" size={16} />
+                  </button>
+                </div>
                 
                 <div onClick={() => onSelectUnit(unit)} className="cursor-pointer">
                   <div className="flex items-start gap-2 mb-3 pr-8">
@@ -219,6 +251,78 @@ export default function UnitsManagement({
             );
           })}
         </div>
+
+        {editingUnit && (
+          <Dialog open={!!editingUnit} onOpenChange={() => setEditingUnit(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Редактировать объект</DialogTitle>
+                <DialogDescription>
+                  Измените информацию об объекте
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="editUnitName">Название *</Label>
+                  <Input
+                    id="editUnitName"
+                    value={editingUnit.name}
+                    onChange={(e) => setEditingUnit({...editingUnit, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editUnitType">Тип</Label>
+                  <select
+                    id="editUnitType"
+                    className="w-full p-2 border rounded-md"
+                    value={editingUnit.type}
+                    onChange={(e) => setEditingUnit({...editingUnit, type: e.target.value})}
+                  >
+                    <option value="house">Домик</option>
+                    <option value="room">Номер</option>
+                    <option value="bathhouse">Баня</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="editUnitDescription">Описание</Label>
+                  <Input
+                    id="editUnitDescription"
+                    value={editingUnit.description}
+                    onChange={(e) => setEditingUnit({...editingUnit, description: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="editUnitPrice">Цена за ночь *</Label>
+                    <Input
+                      id="editUnitPrice"
+                      type="number"
+                      value={editingUnit.base_price}
+                      onChange={(e) => setEditingUnit({...editingUnit, base_price: Number(e.target.value)})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="editUnitGuests">Макс. гостей *</Label>
+                    <Input
+                      id="editUnitGuests"
+                      type="number"
+                      value={editingUnit.max_guests}
+                      onChange={(e) => setEditingUnit({...editingUnit, max_guests: Number(e.target.value)})}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleUpdateUnit} className="flex-1">
+                    Сохранить изменения
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditingUnit(null)} className="flex-1">
+                    Отмена
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardContent>
     </Card>
   );

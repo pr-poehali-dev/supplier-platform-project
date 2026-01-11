@@ -222,6 +222,42 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
+        # PUT /update-unit - обновить объект
+        if method == 'PUT' and action == 'update-unit':
+            unit_id = query_params.get('unit_id')
+            if not unit_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'unit_id is required'}),
+                    'isBase64Encoded': False
+                }
+            
+            body = json.loads(event.get('body', '{}'))
+            name = body.get('name', '')
+            unit_type = body.get('type', 'house')
+            description = body.get('description', '')
+            base_price = float(body.get('base_price', 0))
+            max_guests = int(body.get('max_guests', 2))
+            
+            cur.execute(f"""
+                UPDATE units 
+                SET name = '{name.replace("'", "''")}',
+                    type = '{unit_type}',
+                    description = '{description.replace("'", "''")}',
+                    base_price = {base_price},
+                    max_guests = {max_guests}
+                WHERE id = {unit_id}
+            """)
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Unit updated successfully'}),
+                'isBase64Encoded': False
+            }
+        
         # DELETE /delete-unit - удалить объект
         if method == 'DELETE' and action == 'delete-unit':
             unit_id = query_params.get('unit_id')

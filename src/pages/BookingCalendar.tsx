@@ -95,9 +95,43 @@ export default function BookingCalendar() {
     }
   };
 
+  const updateUnit = async (unitId: number, updatedUnit: {
+    name: string;
+    type: string;
+    description: string;
+    base_price: string;
+    max_guests: string;
+  }) => {
+    if (!updatedUnit.name || !updatedUnit.base_price || !updatedUnit.max_guests) {
+      alert('Заполните все поля');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}?action=update-unit&unit_id=${unitId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUnit)
+      });
+      
+      if (response.ok) {
+        await loadUnits();
+        toast({
+          title: 'Успешно',
+          description: 'Объект обновлён',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating unit:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить объект',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const deleteUnit = async (unitId: number) => {
-    if (!confirm('Удалить этот объект? Все бронирования также будут удалены.')) return;
-    
     try {
       const response = await fetch(`${API_URL}?action=delete-unit&unit_id=${unitId}`, {
         method: 'DELETE'
@@ -194,6 +228,7 @@ export default function BookingCalendar() {
             selectedUnit={selectedUnit}
             onSelectUnit={setSelectedUnit}
             onAddUnit={addUnit}
+            onUpdateUnit={updateUnit}
             onDeleteUnit={deleteUnit}
           />
 

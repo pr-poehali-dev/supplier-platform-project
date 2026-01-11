@@ -13,6 +13,7 @@ import { canAddUnit, getSubscriptionLimits } from '@/utils/subscription';
 import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
+const DELETE_UNIT_URL = 'https://functions.poehali.dev/99916984-c945-4b8d-9af9-fc88342eb58a';
 
 export default function BookingCalendar() {
   const { toast } = useToast();
@@ -132,34 +133,10 @@ export default function BookingCalendar() {
   };
 
   const deleteUnit = async (unitId: number) => {
-    console.log('deleteUnit called with:', unitId);
-    
-    toast({
-      title: 'Удаление объекта',
-      description: 'Пожалуйста, подождите...',
-    });
-    
     try {
-      // Удаляем все бронирования этого объекта сначала
-      const unitBookings = bookings.filter(b => b.unit_id === unitId);
-      console.log(`Found ${unitBookings.length} bookings to delete`);
-      
-      for (const booking of unitBookings) {
-        console.log(`Deleting booking ${booking.id}`);
-        await fetch(`${API_URL}?action=delete-booking&booking_id=${booking.id}`, {
-          method: 'DELETE'
-        });
-      }
-      
-      // Теперь удаляем сам объект
-      const url = `${API_URL}?action=delete-unit&unit_id=${unitId}`;
-      console.log('Deleting unit, URL:', url);
-      
-      const response = await fetch(url, {
+      const response = await fetch(`${DELETE_UNIT_URL}?unit_id=${unitId}`, {
         method: 'DELETE'
       });
-      
-      console.log('Delete response status:', response.status);
       
       if (response.ok) {
         if (selectedUnit?.id === unitId) {
@@ -173,7 +150,6 @@ export default function BookingCalendar() {
         });
       } else {
         const errorData = await response.json();
-        console.error('Delete error response:', errorData);
         toast({
           title: 'Ошибка',
           description: errorData.error || 'Не удалось удалить объект',

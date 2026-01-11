@@ -208,10 +208,11 @@ export default function UnitsManagement({
                     <Icon name="Pencil" size={16} />
                   </button>
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
                       if (confirm(`Удалить объект "${unit.name}"?`)) {
-                        onDeleteUnit(unit.id);
+                        console.log('Deleting unit:', unit.id);
+                        await onDeleteUnit(unit.id);
                       }
                     }}
                     className="p-1.5 rounded-full hover:bg-red-100 text-red-600 transition-colors"

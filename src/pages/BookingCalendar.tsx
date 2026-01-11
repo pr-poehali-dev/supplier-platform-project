@@ -132,10 +132,16 @@ export default function BookingCalendar() {
   };
 
   const deleteUnit = async (unitId: number) => {
+    console.log('deleteUnit called with:', unitId);
     try {
-      const response = await fetch(`${API_URL}?action=delete-unit&unit_id=${unitId}`, {
+      const url = `${API_URL}?action=delete-unit&unit_id=${unitId}`;
+      console.log('Deleting unit, URL:', url);
+      
+      const response = await fetch(url, {
         method: 'DELETE'
       });
+      
+      console.log('Delete response status:', response.status);
       
       if (response.ok) {
         if (selectedUnit?.id === unitId) {
@@ -143,9 +149,26 @@ export default function BookingCalendar() {
         }
         await loadUnits();
         await loadBookings();
+        toast({
+          title: 'Объект удалён',
+          description: 'Объект успешно удалён из системы',
+        });
+      } else {
+        const errorData = await response.json();
+        console.error('Delete error response:', errorData);
+        toast({
+          title: 'Ошибка',
+          description: errorData.error || 'Не удалось удалить объект',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Error deleting unit:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Произошла ошибка при удалении объекта',
+        variant: 'destructive',
+      });
     }
   };
 

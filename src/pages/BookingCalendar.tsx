@@ -5,9 +5,7 @@ import Icon from '@/components/ui/icon';
 import UnitsManagement, { Unit } from '@/components/booking/UnitsManagement';
 import CalendarView, { Booking } from '@/components/booking/CalendarView';
 import BookingDialog from '@/components/booking/BookingDialog';
-import TelegramBotCard from '@/components/booking/TelegramBotCard';
-import OwnerTelegramSetup from '@/components/booking/OwnerTelegramSetup';
-import CalendarSyncCard from '@/components/booking/CalendarSyncCard';
+import IntegrationAccordion from '@/components/booking/IntegrationAccordion';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { canAddUnit, getSubscriptionLimits } from '@/utils/subscription';
 import { useToast } from '@/hooks/use-toast';
@@ -277,14 +275,7 @@ export default function BookingCalendar() {
             }
           />
 
-          <div className="space-y-6 mt-6">
-            <CalendarSyncCard units={units} />
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              <TelegramBotCard botLink={botLink} />
-              <OwnerTelegramSetup />
-            </div>
-          </div>
+          <IntegrationAccordion botLink={botLink} units={units} />
         </div>
       </div>
     </SubscriptionGuard>

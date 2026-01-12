@@ -209,7 +209,8 @@ def handler(event: dict, context) -> dict:
 
 def import_from_ical(cur, conn, unit_id: int, platform: str, calendar_url: str) -> int:
     '''
-    Загружает iCal по ссылке, парсит занятые даты, создаёт блокировки в календаре
+    Загружает iCal по ссылке, парсит занятые даты, создаёт блокировки в календаре.
+    Отправляет уведомление владельцу о каждой новой брони.
     '''
     try:
         response = requests.get(calendar_url, timeout=30)
@@ -218,13 +219,28 @@ def import_from_ical(cur, conn, unit_id: int, platform: str, calendar_url: str) 
     except Exception as e:
         raise Exception(f'Ошибка загрузки iCal: {str(e)}')
     
+    cur.execute(f"SELECT name FROM units WHERE id = {unit_id}")
+    unit_result = cur.fetchone()
+    unit_name = unit_result[0] if unit_result else f"Объект #{unit_id}"
+    
+    cur.execute(f"SELECT user_id FROM units WHERE id = {unit_id}")
+    owner_result = cur.fetchone()
+    owner_id = owner_result[0] if owner_result else None
+    
     events = parse_ical(ical_data)
     imported = 0
+    
+    platform_names = {
+        'avito': 'Авито',
+        'yandex': 'Яндекс Путешествия',
+        'booking': 'Booking.com'
+    }
+    platform_display = platform_names.get(platform, platform)
     
     for event in events:
         start_date = event['start']
         end_date = event['end']
-        summary = event.get('summary', f'Бронь с {platform}')
+        summary = event.get('summary', f'Бронь с {platform_display}')
         
         cur.execute(f"""
             SELECT id FROM bookings
@@ -244,11 +260,73 @@ def import_from_ical(cur, conn, unit_id: int, platform: str, calendar_url: str) 
             VALUES ({unit_id}, '{summary.replace("'", "''")}', '', 
                     '{start_date}', '{end_date}', 
                     1, 0, 'confirmed', '{platform}_sync', NOW())
+            RETURNING id
         """)
+        booking_id = cur.fetchone()[0]
         imported += 1
+        
+        if owner_id:
+            notify_owner_about_sync(
+                owner_id,
+                f'🔔 <b>Новая бронь импортирована!</b>\n\n'
+                f'📍 Площадка: {platform_display}\n'
+                f'🏠 Объект: {unit_name}\n'
+                f'📅 Даты: {start_date} — {end_date}\n'
+                f'📝 {summary}\n\n'
+                f'Бронь №{booking_id} автоматически добавлена в календарь.'
+            )
     
     conn.commit()
     return imported
+
+
+def notify_owner_about_sync(owner_id: int, message: str):
+    '''
+    Отправляет уведомление владельцу в Telegram о новой импортированной брони
+    '''
+    try:
+        import psycopg2
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        cur.execute(f"""
+            SELECT channel_user_id FROM conversations
+            WHERE user_id = {owner_id}
+            AND channel = 'telegram'
+            AND channel_user_id LIKE 'owner_%'
+            ORDER BY created_at DESC
+            LIMIT 1
+        """)
+        
+        result = cur.fetchone()
+        if result:
+            owner_chat_id = result[0].replace('owner_', '')
+            send_telegram_message(owner_chat_id, message)
+        
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f'Ошибка отправки уведомления владельцу: {e}')
+
+
+def send_telegram_message(chat_id: str, text: str):
+    '''
+    Отправляет сообщение в Telegram
+    '''
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not bot_token:
+        return
+    
+    try:
+        url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+        data = {
+            'chat_id': chat_id,
+            'text': text,
+            'parse_mode': 'HTML'
+        }
+        requests.post(url, json=data, timeout=10)
+    except Exception as e:
+        print(f'Ошибка отправки в Telegram: {e}')
 
 
 def parse_ical(ical_text: str) -> list:

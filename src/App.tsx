@@ -15,6 +15,7 @@ import Diagnostics from "./pages/Diagnostics";
 import DiagnosticsResults from "./pages/DiagnosticsResults";
 import Profile from "./pages/Profile";
 import BookingCalendar from "./pages/BookingCalendar";
+import SyncGuide from "./pages/SyncGuide";
 import Pricing from "./pages/Pricing";
 import Payment from "./pages/Payment";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/diagnostics/results" element={<DiagnosticsResults />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/booking-calendar" element={<BookingCalendar />} />
+          <Route path="/sync-guide" element={<SyncGuide />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment" element={<Payment />} />
           <Route path="/payment/success" element={<PaymentSuccess />} />

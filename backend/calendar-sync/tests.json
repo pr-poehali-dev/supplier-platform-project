@@ -1,14 +1,20 @@
 {
   "tests": [
     {
-      "name": "Test get units",
+      "name": "Получение списка синхронизаций",
       "method": "GET",
-      "path": "/?action=get-units",
+      "path": "/?action=calendar-sync-list",
       "expectedStatus": 200,
       "expectedBody": {
-        "units": "array"
+        "syncs": "array"
       },
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Экспорт календаря в iCal",
+      "method": "GET",
+      "path": "/?action=calendar-export&unit_id=1",
+      "expectedStatus": 200
     }
   ]
 }

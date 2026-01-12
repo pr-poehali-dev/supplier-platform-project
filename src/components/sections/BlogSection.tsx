@@ -36,7 +36,7 @@ const BlogSection = () => {
     try {
       setLoading(true);
       const category = selectedCategory === 'all' ? '' : selectedCategory;
-      const url = `https://functions.poehali.dev/0e09f71c-79fb-4a6c-ad91-6ca81f12a263?limit=20&channel_type=free${category ? `&category=${category}` : ''}`;
+      const url = `https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=20&channel_type=free${category ? `&category=${category}` : ''}`;
       
       const response = await fetch(url);
       const data = await response.json();

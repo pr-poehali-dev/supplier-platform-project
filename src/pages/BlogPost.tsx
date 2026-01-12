@@ -90,7 +90,7 @@ const BlogPost = () => {
   const fetchPost = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://functions.poehali.dev/0e09f71c-79fb-4a6c-ad91-6ca81f12a263?limit=100&channel_type=free`);
+      const response = await fetch(`https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=100&channel_type=free`);
       const data = await response.json();
       
       if (data.posts) {

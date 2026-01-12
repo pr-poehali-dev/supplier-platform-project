@@ -11,11 +11,17 @@ import CalendarSyncCard from '@/components/booking/CalendarSyncCard';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { canAddUnit, getSubscriptionLimits } from '@/utils/subscription';
 import { useToast } from '@/hooks/use-toast';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 const DELETE_UNIT_URL = 'https://functions.poehali.dev/99916984-c945-4b8d-9af9-fc88342eb58a';
 
 export default function BookingCalendar() {
+  usePageMeta({
+    title: 'Календарь бронирований',
+    description: 'Управление бронированиями объектов размещения: календарь загрузки, цены, автоматизация через Telegram',
+    keywords: 'календарь бронирований, управление объектами, турбаза, глэмпинг, бронирование онлайн'
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
   const [units, setUnits] = useState<Unit[]>([]);

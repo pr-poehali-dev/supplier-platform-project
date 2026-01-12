@@ -4,8 +4,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 const Club = () => {
+  usePageMeta({
+    title: 'Клуб предпринимателей',
+    description: 'Закрытое сообщество владельцев туристических объектов: нетворкинг, обмен опытом, обучающие материалы',
+    keywords: 'клуб предпринимателей, сообщество турбизнеса, нетворкинг туризм, обучение владельцев'
+  });
   const navigate = useNavigate();
 
   const benefits = [

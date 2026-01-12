@@ -8,8 +8,14 @@ import DiagnosticsNavBar from '@/components/diagnostics/DiagnosticsNavBar';
 import DiagnosticsQuestion from '@/components/diagnostics/DiagnosticsQuestion';
 import { diagnosticsBlocks } from '@/components/diagnostics/diagnosticsData';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 const Diagnostics = () => {
+  usePageMeta({
+    title: 'Диагностика проекта',
+    description: 'Проведите комплексную диагностику вашего туристического проекта и получите индивидуальные рекомендации по развитию',
+    keywords: 'диагностика турбизнеса, анализ проекта, туристический объект, оценка бизнеса'
+  });
   const navigate = useNavigate();
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});

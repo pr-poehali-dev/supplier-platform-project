@@ -5,8 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { getUserSubscription, getPlanName, getPlanEmoji } from '@/utils/subscription';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 const Pricing = () => {
+  usePageMeta({
+    title: 'Тарифы',
+    description: 'Выберите подходящий тариф TOURCONNECT: Старт, Про или Бизнес. Доступ к инструментам управления туристическим бизнесом',
+    keywords: 'тарифы, подписка, цены TOURCONNECT, стоимость услуг'
+  });
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<'start' | 'pro' | 'business' | null>(null);
   const [user, setUser] = useState<any>(null);

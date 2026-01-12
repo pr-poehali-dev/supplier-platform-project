@@ -7,8 +7,14 @@ import BlogSection from '@/components/sections/BlogSection';
 import FeaturesSection from '@/components/sections/FeaturesSection';
 import AboutSection from '@/components/sections/AboutSection';
 import ContactSection from '@/components/sections/ContactSection';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 const Index = () => {
+  usePageMeta({
+    title: 'Главная',
+    description: 'TOURCONNECT — комплексная платформа для развития туристического бизнеса. Симулятор бизнеса, календарь бронирований, диагностика проектов и инструменты управления.',
+    keywords: 'турбизнес, туризм России, календарь бронирований, глэмпинг, турбаза, гостиница, симулятор бизнеса'
+  });
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('home');
   const [user, setUser] = useState<any>(null);

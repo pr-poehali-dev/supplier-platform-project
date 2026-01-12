@@ -12,6 +12,8 @@ import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { canAddUnit, getSubscriptionLimits } from '@/utils/subscription';
 import { useToast } from '@/hooks/use-toast';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import JsonLd from '@/components/seo/JsonLd';
+import { breadcrumbSchema } from '@/utils/seo';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 const DELETE_UNIT_URL = 'https://functions.poehali.dev/99916984-c945-4b8d-9af9-fc88342eb58a';
@@ -224,8 +226,14 @@ export default function BookingCalendar() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1));
   };
 
+  const breadcrumbs = breadcrumbSchema([
+    { name: 'Главная', url: '/' },
+    { name: 'Календарь бронирований', url: '/booking-calendar' }
+  ]);
+
   return (
     <SubscriptionGuard feature="hasCalendar" featureName="календаря бронирования">
+      <JsonLd data={breadcrumbs} />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <Button
           variant="ghost"

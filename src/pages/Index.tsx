@@ -8,6 +8,8 @@ import FeaturesSection from '@/components/sections/FeaturesSection';
 import AboutSection from '@/components/sections/AboutSection';
 import ContactSection from '@/components/sections/ContactSection';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import JsonLd from '@/components/seo/JsonLd';
+import { organizationSchema, websiteSchema, serviceSchema, faqSchema } from '@/utils/seo';
 
 const Index = () => {
   usePageMeta({
@@ -32,8 +34,28 @@ const Index = () => {
     element?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const faqs = [
+    {
+      question: "Что такое TOURCONNECT?",
+      answer: "TOURCONNECT — это комплексная платформа для предпринимателей в сфере туризма, включающая симулятор бизнеса, календарь бронирований, диагностику проектов и закрытое сообщество профессионалов."
+    },
+    {
+      question: "Для кого подходит платформа?",
+      answer: "Платформа создана для владельцев и управляющих турбаз, глэмпингов, баз отдыха, гостиниц и других объектов размещения в России."
+    },
+    {
+      question: "Какие тарифы доступны?",
+      answer: "Доступны три тарифа: Старт (2990₽/мес) для начинающих, Про (5990₽/мес) для растущего бизнеса, Бизнес (14990₽/мес) с полным набором инструментов."
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-blue-50/30">
+      <JsonLd data={organizationSchema} />
+      <JsonLd data={websiteSchema} />
+      <JsonLd data={serviceSchema} />
+      <JsonLd data={faqSchema(faqs)} />
+      
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-lg z-50 border-b border-gray-200">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">

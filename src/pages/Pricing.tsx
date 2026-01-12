@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { getUserSubscription, getPlanName, getPlanEmoji } from '@/utils/subscription';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import JsonLd from '@/components/seo/JsonLd';
+import { softwareApplicationSchema, breadcrumbSchema } from '@/utils/seo';
 
 const Pricing = () => {
   usePageMeta({
@@ -97,8 +99,16 @@ const Pricing = () => {
     navigate('/payment', { state: { plan } });
   };
 
+  const breadcrumbs = breadcrumbSchema([
+    { name: 'Главная', url: '/' },
+    { name: 'Тарифы', url: '/pricing' }
+  ]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30">
+      <JsonLd data={softwareApplicationSchema} />
+      <JsonLd data={breadcrumbs} />
+      
       <Button
         variant="ghost"
         onClick={() => navigate('/')}

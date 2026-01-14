@@ -168,69 +168,58 @@ const BlogPost = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/')}
-        className="fixed top-4 left-4 gap-2 z-50"
-      >
-        <Icon name="Home" size={20} />
-        На главную
-      </Button>
-      <nav className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 group">
-            <Icon name="ArrowLeft" className="group-hover:-translate-x-1 transition-transform" size={20} />
-            <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              TourConnect
-            </h1>
-          </button>
-          <div className="flex gap-3">
+    <div className="min-h-screen bg-white">
+      <nav className="border-b sticky top-0 z-50 bg-white/95 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={() => navigate('/')} 
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <Icon name="ArrowLeft" size={20} />
+              <span className="font-medium">Назад</span>
+            </button>
             {isAdmin && (
               <Button 
                 onClick={deletePost} 
                 disabled={deleting}
-                variant="destructive"
-                className="flex items-center gap-2"
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
               >
-                <Icon name="Trash2" size={18} />
+                <Icon name="Trash2" size={16} className="mr-2" />
                 {deleting ? 'Удаление...' : 'Удалить'}
               </Button>
             )}
-            <Button onClick={() => navigate('/club')} className="bg-gradient-to-r from-primary to-secondary">
-              Клуб партнёров
-            </Button>
           </div>
         </div>
       </nav>
 
-      <article className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">
-              {categoryMap[post.category] || post.category}
-            </Badge>
-            <h1 className="text-4xl lg:text-5xl font-bold font-heading mb-6 animate-fade-in">
+      <article className="container mx-auto px-4 py-8 md:py-16">
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-12">
+            <div className="flex items-center gap-3 mb-6">
+              <Badge variant="outline" className="text-xs uppercase tracking-wide">
+                {categoryMap[post.category] || post.category}
+              </Badge>
+              <span className="text-sm text-gray-500">
+                {new Date(post.published_at).toLocaleDateString('ru-RU', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
+            
+            <h1 className="text-3xl md:text-5xl font-bold mb-8 leading-tight">
               {post.title}
             </h1>
-            <div className="flex items-center gap-6 text-gray-600 mb-8">
-              <div className="flex items-center gap-2">
-                <Icon name="Calendar" size={18} />
-                <span>
-                  {new Date(post.published_at).toLocaleDateString('ru-RU', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </span>
-              </div>
-            </div>
 
             {post.media_type === 'video' && post.video_url ? (
               <video
                 src={post.video_url}
                 controls
-                className="w-full h-[400px] object-cover rounded-2xl shadow-2xl mb-8"
+                className="w-full aspect-video rounded-lg mb-12"
                 poster={post.image_url || ''}
               >
                 <source src={post.video_url} type="video/mp4" />
@@ -240,92 +229,84 @@ const BlogPost = () => {
               <img
                 src={post.image_url}
                 alt={post.title}
-                className="w-full h-[400px] object-cover rounded-2xl shadow-2xl mb-8"
+                className="w-full aspect-video object-cover rounded-lg mb-12"
               />
             ) : null}
           </div>
 
-          <Card className="border-none shadow-xl mb-8">
-            <CardContent className="pt-8">
-              <div className="prose prose-lg max-w-none">
-                {post.content?.split('\n').map((paragraph, index) => (
-                  paragraph.trim() && (
-                    <p key={index} className="mb-4 text-gray-700 leading-relaxed">
-                      {paragraph}
-                    </p>
-                  )
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="prose prose-lg max-w-none mb-12">
+            {post.content?.split('\n').map((paragraph, index) => (
+              paragraph.trim() && (
+                <p key={index} className="mb-6 text-gray-800 leading-relaxed text-lg">
+                  {paragraph}
+                </p>
+              )
+            ))}
+          </div>
 
-          <Card className="border-none shadow-xl bg-gradient-to-br from-blue-50 to-purple-50 mb-12">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <Icon name="Share2" className="text-primary" size={24} />
-                  <span className="font-semibold text-lg">Поделиться статьей:</span>
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => sharePost('telegram')}
-                    className="bg-[#0088cc] hover:bg-[#006699] text-white"
-                    size="lg"
-                  >
-                    <Icon name="Send" size={20} />
-                  </Button>
-                  <Button
-                    onClick={() => sharePost('whatsapp')}
-                    className="bg-[#25D366] hover:bg-[#1da851] text-white"
-                    size="lg"
-                  >
-                    <Icon name="MessageCircle" size={20} />
-                  </Button>
-                  <Button
-                    onClick={() => sharePost('vk')}
-                    className="bg-[#0077FF] hover:bg-[#0066dd] text-white"
-                    size="lg"
-                  >
-                    <span className="font-bold">VK</span>
-                  </Button>
-                  <Button
-                    onClick={() => sharePost('copy')}
-                    variant="outline"
-                    size="lg"
-                  >
-                    <Icon name="Copy" size={20} />
-                  </Button>
-                </div>
+          <div className="border-t pt-8 mb-12">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-700">Поделиться статьей</p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => sharePost('telegram')}
+                  variant="outline"
+                  size="sm"
+                  className="text-[#0088cc] border-[#0088cc] hover:bg-[#0088cc] hover:text-white"
+                >
+                  <Icon name="Send" size={16} />
+                </Button>
+                <Button
+                  onClick={() => sharePost('whatsapp')}
+                  variant="outline"
+                  size="sm"
+                  className="text-[#25D366] border-[#25D366] hover:bg-[#25D366] hover:text-white"
+                >
+                  <Icon name="MessageCircle" size={16} />
+                </Button>
+                <Button
+                  onClick={() => sharePost('vk')}
+                  variant="outline"
+                  size="sm"
+                  className="text-[#0077FF] border-[#0077FF] hover:bg-[#0077FF] hover:text-white"
+                >
+                  <span className="text-xs font-bold">VK</span>
+                </Button>
+                <Button
+                  onClick={() => sharePost('copy')}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Icon name="Copy" size={16} />
+                </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {relatedPosts.length > 0 && (
-            <section>
-              <h2 className="text-3xl font-bold font-heading mb-8">Похожие статьи</h2>
+            <section className="border-t pt-12">
+              <h2 className="text-2xl font-bold mb-8">Читайте также</h2>
               <div className="grid md:grid-cols-3 gap-6">
                 {relatedPosts.map((relatedPost) => (
                   <Card
                     key={relatedPost.id}
-                    className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-none cursor-pointer"
+                    className="group hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden"
                     onClick={() => navigate(`/blog/${relatedPost.id}`)}
                   >
-                    <div className="relative overflow-hidden">
-                      {relatedPost.image_url && (
+                    {relatedPost.image_url && (
+                      <div className="aspect-video overflow-hidden">
                         <img
                           src={relatedPost.image_url}
                           alt={relatedPost.title}
-                          className="w-full h-40 object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                      )}
-                      <div className="absolute top-4 left-4">
-                        <Badge className="bg-white/90 text-primary border-none">
-                          {categoryMap[relatedPost.category] || relatedPost.category}
-                        </Badge>
                       </div>
-                    </div>
-                    <CardContent className="pt-4">
-                      <h3 className="text-lg font-bold font-heading mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                    )}
+                    <CardContent className="p-4">
+                      <Badge variant="outline" className="mb-2 text-xs">
+                        {categoryMap[relatedPost.category] || relatedPost.category}
+                      </Badge>
+                      <h3 className="font-semibold mb-2 line-clamp-2 group-hover:text-primary transition-colors">
                         {relatedPost.title}
                       </h3>
                       <p className="text-sm text-gray-600 line-clamp-2">{relatedPost.excerpt}</p>

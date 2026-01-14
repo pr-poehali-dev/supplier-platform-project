@@ -113,11 +113,14 @@ def handler(event: dict, context) -> dict:
             # Системный промпт
             system_prompt = build_system_prompt(context)
             
-            # Вызываем OpenAI
-            client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+            # Вызываем Polza.ai API (OpenAI-совместимый)
+            client = openai.OpenAI(
+                base_url='https://api.polza.ai/api/v1',
+                api_key=os.environ.get('POLZA_AI_API_KEY')
+            )
             
             response = client.chat.completions.create(
-                model='gpt-4o-mini',
+                model='openai/gpt-4o',
                 messages=[
                     {'role': 'system', 'content': system_prompt},
                     *messages

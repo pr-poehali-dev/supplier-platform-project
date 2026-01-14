@@ -50,8 +50,9 @@ export default function CalendarView({
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [dynamicPrices, setDynamicPrices] = useState<Record<string, number>>({});
+  const [dynamicPrices, setDynamicPrices] = useState<Record<string, { price: number; appliedRules: any[] }>>({});
   const [showPrices, setShowPrices] = useState(false);
+  const [loadingPrices, setLoadingPrices] = useState(false);
   const monthNames = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
@@ -74,8 +75,9 @@ export default function CalendarView({
   const loadDynamicPrices = async () => {
     if (!selectedUnit) return;
 
+    setLoadingPrices(true);
     const { year, month, daysInMonth } = getDaysInMonth(currentDate);
-    const prices: Record<string, number> = {};
+    const prices: Record<string, { price: number; appliedRules: any[] }> = {};
 
     try {
       for (let day = 1; day <= daysInMonth; day++) {
@@ -85,12 +87,17 @@ export default function CalendarView({
         );
         const data = await response.json();
         if (data.price) {
-          prices[dateStr] = data.price;
+          prices[dateStr] = {
+            price: data.price,
+            appliedRules: data.applied_rules || []
+          };
         }
       }
       setDynamicPrices(prices);
     } catch (error) {
       console.error('Failed to load dynamic prices:', error);
+    } finally {
+      setLoadingPrices(false);
     }
   };
 
@@ -173,8 +180,20 @@ export default function CalendarView({
       
       const { year, month } = getDaysInMonth(currentDate);
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dynamicPrice = dynamicPrices[dateStr];
-      const showPrice = selectedUnit?.dynamic_pricing_enabled && dynamicPrice && !isBooked && showPrices;
+      const priceData = dynamicPrices[dateStr];
+      const showPrice = selectedUnit?.dynamic_pricing_enabled && priceData && !isBooked && showPrices;
+      
+      // Определяем цвет по применённым правилам
+      const getPriceColor = () => {
+        if (!priceData?.appliedRules || priceData.appliedRules.length === 0) return 'emerald';
+        const ruleNames = priceData.appliedRules.map(r => r.rule_name?.toLowerCase() || '');
+        if (ruleNames.some(n => n.includes('высокая загрузка') || n.includes('occupancy'))) return 'green';
+        if (ruleNames.some(n => n.includes('срочн') || n.includes('days_before'))) return 'red';
+        if (ruleNames.some(n => n.includes('выходн') || n.includes('weekend'))) return 'purple';
+        return 'emerald';
+      };
+      
+      const priceColor = getPriceColor();
 
       days.push(
         <div
@@ -189,10 +208,15 @@ export default function CalendarView({
           <div className="text-sm font-semibold">{day}</div>
           {showPrice && (
             <div 
-              className="text-xs font-bold text-emerald-600 mt-0.5 animate-price-shimmer bg-emerald-50 px-1.5 py-0.5 rounded"
-              title="Прогнозная цена с учётом динамики"
+              className={`text-xs font-bold mt-0.5 animate-price-shimmer px-1.5 py-0.5 rounded ${
+                priceColor === 'green' ? 'text-green-700 bg-green-100' :
+                priceColor === 'red' ? 'text-red-700 bg-red-100' :
+                priceColor === 'purple' ? 'text-purple-700 bg-purple-100' :
+                'text-emerald-600 bg-emerald-50'
+              }`}
+              title={`Прогнозная цена: ${priceData.appliedRules.map(r => r.rule_name).join(', ') || 'базовая'}`}
             >
-              {Math.round(dynamicPrice)}₽
+              {Math.round(priceData.price)}₽
             </div>
           )}
           {isBooked && booking && (
@@ -243,12 +267,16 @@ export default function CalendarView({
                     setShowPrices(!showPrices);
                   }
                 }}
-                disabled={!selectedUnit?.dynamic_pricing_enabled}
+                disabled={!selectedUnit?.dynamic_pricing_enabled || loadingPrices}
                 className="gap-2"
                 title={!selectedUnit?.dynamic_pricing_enabled ? "Включите динамическое ценообразование для этого объекта" : ""}
               >
-                <Icon name="TrendingUp" size={16} />
-                {showPrices ? 'Скрыть цены' : 'Показать прогноз'}
+                {loadingPrices ? (
+                  <Icon name="Loader2" size={16} className="animate-spin" />
+                ) : (
+                  <Icon name="TrendingUp" size={16} />
+                )}
+                {loadingPrices ? 'Расчёт цен...' : showPrices ? 'Скрыть цены' : 'Показать прогноз'}
               </Button>
               {renderBookingButton}
               <Button variant="outline" size="sm" onClick={() => onChangeMonth(-1)}>
@@ -289,10 +317,20 @@ export default function CalendarView({
               <span className="text-sm">Сегодня</span>
             </div>
             {selectedUnit?.dynamic_pricing_enabled && showPrices && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">123₽</span>
-                <span className="text-sm">Прогнозная цена с динамикой</span>
-              </div>
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">123₽</span>
+                  <span className="text-sm">Высокая загрузка</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-1 rounded">123₽</span>
+                  <span className="text-sm">Срочное бронирование</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-1 rounded">123₽</span>
+                  <span className="text-sm">Выходные</span>
+                </div>
+              </>
             )}
           </div>
         </CardContent>

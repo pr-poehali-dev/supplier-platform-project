@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { Unit } from '@/components/booking/UnitsManagement';
+import PricingRulesEditor from './PricingRulesEditor';
 
 const PRICING_ENGINE_URL = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4';
 
@@ -132,6 +133,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
   const basePrice = selectedUnit.base_price || 0;
 
   return (
+    <>
     <Card className="mb-6 border-l-4 border-emerald-500">
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -250,29 +252,15 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
           )}
         </div>
 
-        {dynamicEnabled && (
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-              <Icon name="Sparkles" size={16} className="text-blue-600" />
-              Активные правила ценообразования
-            </h4>
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 p-2.5 bg-white rounded-md text-sm">
-                <Icon name="TrendingUp" size={15} className="text-green-600 flex-shrink-0" />
-                <span>Высокая загрузка (≥70%) → +15%</span>
-              </div>
-              <div className="flex items-center gap-3 p-2.5 bg-white rounded-md text-sm">
-                <Icon name="TrendingDown" size={15} className="text-orange-600 flex-shrink-0" />
-                <span>Срочное бронирование (&lt;5 дней, загрузка &lt;40%) → -20%</span>
-              </div>
-              <div className="flex items-center gap-3 p-2.5 bg-white rounded-md text-sm">
-                <Icon name="Calendar" size={15} className="text-purple-600 flex-shrink-0" />
-                <span>Выходные (пятница, суббота) → +20%</span>
-              </div>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
+    
+    {dynamicEnabled && profile && (
+      <PricingRulesEditor 
+        profileId={profile.id} 
+        onRulesUpdate={loadProfile}
+      />
+    )}
+    </>
   );
 }

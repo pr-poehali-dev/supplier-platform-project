@@ -61,6 +61,9 @@ def handler(event: dict, context) -> dict:
         elif action == 'update_rule' and method == 'POST':
             body = json.loads(event.get('body', '{}'))
             return update_pricing_rule(conn, body)
+        elif action == 'delete_rule' and method == 'POST':
+            body = json.loads(event.get('body', '{}'))
+            return delete_pricing_rule(conn, body)
         elif action == 'toggle_dynamic' and method == 'POST':
             body = json.loads(event.get('body', '{}'))
             return toggle_dynamic_pricing(conn, body)
@@ -339,6 +342,19 @@ def update_pricing_rule(conn, data: dict) -> dict:
         conn.commit()
     
     return success_response({'rule_id': rule_id, 'message': 'Rule updated'})
+
+
+def delete_pricing_rule(conn, data: dict) -> dict:
+    rule_id = data.get('rule_id')
+    
+    if not rule_id:
+        return error_response('rule_id required', 400)
+    
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM pricing_rules WHERE id = %s", (rule_id,))
+        conn.commit()
+    
+    return success_response({'message': 'Rule deleted'})
 
 
 def toggle_dynamic_pricing(conn, data: dict) -> dict:

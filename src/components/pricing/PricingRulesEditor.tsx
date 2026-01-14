@@ -120,6 +120,29 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
     }
   };
 
+  const deleteRule = async (ruleId: number) => {
+    if (!confirm('Удалить это правило? Действие необратимо.')) return;
+
+    setLoading(true);
+    try {
+      await fetch(`${PRICING_ENGINE_URL}?action=delete_rule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rule_id: ruleId })
+      });
+      
+      // Удаляем локально
+      setRules(prev => prev.filter(r => r.id !== ruleId));
+      onRulesUpdate?.();
+    } catch (error) {
+      console.error('Error deleting rule:', error);
+      // При ошибке перезагружаем с сервера
+      await loadRules();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openNewRuleDialog = () => {
     setEditingRule({
       name: '',
@@ -267,14 +290,26 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
                   {rule.enabled ? 'Активно' : 'Выкл'}
                 </Badge>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => openEditRuleDialog(rule)}
-                className="ml-2"
-              >
-                <Icon name="Edit" size={16} />
-              </Button>
+              <div className="flex items-center gap-1 ml-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => openEditRuleDialog(rule)}
+                  title="Редактировать"
+                >
+                  <Icon name="Edit" size={16} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => deleteRule(rule.id)}
+                  disabled={loading}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  title="Удалить"
+                >
+                  <Icon name="Trash2" size={16} />
+                </Button>
+              </div>
             </div>
           ))
         )}

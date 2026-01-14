@@ -1,4 +1,5 @@
 {
+  "customer-sync": "https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce",
   "ai-assistant": "https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a",
   "pricing-engine": "https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4",
   "blog-posts": "https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c",

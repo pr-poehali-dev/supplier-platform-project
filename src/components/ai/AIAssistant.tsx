@@ -41,23 +41,31 @@ export default function AIAssistant() {
       
       if (!user?.id) return;
 
-      const response = await fetch(`${AI_URL}?action=settings`, {
-        headers: { 'X-User-Id': user.id.toString() }
-      });
+      // Загружаем настройки и историю чата параллельно
+      const [settingsRes, chatRes] = await Promise.all([
+        fetch(`${AI_URL}?action=settings`, {
+          headers: { 'X-User-Id': user.id.toString() }
+        }),
+        fetch(`${AI_URL}?action=chat`, {
+          headers: { 'X-User-Id': user.id.toString() }
+        })
+      ]);
       
-      const data = await response.json();
+      const settingsData = await settingsRes.json();
+      const chatData = await chatRes.json();
       
-      if (data.settings?.greeting_message) {
-        setGreeting(data.settings.greeting_message);
-        setMessages([{
-          role: 'assistant',
-          content: data.settings.greeting_message,
-          created_at: new Date().toISOString()
-        }]);
+      // Если есть история - показываем её
+      if (chatData.messages && chatData.messages.length > 0) {
+        setMessages(chatData.messages);
       } else {
+        // Иначе показываем приветствие
+        const greetingText = settingsData.settings?.greeting_message || 
+          'Привет! Я ваш AI-помощник. Могу проанализировать загрузку, дать советы по ценам или помочь с настройкой бизнеса. Чем могу помочь?';
+        
+        setGreeting(greetingText);
         setMessages([{
           role: 'assistant',
-          content: 'Привет! Я ваш AI-помощник. Могу проанализировать загрузку, дать советы по ценам или помочь с настройкой бизнеса. Чем могу помочь?',
+          content: greetingText,
           created_at: new Date().toISOString()
         }]);
       }
@@ -100,6 +108,11 @@ export default function AIAssistant() {
         })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.conversation_id && !conversationId) {
@@ -115,9 +128,10 @@ export default function AIAssistant() {
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Извините, произошла ошибка. Попробуйте ещё раз.',
+        content: `Извините, произошла ошибка: ${errorMessage}. Попробуйте ещё раз.`,
         created_at: new Date().toISOString()
       }]);
     } finally {

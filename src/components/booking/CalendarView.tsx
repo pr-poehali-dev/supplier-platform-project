@@ -67,7 +67,7 @@ export default function CalendarView({
   }, [selectedBooking]);
 
   useEffect(() => {
-    if (selectedUnit && selectedUnit.dynamic_pricing_enabled && showPrices) {
+    if (selectedUnit && showPrices) {
       loadDynamicPrices();
     }
   }, [selectedUnit, currentDate, showPrices]);
@@ -76,23 +76,37 @@ export default function CalendarView({
     if (!selectedUnit) return;
 
     setLoadingPrices(true);
+    setDynamicPrices({}); // Очищаем старые цены
     const { year, month, daysInMonth } = getDaysInMonth(currentDate);
-    const prices: Record<string, { price: number; appliedRules: any[] }> = {};
 
     try {
+      // Запускаем все запросы параллельно
+      const promises = [];
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const response = await fetch(
-          `${PRICING_ENGINE_URL}?action=calculate_price&unit_id=${selectedUnit.id}&date=${dateStr}`
+        promises.push(
+          fetch(`${PRICING_ENGINE_URL}?action=calculate_price&unit_id=${selectedUnit.id}&date=${dateStr}`)
+            .then(res => res.json())
+            .then(data => ({ dateStr, data }))
+            .catch(err => {
+              console.error(`Failed to load price for ${dateStr}:`, err);
+              return null;
+            })
         );
-        const data = await response.json();
-        if (data.price) {
-          prices[dateStr] = {
-            price: data.price,
-            appliedRules: data.applied_rules || []
+      }
+
+      const results = await Promise.all(promises);
+      
+      const prices: Record<string, { price: number; appliedRules: any[] }> = {};
+      results.forEach(result => {
+        if (result && result.data.price) {
+          prices[result.dateStr] = {
+            price: result.data.price,
+            appliedRules: result.data.applied_rules || []
           };
         }
-      }
+      });
+      
       setDynamicPrices(prices);
     } catch (error) {
       console.error('Failed to load dynamic prices:', error);
@@ -181,7 +195,8 @@ export default function CalendarView({
       const { year, month } = getDaysInMonth(currentDate);
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const priceData = dynamicPrices[dateStr];
-      const showPrice = selectedUnit?.dynamic_pricing_enabled && priceData && !isBooked && showPrices;
+      const showPrice = showPrices && !isBooked;
+      const showPriceLoading = showPrices && loadingPrices && !isBooked && !priceData;
       
       // Определяем цвет по применённым правилам
       const getPriceColor = () => {
@@ -206,9 +221,14 @@ export default function CalendarView({
           } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
         >
           <div className="text-sm font-semibold">{day}</div>
-          {showPrice && (
+          {showPriceLoading && (
+            <div className="text-xs mt-0.5 px-1.5 py-0.5 rounded bg-gray-200 animate-pulse">
+              <div className="h-3 w-12 bg-gray-300 rounded"></div>
+            </div>
+          )}
+          {showPrice && priceData && (
             <div 
-              className={`text-xs font-bold mt-0.5 animate-price-shimmer px-1.5 py-0.5 rounded ${
+              className={`text-xs font-bold mt-0.5 px-1.5 py-0.5 rounded ${
                 priceColor === 'green' ? 'text-green-700 bg-green-100' :
                 priceColor === 'red' ? 'text-red-700 bg-red-100' :
                 priceColor === 'purple' ? 'text-purple-700 bg-purple-100' :

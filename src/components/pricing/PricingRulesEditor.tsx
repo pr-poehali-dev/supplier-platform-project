@@ -93,12 +93,28 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
       await fetch(`${PRICING_ENGINE_URL}?action=update_rule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...rule, enabled })
+        body: JSON.stringify({
+          rule_id: rule.id,
+          profile_id: rule.profile_id,
+          name: rule.name,
+          condition_type: rule.condition_type,
+          condition_operator: rule.condition_operator,
+          condition_value: rule.condition_value,
+          action_type: rule.action_type,
+          action_value: rule.action_value,
+          action_unit: rule.action_unit,
+          priority: rule.priority,
+          enabled
+        })
       });
-      await loadRules();
+      
+      // Обновляем локально без перезагрузки
+      setRules(prev => prev.map(r => r.id === ruleId ? { ...r, enabled } : r));
       onRulesUpdate?.();
     } catch (error) {
       console.error('Error toggling rule:', error);
+      // При ошибке перезагружаем с сервера
+      await loadRules();
     } finally {
       setLoading(false);
     }

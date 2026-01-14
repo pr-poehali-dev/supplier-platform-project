@@ -226,17 +226,19 @@ export default function CalendarView({
               <div className="h-3 w-12 bg-gray-300 rounded"></div>
             </div>
           )}
-          {showPrice && priceData && (
+          {showPrice && !loadingPrices && (
             <div 
               className={`text-xs font-bold mt-0.5 px-1.5 py-0.5 rounded ${
-                priceColor === 'green' ? 'text-green-700 bg-green-100' :
-                priceColor === 'red' ? 'text-red-700 bg-red-100' :
-                priceColor === 'purple' ? 'text-purple-700 bg-purple-100' :
-                'text-emerald-600 bg-emerald-50'
+                priceData ? (
+                  priceColor === 'green' ? 'text-green-700 bg-green-100' :
+                  priceColor === 'red' ? 'text-red-700 bg-red-100' :
+                  priceColor === 'purple' ? 'text-purple-700 bg-purple-100' :
+                  'text-emerald-600 bg-emerald-50'
+                ) : 'text-gray-600 bg-gray-100'
               }`}
-              title={`Прогнозная цена: ${priceData.appliedRules.map(r => r.rule_name).join(', ') || 'базовая'}`}
+              title={priceData ? `Прогнозная цена: ${priceData.appliedRules.map(r => r.rule_name).join(', ') || 'базовая'}` : 'Базовая цена'}
             >
-              {Math.round(priceData.price)}₽
+              {priceData ? Math.round(priceData.price) : selectedUnit?.base_price || 0}₽
             </div>
           )}
           {isBooked && booking && (
@@ -331,7 +333,7 @@ export default function CalendarView({
               <div className="w-4 h-4 bg-white border-2 border-blue-500 rounded"></div>
               <span className="text-sm">Сегодня</span>
             </div>
-            {selectedUnit?.dynamic_pricing_enabled && showPrices && (
+            {showPrices && (
               <>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">123₽</span>

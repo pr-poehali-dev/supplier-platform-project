@@ -51,6 +51,7 @@ export default function CalendarView({
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [dynamicPrices, setDynamicPrices] = useState<Record<string, number>>({});
+  const [showPrices, setShowPrices] = useState(false);
   const monthNames = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
@@ -65,10 +66,10 @@ export default function CalendarView({
   }, [selectedBooking]);
 
   useEffect(() => {
-    if (selectedUnit && selectedUnit.dynamic_pricing_enabled) {
+    if (selectedUnit && selectedUnit.dynamic_pricing_enabled && showPrices) {
       loadDynamicPrices();
     }
-  }, [selectedUnit, currentDate]);
+  }, [selectedUnit, currentDate, showPrices]);
 
   const loadDynamicPrices = async () => {
     if (!selectedUnit) return;
@@ -173,7 +174,7 @@ export default function CalendarView({
       const { year, month } = getDaysInMonth(currentDate);
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dynamicPrice = dynamicPrices[dateStr];
-      const showPrice = selectedUnit?.dynamic_pricing_enabled && dynamicPrice && !isBooked;
+      const showPrice = selectedUnit?.dynamic_pricing_enabled && dynamicPrice && !isBooked && showPrices;
 
       days.push(
         <div
@@ -234,6 +235,17 @@ export default function CalendarView({
               <CardDescription>Календарь занятости • Кликните на занятую дату для просмотра деталей</CardDescription>
             </div>
             <div className="flex items-center gap-4">
+              {selectedUnit?.dynamic_pricing_enabled && (
+                <Button 
+                  variant={showPrices ? "default" : "outline"}
+                  size="sm" 
+                  onClick={() => setShowPrices(!showPrices)}
+                  className="gap-2"
+                >
+                  <Icon name="TrendingUp" size={16} />
+                  {showPrices ? 'Скрыть цены' : 'Показать прогноз'}
+                </Button>
+              )}
               {renderBookingButton}
               <Button variant="outline" size="sm" onClick={() => onChangeMonth(-1)}>
                 <Icon name="ChevronLeft" size={20} />
@@ -272,10 +284,10 @@ export default function CalendarView({
               <div className="w-4 h-4 bg-white border-2 border-blue-500 rounded"></div>
               <span className="text-sm">Сегодня</span>
             </div>
-            {selectedUnit?.dynamic_pricing_enabled && (
+            {selectedUnit?.dynamic_pricing_enabled && showPrices && (
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-emerald-600">123₽</span>
-                <span className="text-sm">Прогнозная цена</span>
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">123₽</span>
+                <span className="text-sm">Прогнозная цена с динамикой</span>
               </div>
             )}
           </div>

@@ -13,9 +13,10 @@ interface SubscriptionGuardProps {
 
 const SubscriptionGuard = ({ feature, children, featureName = 'этой функции' }: SubscriptionGuardProps) => {
   const navigate = useNavigate();
+  const isDevelopment = import.meta.env.DEV;
   const hasAccess = canAccessFeature(feature);
   
-  if (hasAccess) {
+  if (hasAccess || isDevelopment) {
     return <>{children}</>;
   }
   

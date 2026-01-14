@@ -235,17 +235,21 @@ export default function CalendarView({
               <CardDescription>Календарь занятости • Кликните на занятую дату для просмотра деталей</CardDescription>
             </div>
             <div className="flex items-center gap-4">
-              {selectedUnit?.dynamic_pricing_enabled && (
-                <Button 
-                  variant={showPrices ? "default" : "outline"}
-                  size="sm" 
-                  onClick={() => setShowPrices(!showPrices)}
-                  className="gap-2"
-                >
-                  <Icon name="TrendingUp" size={16} />
-                  {showPrices ? 'Скрыть цены' : 'Показать прогноз'}
-                </Button>
-              )}
+              <Button 
+                variant={showPrices ? "default" : "outline"}
+                size="sm" 
+                onClick={() => {
+                  if (selectedUnit?.dynamic_pricing_enabled) {
+                    setShowPrices(!showPrices);
+                  }
+                }}
+                disabled={!selectedUnit?.dynamic_pricing_enabled}
+                className="gap-2"
+                title={!selectedUnit?.dynamic_pricing_enabled ? "Включите динамическое ценообразование для этого объекта" : ""}
+              >
+                <Icon name="TrendingUp" size={16} />
+                {showPrices ? 'Скрыть цены' : 'Показать прогноз'}
+              </Button>
               {renderBookingButton}
               <Button variant="outline" size="sm" onClick={() => onChangeMonth(-1)}>
                 <Icon name="ChevronLeft" size={20} />

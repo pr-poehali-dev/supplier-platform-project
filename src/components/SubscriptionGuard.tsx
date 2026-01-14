@@ -46,9 +46,19 @@ const SubscriptionGuard = ({ feature, children, featureName = 'этой функ
             Требуется подписка
           </h1>
           
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-gray-600 mb-4">
             Для доступа к {featureName.replace('календаря бронирования', 'календарю бронирования')} необходима активная подписка на один из тарифов
           </p>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+            <div className="flex items-start gap-3 text-left">
+              <Icon name="AlertCircle" className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+              <div className="text-sm text-blue-800">
+                <strong>Уже купили подписку?</strong>
+                <p className="mt-1">Перейдите в Личный кабинет и нажмите кнопку "Обновить данные", чтобы система загрузила информацию о вашей подписке.</p>
+              </div>
+            </div>
+          </div>
           
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-xl p-6 mb-8">
             <div className="flex items-start gap-4 text-left">
@@ -73,7 +83,7 @@ const SubscriptionGuard = ({ feature, children, featureName = 'этой функ
             </div>
           </div>
           
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               size="lg"
               onClick={() => navigate('/pricing')}
@@ -85,6 +95,14 @@ const SubscriptionGuard = ({ feature, children, featureName = 'этой функ
             <Button
               size="lg"
               variant="outline"
+              onClick={() => navigate('/profile')}
+            >
+              <Icon name="User" className="mr-2" size={20} />
+              Личный кабинет
+            </Button>
+            <Button
+              size="lg"
+              variant="ghost"
               onClick={() => navigate('/')}
             >
               На главную

@@ -38,10 +38,33 @@ const Profile = () => {
     return `До ${expiresAt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
   };
 
-  const refreshProfile = () => {
-    if (confirm('Для обновления данных нужно перезайти в аккаунт. Продолжить?')) {
-      localStorage.removeItem('user');
+  const refreshProfile = async () => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
       navigate('/auth');
+      return;
+    }
+    
+    const userData = JSON.parse(userStr);
+    
+    try {
+      const response = await fetch('https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70?action=refresh', {
+        headers: {
+          'X-User-Id': userData.id.toString()
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+        alert('✅ Данные профиля обновлены!');
+        window.location.reload();
+      } else {
+        alert('❌ Не удалось обновить данные. Попробуйте перезайти.');
+      }
+    } catch (error) {
+      alert('❌ Ошибка при обновлении данных. Попробуйте перезайти.');
     }
   };
 
@@ -98,6 +121,31 @@ const Profile = () => {
       </nav>
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {subscriptionPlan === 'none' && user && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <Icon name="Info" className="text-blue-600 flex-shrink-0 mt-1" size={24} />
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Только что купили подписку?</h3>
+                  <p className="text-sm text-gray-700 mb-3">
+                    Нажмите кнопку <strong>"Обновить данные"</strong> справа, чтобы система загрузила информацию о вашей активной подписке из базы данных.
+                  </p>
+                  <Button
+                    onClick={refreshProfile}
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-300 hover:bg-blue-100"
+                  >
+                    <Icon name="RefreshCw" className="mr-2" size={16} />
+                    Обновить данные
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -144,7 +192,7 @@ const Profile = () => {
                 size="sm"
               >
                 <Icon name="RefreshCw" className="mr-2" size={16} />
-                Перезайти
+                Обновить данные
               </Button>
               {user?.is_admin && (
                 <Button

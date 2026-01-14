@@ -47,9 +47,20 @@ export default function BookingCalendar() {
     try {
       const response = await fetch(`${API_URL}?action=units`);
       const data = await response.json();
-      setUnits(data.units || []);
-      if (data.units?.length > 0 && !selectedUnit) {
-        setSelectedUnit(data.units[0]);
+      console.log('📦 Units loaded from API:', data.units);
+      
+      // Временное решение: добавляем dynamic_pricing_enabled если его нет
+      const unitsWithDynamic = (data.units || []).map((unit: Unit) => ({
+        ...unit,
+        dynamic_pricing_enabled: unit.dynamic_pricing_enabled ?? true, // Временно true для тестирования
+        pricing_profile_id: unit.pricing_profile_id ?? 1
+      }));
+      
+      console.log('✅ Units with dynamic pricing:', unitsWithDynamic);
+      setUnits(unitsWithDynamic);
+      if (unitsWithDynamic.length > 0 && !selectedUnit) {
+        console.log('✅ Selected unit:', unitsWithDynamic[0]);
+        setSelectedUnit(unitsWithDynamic[0]);
       }
     } catch (error) {
       console.error('Error loading units:', error);

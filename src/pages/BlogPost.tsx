@@ -90,16 +90,21 @@ const BlogPost = () => {
   const fetchPost = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=100&channel_type=free`);
-      const data = await response.json();
       
-      if (data.posts) {
-        const currentPost = data.posts.find((p: BlogPost) => p.id === parseInt(id || '0'));
-        setPost(currentPost || null);
+      // Загружаем конкретный пост с полным content
+      const postResponse = await fetch(`https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?id=${id}`);
+      const postData = await postResponse.json();
+      
+      if (postData.post) {
+        setPost(postData.post);
         
-        if (currentPost) {
-          const related = data.posts
-            .filter((p: BlogPost) => p.id !== currentPost.id && p.category === currentPost.category)
+        // Загружаем похожие статьи
+        const listResponse = await fetch(`https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=100&channel_type=free`);
+        const listData = await listResponse.json();
+        
+        if (listData.posts) {
+          const related = listData.posts
+            .filter((p: BlogPost) => p.id !== postData.post.id && p.category === postData.post.category)
             .slice(0, 3);
           setRelatedPosts(related);
         }

@@ -209,26 +209,23 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
       <Accordion type="single" collapsible>
         <AccordionItem value="rules" className="border-0">
           <CardHeader className="pb-3">
-            <AccordionTrigger className="hover:no-underline py-0">
-              <div className="flex items-center justify-between w-full pr-4">
+            <div className="flex items-center justify-between w-full gap-4">
+              <AccordionTrigger className="hover:no-underline py-0 flex-1">
                 <CardTitle className="flex items-center gap-2">
                   <Icon name="Sliders" size={20} className="text-purple-600" />
                   Правила ценообразования
                   <Badge variant="outline" className="ml-2">{rules.length}</Badge>
                 </CardTitle>
-                <Button 
-                  size="sm" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openNewRuleDialog();
-                  }} 
-                  className="gap-2"
-                >
-                  <Icon name="Plus" size={16} />
-                  Добавить правило
-                </Button>
-              </div>
-            </AccordionTrigger>
+              </AccordionTrigger>
+              <Button 
+                size="sm" 
+                onClick={openNewRuleDialog}
+                className="gap-2"
+              >
+                <Icon name="Plus" size={16} />
+                Добавить правило
+              </Button>
+            </div>
           </CardHeader>
           <AccordionContent>
             <CardContent className="space-y-3 pt-0">

@@ -139,8 +139,8 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
       <Accordion type="single" collapsible defaultValue="pricing">
         <AccordionItem value="pricing" className="border-0">
           <CardHeader className="pb-3">
-            <AccordionTrigger className="hover:no-underline py-0">
-              <div className="flex items-center justify-between flex-wrap gap-4 w-full pr-4">
+            <div className="flex items-center justify-between flex-wrap gap-4 w-full">
+              <AccordionTrigger className="hover:no-underline py-0 flex-1">
                 <CardTitle className="flex items-center gap-3">
                   <Icon name="TrendingUp" size={24} className="text-emerald-600" />
                   <span>Динамическое ценообразование</span>
@@ -148,21 +148,18 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
                     {dynamicEnabled ? 'Активно' : 'Выключено'}
                   </Badge>
                 </CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    enableAllUnits();
-                  }}
-                  disabled={loading}
-                  className="gap-2"
-                >
-                  <Icon name="CheckCircle" size={16} />
-                  Включить везде
-                </Button>
-              </div>
-            </AccordionTrigger>
+              </AccordionTrigger>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={enableAllUnits}
+                disabled={loading}
+                className="gap-2"
+              >
+                <Icon name="CheckCircle" size={16} />
+                Включить везде
+              </Button>
+            </div>
           </CardHeader>
           <AccordionContent>
             <CardContent className="space-y-4 pt-0">

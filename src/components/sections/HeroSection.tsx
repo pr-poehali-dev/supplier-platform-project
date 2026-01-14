@@ -11,30 +11,6 @@ interface HeroSectionProps {
 const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
   const navigate = useNavigate();
 
-  const tools = [
-    {
-      icon: 'Calculator',
-      title: 'Симулятор бизнеса',
-      description: 'Рассчитайте экономику вашего проекта',
-      gradient: 'from-primary to-secondary',
-      action: '/simulator',
-    },
-    {
-      icon: 'Users',
-      title: 'Закрытый клуб',
-      description: 'Комьюнити предпринимателей в туризме',
-      gradient: 'from-secondary to-accent',
-      action: '/club',
-    },
-    {
-      icon: 'Target',
-      title: 'Диагностика бизнеса',
-      description: 'Найдите точки роста за 10 минут',
-      gradient: 'from-accent to-primary',
-      action: '/diagnostics',
-    },
-  ];
-
   return (
     <section id="home" className="pt-32 pb-20 px-4">
       <div className="container mx-auto">

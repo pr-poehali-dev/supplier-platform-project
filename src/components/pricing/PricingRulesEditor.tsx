@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 
@@ -204,20 +205,33 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
   };
 
   return (
-    <Card className="border-l-4 border-purple-500">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Icon name="Sliders" size={20} className="text-purple-600" />
-            Правила ценообразования
-          </CardTitle>
-          <Button size="sm" onClick={openNewRuleDialog} className="gap-2">
-            <Icon name="Plus" size={16} />
-            Добавить правило
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Card className="border-l-4 border-purple-500 mb-6">
+      <Accordion type="single" collapsible>
+        <AccordionItem value="rules" className="border-0">
+          <CardHeader className="pb-3">
+            <AccordionTrigger className="hover:no-underline py-0">
+              <div className="flex items-center justify-between w-full pr-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Icon name="Sliders" size={20} className="text-purple-600" />
+                  Правила ценообразования
+                  <Badge variant="outline" className="ml-2">{rules.length}</Badge>
+                </CardTitle>
+                <Button 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openNewRuleDialog();
+                  }} 
+                  className="gap-2"
+                >
+                  <Icon name="Plus" size={16} />
+                  Добавить правило
+                </Button>
+              </div>
+            </AccordionTrigger>
+          </CardHeader>
+          <AccordionContent>
+            <CardContent className="space-y-3 pt-0">
         {rules.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Icon name="AlertCircle" size={32} className="mx-auto mb-2 opacity-30" />
@@ -382,7 +396,10 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
             )}
           </DialogContent>
         </Dialog>
-      </CardContent>
+            </CardContent>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </Card>
   );
 }

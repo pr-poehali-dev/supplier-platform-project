@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Icon from '@/components/ui/icon';
 import { Unit } from '@/components/booking/UnitsManagement';
 import PricingRulesEditor from './PricingRulesEditor';
@@ -135,28 +136,36 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
   return (
     <>
     <Card className="mb-6 border-l-4 border-emerald-500">
-      <CardHeader>
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <CardTitle className="flex items-center gap-3">
-            <Icon name="TrendingUp" size={24} className="text-emerald-600" />
-            <span>Динамическое ценообразование</span>
-            <Badge variant={dynamicEnabled ? "default" : "secondary"} className="bg-emerald-600">
-              {dynamicEnabled ? 'Активно' : 'Выключено'}
-            </Badge>
-          </CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={enableAllUnits}
-            disabled={loading}
-            className="gap-2"
-          >
-            <Icon name="CheckCircle" size={16} />
-            Включить везде
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      <Accordion type="single" collapsible defaultValue="pricing">
+        <AccordionItem value="pricing" className="border-0">
+          <CardHeader className="pb-3">
+            <AccordionTrigger className="hover:no-underline py-0">
+              <div className="flex items-center justify-between flex-wrap gap-4 w-full pr-4">
+                <CardTitle className="flex items-center gap-3">
+                  <Icon name="TrendingUp" size={24} className="text-emerald-600" />
+                  <span>Динамическое ценообразование</span>
+                  <Badge variant={dynamicEnabled ? "default" : "secondary"} className="bg-emerald-600">
+                    {dynamicEnabled ? 'Активно' : 'Выключено'}
+                  </Badge>
+                </CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    enableAllUnits();
+                  }}
+                  disabled={loading}
+                  className="gap-2"
+                >
+                  <Icon name="CheckCircle" size={16} />
+                  Включить везде
+                </Button>
+              </div>
+            </AccordionTrigger>
+          </CardHeader>
+          <AccordionContent>
+            <CardContent className="space-y-4 pt-0">
         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-5 border border-emerald-200">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -252,7 +261,10 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
           )}
         </div>
 
-      </CardContent>
+            </CardContent>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </Card>
     
     {dynamicEnabled && profile && (

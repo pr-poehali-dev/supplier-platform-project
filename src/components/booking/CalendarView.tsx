@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Unit } from './UnitsManagement';
 
+const PRICING_ENGINE_URL = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4';
+
 interface TelegramMessage {
   id: number;
   telegram_id: number;
@@ -48,6 +50,7 @@ export default function CalendarView({
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [dynamicPrices, setDynamicPrices] = useState<Record<string, number>>({});
   const monthNames = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
@@ -60,6 +63,35 @@ export default function CalendarView({
       setTelegramMessages([]);
     }
   }, [selectedBooking]);
+
+  useEffect(() => {
+    if (selectedUnit && selectedUnit.dynamic_pricing_enabled) {
+      loadDynamicPrices();
+    }
+  }, [selectedUnit, currentDate]);
+
+  const loadDynamicPrices = async () => {
+    if (!selectedUnit) return;
+
+    const { year, month, daysInMonth } = getDaysInMonth(currentDate);
+    const prices: Record<string, number> = {};
+
+    try {
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const response = await fetch(
+          `${PRICING_ENGINE_URL}?action=calculate_price&unit_id=${selectedUnit.id}&date=${dateStr}`
+        );
+        const data = await response.json();
+        if (data.price) {
+          prices[dateStr] = data.price;
+        }
+      }
+      setDynamicPrices(prices);
+    } catch (error) {
+      console.error('Failed to load dynamic prices:', error);
+    }
+  };
 
   const loadTelegramMessages = async (bookingId: number) => {
     setLoadingMessages(true);
@@ -138,6 +170,11 @@ export default function CalendarView({
                       new Date().getMonth() === currentDate.getMonth() &&
                       new Date().getFullYear() === currentDate.getFullYear();
       
+      const { year, month } = getDaysInMonth(currentDate);
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dynamicPrice = dynamicPrices[dateStr];
+      const showPrice = selectedUnit?.dynamic_pricing_enabled && dynamicPrice && !isBooked;
+
       days.push(
         <div
           key={day}
@@ -149,6 +186,14 @@ export default function CalendarView({
           } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
         >
           <div className="text-sm font-semibold">{day}</div>
+          {showPrice && (
+            <div 
+              className="text-xs font-bold text-emerald-600 mt-0.5 animate-price-shimmer bg-emerald-50 px-1.5 py-0.5 rounded"
+              title="Прогнозная цена с учётом динамики"
+            >
+              {Math.round(dynamicPrice)}₽
+            </div>
+          )}
           {isBooked && booking && (
             <>
               <div className="flex items-center gap-1">
@@ -214,7 +259,7 @@ export default function CalendarView({
             {renderCalendar()}
           </div>
           
-          <div className="flex gap-4 mt-6 justify-center">
+          <div className="flex gap-4 mt-6 justify-center flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-white border-2 border-gray-200 rounded"></div>
               <span className="text-sm">Свободно</span>
@@ -227,6 +272,12 @@ export default function CalendarView({
               <div className="w-4 h-4 bg-white border-2 border-blue-500 rounded"></div>
               <span className="text-sm">Сегодня</span>
             </div>
+            {selectedUnit?.dynamic_pricing_enabled && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-600">123₽</span>
+                <span className="text-sm">Прогнозная цена</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

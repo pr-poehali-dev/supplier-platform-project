@@ -4,10 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { Unit } from '@/components/booking/UnitsManagement';
-import PriceCalendar from './PriceCalendar';
-import PricingRulesList from './PricingRulesList';
 
 const PRICING_ENGINE_URL = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4';
 
@@ -15,12 +14,10 @@ interface PricingProfile {
   id: number;
   name: string;
   mode: string;
-  base_price: string;
   min_price: string;
   max_price: string;
   is_default: boolean;
   enabled: boolean;
-  units_count: number;
 }
 
 interface DynamicPricingProps {
@@ -29,14 +26,15 @@ interface DynamicPricingProps {
 }
 
 export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPricingProps) {
-  const [profiles, setProfiles] = useState<PricingProfile[]>([]);
+  const [profile, setProfile] = useState<PricingProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [dynamicEnabled, setDynamicEnabled] = useState(true);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [showRules, setShowRules] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
   useEffect(() => {
-    loadProfiles();
+    loadProfile();
   }, []);
 
   useEffect(() => {
@@ -45,11 +43,16 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
     }
   }, [selectedUnit]);
 
-  const loadProfiles = async () => {
+  const loadProfile = async () => {
     try {
       const response = await fetch(`${PRICING_ENGINE_URL}?action=get_profiles`);
       const data = await response.json();
-      setProfiles(data.profiles || []);
+      if (data.profiles && data.profiles.length > 0) {
+        const defaultProfile = data.profiles[0];
+        setProfile(defaultProfile);
+        setMinPrice(defaultProfile.min_price);
+        setMaxPrice(defaultProfile.max_price);
+      }
     } catch (error) {
       console.error('Error loading profiles:', error);
     }
@@ -60,21 +63,56 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
 
     setLoading(true);
     try {
-      const response = await fetch(`${PRICING_ENGINE_URL}?action=toggle_dynamic`, {
+      await fetch(`${PRICING_ENGINE_URL}?action=toggle_dynamic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unit_id: selectedUnit.id, enabled })
+      });
+      setDynamicEnabled(enabled);
+      await onUnitUpdate();
+    } catch (error) {
+      console.error('Error toggling:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const enableAllUnits = async () => {
+    setLoading(true);
+    try {
+      await fetch(`${PRICING_ENGINE_URL}?action=toggle_dynamic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enable_all: true, enabled: true })
+      });
+      await onUnitUpdate();
+    } catch (error) {
+      console.error('Error enabling all:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveLimits = async () => {
+    if (!profile) return;
+
+    setLoading(true);
+    try {
+      await fetch(`${PRICING_ENGINE_URL}?action=update_profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          unit_id: selectedUnit.id,
-          enabled
+          profile_id: profile.id,
+          name: profile.name,
+          mode: 'rules',
+          min_price: parseFloat(minPrice),
+          max_price: parseFloat(maxPrice)
         })
       });
-
-      if (response.ok) {
-        setDynamicEnabled(enabled);
-        await onUnitUpdate();
-      }
+      await loadProfile();
+      setIsEditing(false);
     } catch (error) {
-      console.error('Error toggling dynamic pricing:', error);
+      console.error('Error saving limits:', error);
     } finally {
       setLoading(false);
     }
@@ -82,111 +120,159 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
 
   if (!selectedUnit) {
     return (
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="text-center text-muted-foreground py-8">
-            <Icon name="TrendingUp" size={48} className="mx-auto mb-4 opacity-50" />
-            <p>Выберите объект для настройки ценообразования</p>
-          </div>
+      <Card className="mb-6 border-2 border-dashed">
+        <CardContent className="py-12 text-center">
+          <Icon name="TrendingUp" size={48} className="mx-auto mb-4 opacity-30" />
+          <p className="text-muted-foreground">Выберите объект для настройки ценообразования</p>
         </CardContent>
       </Card>
     );
   }
 
-  const defaultProfile = profiles.find(p => p.is_default);
+  const basePrice = selectedUnit.base_price || 0;
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Icon name="TrendingUp" size={24} />
-              <span>Динамическое ценообразование</span>
-              <Badge variant={dynamicEnabled ? "default" : "secondary"}>
-                {dynamicEnabled ? 'Активно' : 'Выключено'}
-              </Badge>
+    <Card className="mb-6 border-l-4 border-emerald-500">
+      <CardHeader>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <CardTitle className="flex items-center gap-3">
+            <Icon name="TrendingUp" size={24} className="text-emerald-600" />
+            <span>Динамическое ценообразование</span>
+            <Badge variant={dynamicEnabled ? "default" : "secondary"} className="bg-emerald-600">
+              {dynamicEnabled ? 'Активно' : 'Выключено'}
+            </Badge>
+          </CardTitle>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={enableAllUnits}
+            disabled={loading}
+            className="gap-2"
+          >
+            <Icon name="CheckCircle" size={16} />
+            Включить везде
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-5 border border-emerald-200">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-lg">{selectedUnit.name}</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Базовая цена: <span className="font-bold text-emerald-700 text-lg">{basePrice}₽</span> / ночь
+              </p>
             </div>
-            <div className="flex items-center gap-4">
-              <Label htmlFor="dynamic-switch" className="text-sm font-normal">
+            <div className="flex items-center gap-3">
+              <Label htmlFor="dynamic-toggle" className="text-sm font-medium cursor-pointer">
                 {dynamicEnabled ? 'Включено' : 'Выключено'}
               </Label>
               <Switch
-                id="dynamic-switch"
+                id="dynamic-toggle"
                 checked={dynamicEnabled}
                 onCheckedChange={toggleDynamicPricing}
                 disabled={loading}
               />
             </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <div className="flex items-start gap-3">
-                <Icon name="Info" className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
-                <div className="space-y-2 text-sm">
-                  <p className="font-medium">Как работает динамическое ценообразование?</p>
-                  <p className="text-muted-foreground">
-                    Система автоматически корректирует цены на основе заданных правил: 
-                    загрузки объектов, срочности бронирования, дня недели и других факторов.
-                  </p>
-                </div>
+          </div>
+
+          {dynamicEnabled && profile && (
+            <div className="space-y-3 pt-4 border-t border-emerald-200">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Ценовой коридор:</span>
+                {!isEditing ? (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-base">
+                      {parseFloat(profile.min_price).toLocaleString('ru-RU')}₽ — {parseFloat(profile.max_price).toLocaleString('ru-RU')}₽
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                      className="h-7 w-7 p-0"
+                    >
+                      <Icon name="Edit" size={14} />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      className="w-28 h-8 text-sm"
+                      placeholder="Мин"
+                    />
+                    <span className="text-gray-400">—</span>
+                    <Input
+                      type="number"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      className="w-28 h-8 text-sm"
+                      placeholder="Макс"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={saveLimits}
+                      disabled={loading}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Icon name="Check" size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsEditing(false);
+                        setMinPrice(profile.min_price);
+                        setMaxPrice(profile.max_price);
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Icon name="X" size={14} />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white/70 rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                  <Icon name="Info" size={13} />
+                  Как это работает:
+                </p>
+                <ul className="text-xs text-gray-700 space-y-1 pl-5">
+                  <li>• Расчёт начинается с базовой цены объекта ({basePrice}₽)</li>
+                  <li>• Цена корректируется автоматически по правилам</li>
+                  <li>• Итоговая цена остаётся в коридоре {parseFloat(profile.min_price).toLocaleString('ru-RU')}₽ — {parseFloat(profile.max_price).toLocaleString('ru-RU')}₽</li>
+                </ul>
               </div>
             </div>
+          )}
+        </div>
 
-            {defaultProfile && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Базовая цена</div>
-                  <div className="text-2xl font-bold">
-                    {parseFloat(defaultProfile.base_price).toLocaleString('ru-RU')} ₽
-                  </div>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Минимальная цена</div>
-                  <div className="text-2xl font-bold text-red-600">
-                    {parseFloat(defaultProfile.min_price).toLocaleString('ru-RU')} ₽
-                  </div>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Максимальная цена</div>
-                  <div className="text-2xl font-bold text-green-600">
-                    {parseFloat(defaultProfile.max_price).toLocaleString('ru-RU')} ₽
-                  </div>
-                </div>
+        {dynamicEnabled && (
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+              <Icon name="Sparkles" size={16} className="text-blue-600" />
+              Активные правила ценообразования
+            </h4>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 p-2.5 bg-white rounded-md text-sm">
+                <Icon name="TrendingUp" size={15} className="text-green-600 flex-shrink-0" />
+                <span>Высокая загрузка (≥70%) → +15%</span>
               </div>
-            )}
-
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowCalendar(!showCalendar)}
-                className="flex-1"
-              >
-                <Icon name="Calendar" className="mr-2" size={18} />
-                {showCalendar ? 'Скрыть календарь' : 'Календарь цен'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowRules(!showRules)}
-                className="flex-1"
-              >
-                <Icon name="ListChecks" className="mr-2" size={18} />
-                {showRules ? 'Скрыть правила' : 'Правила расчёта'}
-              </Button>
+              <div className="flex items-center gap-3 p-2.5 bg-white rounded-md text-sm">
+                <Icon name="TrendingDown" size={15} className="text-orange-600 flex-shrink-0" />
+                <span>Срочное бронирование (&lt;5 дней, загрузка &lt;40%) → -20%</span>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 bg-white rounded-md text-sm">
+                <Icon name="Calendar" size={15} className="text-purple-600 flex-shrink-0" />
+                <span>Выходные (пятница, суббота) → +20%</span>
+              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {showCalendar && selectedUnit && (
-        <PriceCalendar unitId={selectedUnit.id} />
-      )}
-
-      {showRules && defaultProfile && (
-        <PricingRulesList profileId={defaultProfile.id} />
-      )}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

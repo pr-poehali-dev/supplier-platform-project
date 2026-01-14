@@ -77,7 +77,7 @@ def get_pricing_profiles(conn) -> dict:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("""
             SELECT 
-                pp.id, pp.name, pp.mode, pp.base_price, 
+                pp.id, pp.name, pp.mode,
                 pp.min_price, pp.max_price, pp.is_default, pp.enabled,
                 COUNT(u.id) as units_count
             FROM pricing_profiles pp
@@ -139,8 +139,7 @@ def calculate_dynamic_price(conn, unit_id: str, date_str: str) -> dict:
             SELECT 
                 u.id, u.name, u.base_price,
                 u.dynamic_pricing_enabled,
-                u.override_base_price, u.override_min_price, u.override_max_price,
-                pp.id as profile_id, pp.mode, pp.base_price as profile_base_price,
+                pp.id as profile_id, pp.mode,
                 pp.min_price as profile_min_price, pp.max_price as profile_max_price
             FROM units u
             LEFT JOIN pricing_profiles pp ON u.pricing_profile_id = pp.id
@@ -162,9 +161,9 @@ def calculate_dynamic_price(conn, unit_id: str, date_str: str) -> dict:
                 'dynamic_enabled': False
             })
         
-        base_price = unit['override_base_price'] or unit['profile_base_price'] or unit['base_price']
-        min_price = unit['override_min_price'] or unit['profile_min_price']
-        max_price = unit['override_max_price'] or unit['profile_max_price']
+        base_price = unit['base_price']
+        min_price = unit['profile_min_price'] or base_price * Decimal('0.5')
+        max_price = unit['profile_max_price'] or base_price * Decimal('2.0')
         
         cur.execute("""
             SELECT * FROM pricing_rules 
@@ -281,21 +280,21 @@ def update_pricing_profile(conn, data: dict) -> dict:
         if profile_id:
             cur.execute("""
                 UPDATE pricing_profiles 
-                SET name = %s, mode = %s, base_price = %s, 
+                SET name = %s, mode = %s,
                     min_price = %s, max_price = %s, updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
             """, (
-                data['name'], data['mode'], data['base_price'],
+                data['name'], data['mode'],
                 data['min_price'], data['max_price'], profile_id
             ))
         else:
             cur.execute("""
                 INSERT INTO pricing_profiles 
-                (name, mode, base_price, min_price, max_price, created_by)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (name, mode, min_price, max_price, created_by)
+                VALUES (%s, %s, %s, %s, %s)
                 RETURNING id
             """, (
-                data['name'], data['mode'], data['base_price'],
+                data['name'], data['mode'],
                 data['min_price'], data['max_price'], data.get('user_id', 1)
             ))
             profile_id = cur.fetchone()[0]
@@ -345,16 +344,23 @@ def update_pricing_rule(conn, data: dict) -> dict:
 def toggle_dynamic_pricing(conn, data: dict) -> dict:
     unit_id = data.get('unit_id')
     enabled = data.get('enabled', True)
-    
-    if not unit_id:
-        return error_response('unit_id required', 400)
+    enable_all = data.get('enable_all', False)
     
     with conn.cursor() as cur:
-        cur.execute("""
-            UPDATE units 
-            SET dynamic_pricing_enabled = %s
-            WHERE id = %s
-        """, (enabled, unit_id))
+        if enable_all:
+            cur.execute("""
+                UPDATE units 
+                SET dynamic_pricing_enabled = %s
+            """, (enabled,))
+        elif unit_id:
+            cur.execute("""
+                UPDATE units 
+                SET dynamic_pricing_enabled = %s
+                WHERE id = %s
+            """, (enabled, unit_id))
+        else:
+            return error_response('unit_id or enable_all required', 400)
+        
         conn.commit()
     
     return success_response({'message': 'Dynamic pricing updated'})

@@ -4,7 +4,7 @@ import psycopg2
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-# Updated: 2026-01-11 - Fixed unit deletion with cascade delete
+# Updated: 2026-01-14 - Added dynamic_pricing_enabled and pricing_profile_id to units GET response
 
 try:
     import openai
@@ -467,7 +467,8 @@ def handler(event: dict, context) -> dict:
             
             # Получаем информацию о доступных объектах
             cur.execute("""
-                SELECT id, name, type, description, base_price, max_guests
+                SELECT id, name, type, description, base_price, max_guests, 
+                       dynamic_pricing_enabled, pricing_profile_id
                 FROM units
                 ORDER BY id
             """)
@@ -595,7 +596,8 @@ def handler(event: dict, context) -> dict:
         # GET /units - список объектов размещения
         if method == 'GET' and action == 'units':
             cur.execute("""
-                SELECT id, name, type, description, base_price, max_guests, created_at
+                SELECT id, name, type, description, base_price, max_guests, created_at,
+                       dynamic_pricing_enabled, pricing_profile_id
                 FROM units
                 ORDER BY id
             """)
@@ -630,6 +632,8 @@ def handler(event: dict, context) -> dict:
                     'base_price': float(row[4]),
                     'max_guests': row[5],
                     'created_at': row[6].isoformat() if row[6] else None,
+                    'dynamic_pricing_enabled': row[7] if row[7] is not None else False,
+                    'pricing_profile_id': row[8],
                     'available_slots': available_slots,
                     'total_slots': total_slots
                 })

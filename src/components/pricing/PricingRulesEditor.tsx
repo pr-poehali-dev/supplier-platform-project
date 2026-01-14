@@ -205,30 +205,23 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
   };
 
   return (
-    <Card className="border-l-4 border-purple-500 mb-6">
-      <Accordion type="single" collapsible>
-        <AccordionItem value="rules" className="border-0">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between w-full gap-4">
-              <AccordionTrigger className="hover:no-underline py-0 flex-1">
-                <CardTitle className="flex items-center gap-2">
-                  <Icon name="Sliders" size={20} className="text-purple-600" />
-                  Правила ценообразования
-                  <Badge variant="outline" className="ml-2">{rules.length}</Badge>
-                </CardTitle>
-              </AccordionTrigger>
-              <Button 
-                size="sm" 
-                onClick={openNewRuleDialog}
-                className="gap-2"
-              >
-                <Icon name="Plus" size={16} />
-                Добавить правило
-              </Button>
-            </div>
-          </CardHeader>
-          <AccordionContent>
-            <CardContent className="space-y-3 pt-0">
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Icon name="Sliders" size={20} className="text-purple-600" />
+          <h3 className="text-lg font-semibold">Правила ценообразования</h3>
+          <Badge variant="outline">{rules.length}</Badge>
+        </div>
+        <Button 
+          size="sm" 
+          onClick={openNewRuleDialog}
+          className="gap-2"
+        >
+          <Icon name="Plus" size={16} />
+          Добавить правило
+        </Button>
+      </div>
+      <div className="space-y-3">
         {rules.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Icon name="AlertCircle" size={32} className="mx-auto mb-2 opacity-30" />
@@ -393,10 +386,7 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
             )}
           </DialogContent>
         </Dialog>
-            </CardContent>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </Card>
+      </div>
+    </div>
   );
 }

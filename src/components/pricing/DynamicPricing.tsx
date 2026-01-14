@@ -134,7 +134,6 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
   const basePrice = selectedUnit.base_price || 0;
 
   return (
-    <>
     <Card className="mb-6 border-l-4 border-emerald-500">
       <Accordion type="single" collapsible defaultValue="pricing">
         <AccordionItem value="pricing" className="border-0">
@@ -162,7 +161,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
             </div>
           </CardHeader>
           <AccordionContent>
-            <CardContent className="space-y-4 pt-0">
+            <CardContent className="space-y-6 pt-0">
         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-5 border border-emerald-200">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -258,18 +257,20 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
           )}
         </div>
 
+            {/* Правила ценообразования внутри */}
+            {dynamicEnabled && profile && (
+              <div className="pt-6 border-t border-emerald-200">
+                <PricingRulesEditor 
+                  profileId={profile.id} 
+                  onRulesUpdate={loadProfile}
+                />
+              </div>
+            )}
+
             </CardContent>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
     </Card>
-    
-    {dynamicEnabled && profile && (
-      <PricingRulesEditor 
-        profileId={profile.id} 
-        onRulesUpdate={loadProfile}
-      />
-    )}
-    </>
   );
 }

@@ -262,14 +262,9 @@ export default function CalendarView({
               <Button 
                 variant={showPrices ? "default" : "outline"}
                 size="sm" 
-                onClick={() => {
-                  if (selectedUnit?.dynamic_pricing_enabled) {
-                    setShowPrices(!showPrices);
-                  }
-                }}
-                disabled={!selectedUnit?.dynamic_pricing_enabled || loadingPrices}
+                onClick={() => setShowPrices(!showPrices)}
+                disabled={loadingPrices}
                 className="gap-2"
-                title={!selectedUnit?.dynamic_pricing_enabled ? "Включите динамическое ценообразование для этого объекта" : ""}
               >
                 {loadingPrices ? (
                   <Icon name="Loader2" size={16} className="animate-spin" />

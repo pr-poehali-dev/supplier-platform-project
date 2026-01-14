@@ -69,9 +69,10 @@ export default function AIAssistant() {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
+    const messageText = input;
     const userMessage: Message = {
       role: 'user',
-      content: input,
+      content: messageText,
       created_at: new Date().toISOString()
     };
 
@@ -94,7 +95,7 @@ export default function AIAssistant() {
           'X-User-Id': user.id.toString()
         },
         body: JSON.stringify({
-          message: input,
+          message: messageText,
           conversation_id: conversationId
         })
       });

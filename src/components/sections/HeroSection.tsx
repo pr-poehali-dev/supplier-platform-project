@@ -53,11 +53,6 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
             <p className="text-xl text-gray-600">
               Помогаем предпринимателям открыть и развить бизнес в сфере туризма России. Инструменты, советы и сообщество единомышленников.
             </p>
-            <div className="bg-gradient-to-r from-primary/10 to-secondary/10 border-2 border-primary/30 rounded-2xl p-6 mt-6">
-              <p className="text-lg font-semibold text-primary">
-                🎁 Первые 20 пользователей получают премиум функции бесплатно
-              </p>
-            </div>
           </div>
           <div className="relative animate-float">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-3xl"></div>

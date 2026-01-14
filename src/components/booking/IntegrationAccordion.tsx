@@ -6,13 +6,16 @@ import OwnerTelegramSetup from './OwnerTelegramSetup';
 import CalendarSyncCard from './CalendarSyncCard';
 import { Badge } from '@/components/ui/badge';
 import { Unit } from './UnitsManagement';
+import DynamicPricing from '@/components/pricing/DynamicPricing';
 
 interface IntegrationAccordionProps {
   botLink: string;
   units: Unit[];
+  selectedUnit: Unit | null;
+  onUnitUpdate: () => void;
 }
 
-export default function IntegrationAccordion({ botLink, units }: IntegrationAccordionProps) {
+export default function IntegrationAccordion({ botLink, units, selectedUnit, onUnitUpdate }: IntegrationAccordionProps) {
   return (
     <Card className="mt-8 shadow-xl">
       <CardHeader>
@@ -105,6 +108,36 @@ export default function IntegrationAccordion({ botLink, units }: IntegrationAcco
                     <OwnerTelegramSetup />
                   </div>
                 </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="pricing" className="border-b-2">
+            <AccordionTrigger className="hover:no-underline group">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                  <Icon name="TrendingUp" size={24} className="text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold">Динамическое ценообразование</h3>
+                    <Badge variant="outline" className="bg-emerald-50">
+                      <Icon name="Sparkles" size={12} className="mr-1" />
+                      Revenue Management
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600 font-normal">
+                    Автоматическая корректировка цен для максимальной прибыли
+                  </p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="pl-14 pr-4">
+                <DynamicPricing 
+                  selectedUnit={selectedUnit}
+                  onUnitUpdate={onUnitUpdate}
+                />
               </div>
             </AccordionContent>
           </AccordionItem>

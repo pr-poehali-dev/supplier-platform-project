@@ -7,7 +7,6 @@ import CalendarView, { Booking } from '@/components/booking/CalendarView';
 import BookingDialog from '@/components/booking/BookingDialog';
 import IntegrationAccordion from '@/components/booking/IntegrationAccordion';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
-import DynamicPricing from '@/components/pricing/DynamicPricing';
 import { canAddUnit, getSubscriptionLimits } from '@/utils/subscription';
 import { useToast } from '@/hooks/use-toast';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -276,12 +275,12 @@ export default function BookingCalendar() {
             }
           />
 
-          <DynamicPricing 
+          <IntegrationAccordion 
+            botLink={botLink} 
+            units={units}
             selectedUnit={selectedUnit}
             onUnitUpdate={loadUnits}
           />
-
-          <IntegrationAccordion botLink={botLink} units={units} />
         </div>
       </div>
     </SubscriptionGuard>

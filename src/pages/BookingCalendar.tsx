@@ -16,6 +16,7 @@ import { breadcrumbSchema } from '@/utils/seo';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 const DELETE_UNIT_URL = 'https://functions.poehali.dev/99916984-c945-4b8d-9af9-fc88342eb58a';
+const CUSTOMER_SYNC_URL = 'https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce';
 
 export default function BookingCalendar() {
   usePageMeta({
@@ -206,6 +207,11 @@ export default function BookingCalendar() {
       
       if (response.ok) {
         await loadBookings();
+        
+        // Синхронизируем базу клиентов
+        fetch(CUSTOMER_SYNC_URL, { method: 'POST' }).catch(err => 
+          console.error('Customer sync failed:', err)
+        );
       } else {
         alert(data.error || 'Ошибка создания бронирования');
       }

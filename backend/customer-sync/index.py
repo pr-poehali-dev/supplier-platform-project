@@ -17,11 +17,12 @@ def handler(event: dict, context) -> dict:
     cur = conn.cursor()
     
     try:
-        # Получаем все бронирования
+        # Получаем все бронирования с owner_id из units (created_by)
         cur.execute("""
             SELECT b.id, b.unit_id, b.guest_name, b.guest_phone, b.guest_email,
-                   b.check_in, b.check_out, b.total_price, b.telegram_id, b.created_at
+                   b.check_in, b.check_out, b.total_price, b.created_at, u.created_by
             FROM bookings b
+            LEFT JOIN units u ON b.unit_id = u.id
             WHERE b.status IN ('confirmed', 'tentative')
             ORDER BY b.created_at DESC
         """)
@@ -32,11 +33,11 @@ def handler(event: dict, context) -> dict:
         
         for booking in bookings:
             (booking_id, unit_id, guest_name, guest_phone, guest_email,
-             check_in, check_out, total_price, telegram_id, booking_created_at) = booking
+             check_in, check_out, total_price, booking_created_at, owner_id) = booking
             
-            # Ищем owner_id через unit_id (предполагаем, что есть связь)
-            # Для простоты используем owner_id = 1 (можно добавить таблицу units с owner_id)
-            owner_id = 1
+            # Пропускаем если нет owner_id
+            if not owner_id:
+                continue
             
             # Проверяем, есть ли клиент
             if guest_phone:
@@ -69,8 +70,7 @@ def handler(event: dict, context) -> dict:
                         last_booking_date = '{check_in}',
                         total_bookings = {new_total_bookings},
                         total_spent = {new_total_spent},
-                        updated_at = CURRENT_TIMESTAMP,
-                        telegram_id = {telegram_id or 'NULL'}
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE id = {customer_id}
                 """)
                 synced += 1
@@ -78,11 +78,10 @@ def handler(event: dict, context) -> dict:
                 # Создаём нового клиента
                 cur.execute(f"""
                     INSERT INTO customers 
-                    (owner_id, name, phone, email, telegram_id, last_booking_date,
+                    (owner_id, name, phone, email, last_booking_date,
                      total_bookings, total_spent)
                     VALUES ({owner_id}, $${guest_name}$$, $${guest_phone or ''}$$,
-                            $${guest_email or ''}$$, {telegram_id or 'NULL'},
-                            '{check_in}', 1, {total_price})
+                            $${guest_email or ''}$$, '{check_in}', 1, {total_price})
                 """)
                 created += 1
         

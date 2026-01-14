@@ -8,6 +8,7 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
+const CUSTOMER_SYNC_URL = 'https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce';
 
 interface Customer {
   id: number;
@@ -52,6 +53,30 @@ export default function Customers() {
       setCustomers(data.customers || []);
     } catch (error) {
       console.error('Error loading customers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const syncCustomers = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(CUSTOMER_SYNC_URL, { method: 'POST' });
+      const data = await response.json();
+      
+      toast({
+        title: 'Синхронизация завершена',
+        description: `Обновлено: ${data.synced || 0}, Создано: ${data.created || 0}`,
+      });
+      
+      await loadCustomers();
+    } catch (error) {
+      console.error('Error syncing customers:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка синхронизации',
+        description: 'Не удалось синхронизировать клиентов',
+      });
     } finally {
       setLoading(false);
     }
@@ -175,6 +200,16 @@ export default function Customers() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-80"
                 />
+                <Button 
+                  onClick={syncCustomers} 
+                  variant="outline" 
+                  disabled={loading}
+                  className="gap-2"
+                  title="Синхронизировать клиентов из бронирований"
+                >
+                  <Icon name={loading ? "Loader2" : "RefreshCw"} size={16} className={loading ? "animate-spin" : ""} />
+                  Синхронизация
+                </Button>
                 <Button onClick={exportToCSV} variant="outline" className="gap-2">
                   <Icon name="Download" size={16} />
                   Экспорт CSV

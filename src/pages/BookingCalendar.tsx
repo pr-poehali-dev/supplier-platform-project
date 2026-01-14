@@ -256,9 +256,35 @@ export default function BookingCalendar() {
               <Icon name="Calendar" className="inline-block mr-2" size={36} />
               Календарь бронирования
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               Управляйте бронированиями для турбаз и гостевых домов
             </p>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/additional-services')}
+                className="gap-2"
+              >
+                <Icon name="Plus" size={16} />
+                Допродажи
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/customers')}
+                className="gap-2"
+              >
+                <Icon name="Users" size={16} />
+                База клиентов
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/bot-settings')}
+                className="gap-2"
+              >
+                <Icon name="Bot" size={16} />
+                Настройки AI
+              </Button>
+            </div>
           </div>
 
           <UnitsManagement

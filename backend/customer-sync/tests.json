@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Sync customers from bookings",
+      "method": "POST",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "message": "Customer sync completed"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

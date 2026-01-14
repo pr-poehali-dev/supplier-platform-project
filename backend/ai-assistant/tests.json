@@ -1,0 +1,41 @@
+{
+  "tests": [
+    {
+      "name": "Get bot settings without auth",
+      "method": "GET",
+      "path": "/?action=settings",
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "Owner ID required in X-User-Id header"
+      }
+    },
+    {
+      "name": "Get bot settings with auth",
+      "method": "GET",
+      "path": "/?action=settings",
+      "headers": {
+        "X-User-Id": "1"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "settings": {
+          "bot_name": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get holidays list",
+      "method": "GET",
+      "path": "/?action=holidays&start=2026-01-01&end=2026-12-31",
+      "headers": {
+        "X-User-Id": "1"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "holidays": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

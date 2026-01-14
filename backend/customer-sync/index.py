@@ -17,81 +17,47 @@ def handler(event: dict, context) -> dict:
     cur = conn.cursor()
     
     try:
-        # Получаем все бронирования с owner_id из units (created_by)
+        # Сначала очищаем все данные customers и пересчитываем с нуля
+        cur.execute("DELETE FROM customers")
+        
+        # Группируем бронирования по клиентам и пересчитываем статистику
         cur.execute("""
-            SELECT b.id, b.unit_id, b.guest_name, b.guest_phone, b.guest_email,
-                   b.check_in, b.check_out, b.total_price, b.created_at, u.created_by
-            FROM bookings b
-            LEFT JOIN units u ON b.unit_id = u.id
-            WHERE b.status IN ('confirmed', 'tentative')
-            ORDER BY b.created_at DESC
+            WITH customer_bookings AS (
+                SELECT 
+                    u.created_by as owner_id,
+                    b.guest_name,
+                    COALESCE(NULLIF(b.guest_phone, ''), 'no_phone_' || b.guest_name) as guest_phone,
+                    COALESCE(b.guest_email, '') as guest_email,
+                    COUNT(*) as total_bookings,
+                    SUM(b.total_price) as total_spent,
+                    MAX(b.check_in) as last_booking_date
+                FROM bookings b
+                LEFT JOIN units u ON b.unit_id = u.id
+                WHERE b.status IN ('confirmed', 'tentative')
+                    AND u.created_by IS NOT NULL
+                GROUP BY u.created_by, b.guest_name, guest_phone, b.guest_email
+            )
+            INSERT INTO customers 
+                (owner_id, name, phone, email, total_bookings, total_spent, last_booking_date)
+            SELECT 
+                owner_id, 
+                guest_name, 
+                CASE WHEN guest_phone LIKE 'no_phone_%' THEN '' ELSE guest_phone END,
+                guest_email,
+                total_bookings,
+                total_spent,
+                last_booking_date
+            FROM customer_bookings
         """)
         
-        bookings = cur.fetchall()
-        synced = 0
-        created = 0
-        
-        for booking in bookings:
-            (booking_id, unit_id, guest_name, guest_phone, guest_email,
-             check_in, check_out, total_price, booking_created_at, owner_id) = booking
-            
-            # Пропускаем если нет owner_id
-            if not owner_id:
-                continue
-            
-            # Проверяем, есть ли клиент
-            if guest_phone:
-                cur.execute(f"""
-                    SELECT id, total_bookings, total_spent
-                    FROM customers
-                    WHERE owner_id = {owner_id}
-                    AND (phone = $${guest_phone}$$ OR email = $${guest_email or ''}$$)
-                    LIMIT 1
-                """)
-            else:
-                cur.execute(f"""
-                    SELECT id, total_bookings, total_spent
-                    FROM customers
-                    WHERE owner_id = {owner_id}
-                    AND name = $${guest_name}$$
-                    LIMIT 1
-                """)
-            
-            customer_row = cur.fetchone()
-            
-            if customer_row:
-                # Обновляем существующего клиента
-                customer_id = customer_row[0]
-                new_total_bookings = customer_row[1] + 1
-                new_total_spent = float(customer_row[2]) + float(total_price)
-                
-                cur.execute(f"""
-                    UPDATE customers SET
-                        last_booking_date = '{check_in}',
-                        total_bookings = {new_total_bookings},
-                        total_spent = {new_total_spent},
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = {customer_id}
-                """)
-                synced += 1
-            else:
-                # Создаём нового клиента
-                cur.execute(f"""
-                    INSERT INTO customers 
-                    (owner_id, name, phone, email, last_booking_date,
-                     total_bookings, total_spent)
-                    VALUES ({owner_id}, $${guest_name}$$, $${guest_phone or ''}$$,
-                            $${guest_email or ''}$$, '{check_in}', 1, {total_price})
-                """)
-                created += 1
+        created = cur.rowcount
         
         conn.commit()
         
         return success_response({
             'message': 'Customer sync completed',
-            'synced': synced,
-            'created': created,
-            'total_bookings': len(bookings)
+            'synced': 0,
+            'created': created
         })
         
     except Exception as e:

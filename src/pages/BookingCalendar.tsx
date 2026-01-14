@@ -209,9 +209,11 @@ export default function BookingCalendar() {
         await loadBookings();
         
         // Синхронизируем базу клиентов
-        fetch(CUSTOMER_SYNC_URL, { method: 'POST' }).catch(err => 
-          console.error('Customer sync failed:', err)
-        );
+        try {
+          await fetch(CUSTOMER_SYNC_URL, { method: 'POST' });
+        } catch (err) {
+          console.error('Customer sync failed:', err);
+        }
       } else {
         alert(data.error || 'Ошибка создания бронирования');
       }

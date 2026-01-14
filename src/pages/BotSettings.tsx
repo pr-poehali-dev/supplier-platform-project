@@ -59,7 +59,7 @@ export default function BotSettings() {
         setSettings(data.settings);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      // Error loading settings
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ export default function BotSettings() {
       const data = await response.json();
       setHolidays(data.holidays || []);
     } catch (error) {
-      console.error('Error loading holidays:', error);
+      // Error loading holidays
     }
   };
 
@@ -110,7 +110,6 @@ export default function BotSettings() {
         });
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось сохранить настройки',

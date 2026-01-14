@@ -70,7 +70,7 @@ export default function AIAssistant() {
         }]);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      // Error loading settings
     }
   };
 

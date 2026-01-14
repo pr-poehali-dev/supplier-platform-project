@@ -51,7 +51,7 @@ export default function PriceCalendar({ unitId }: PriceCalendarProps) {
       const data = await response.json();
       setPriceData(data.calendar || []);
     } catch (error) {
-      console.error('Error loading price calendar:', error);
+      // Error loading price calendar
     } finally {
       setLoading(false);
     }

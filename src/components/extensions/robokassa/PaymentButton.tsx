@@ -96,7 +96,7 @@ export function PaymentButton({
       // Открываем страницу оплаты
       openPaymentPage(result.payment_url);
     } catch (err) {
-      console.error("Payment error:", err);
+      // Payment error
     } finally {
       setIsPending(false);
     }

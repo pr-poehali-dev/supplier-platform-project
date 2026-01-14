@@ -108,7 +108,7 @@ export default function BookingCalendar() {
         await loadUnits();
       }
     } catch (error) {
-      console.error('Error adding unit:', error);
+      // Error adding unit
     }
   };
 
@@ -139,7 +139,6 @@ export default function BookingCalendar() {
         });
       }
     } catch (error) {
-      console.error('Error updating unit:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось обновить объект',
@@ -173,7 +172,6 @@ export default function BookingCalendar() {
         });
       }
     } catch (error) {
-      console.error('Error deleting unit:', error);
       toast({
         title: 'Ошибка',
         description: 'Произошла ошибка при удалении объекта',
@@ -212,13 +210,12 @@ export default function BookingCalendar() {
         try {
           await fetch(CUSTOMER_SYNC_URL, { method: 'POST' });
         } catch (err) {
-          console.error('Customer sync failed:', err);
+          // Customer sync failed
         }
       } else {
         alert(data.error || 'Ошибка создания бронирования');
       }
     } catch (error) {
-      console.error('Error creating booking:', error);
       alert('Ошибка создания бронирования');
     }
   };
@@ -233,7 +230,7 @@ export default function BookingCalendar() {
         await loadBookings();
       }
     } catch (error) {
-      console.error('Error deleting booking:', error);
+      // Error deleting booking
     }
   };
 

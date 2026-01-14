@@ -45,7 +45,7 @@ const BlogSection = () => {
         setBlogPosts(data.posts);
       }
     } catch (error) {
-      console.error('Ошибка загрузки постов:', error);
+      // Error loading posts
     } finally {
       setLoading(false);
     }

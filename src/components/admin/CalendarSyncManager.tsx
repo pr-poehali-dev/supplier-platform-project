@@ -64,7 +64,7 @@ export default function CalendarSyncManager() {
         setSyncs(data.syncs || []);
       }
     } catch (error) {
-      console.error('Ошибка загрузки данных:', error);
+      // Error loading data
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,6 @@ export default function CalendarSyncManager() {
         alert('Ошибка добавления синхронизации');
       }
     } catch (error) {
-      console.error('Ошибка:', error);
       alert('Ошибка добавления синхронизации');
     }
   };
@@ -111,7 +110,7 @@ export default function CalendarSyncManager() {
         loadData();
       }
     } catch (error) {
-      console.error('Ошибка:', error);
+      // Toggle error
     }
   };
 
@@ -130,7 +129,7 @@ export default function CalendarSyncManager() {
         loadData();
       }
     } catch (error) {
-      console.error('Ошибка:', error);
+      // Update error
     }
   };
 
@@ -146,7 +145,7 @@ export default function CalendarSyncManager() {
         loadData();
       }
     } catch (error) {
-      console.error('Ошибка:', error);
+      // Delete error
     }
   };
 
@@ -167,7 +166,6 @@ export default function CalendarSyncManager() {
         alert(`Ошибка синхронизации: ${data.error}`);
       }
     } catch (error) {
-      console.error('Ошибка:', error);
       alert('Ошибка синхронизации');
     }
   };

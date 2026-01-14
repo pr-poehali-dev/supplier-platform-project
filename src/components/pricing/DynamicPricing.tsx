@@ -56,7 +56,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
         setMaxPrice(defaultProfile.max_price);
       }
     } catch (error) {
-      console.error('Error loading profiles:', error);
+      // Error loading profiles
     }
   };
 
@@ -73,7 +73,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
       setDynamicEnabled(enabled);
       await onUnitUpdate();
     } catch (error) {
-      console.error('Error toggling:', error);
+      // Error toggling
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
       });
       await onUnitUpdate();
     } catch (error) {
-      console.error('Error enabling all:', error);
+      // Error enabling all
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
       await loadProfile();
       setIsEditing(false);
     } catch (error) {
-      console.error('Error saving limits:', error);
+      // Error saving limits
     } finally {
       setLoading(false);
     }

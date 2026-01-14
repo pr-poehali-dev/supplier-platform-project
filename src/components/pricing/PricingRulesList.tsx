@@ -38,7 +38,7 @@ export default function PricingRulesList({ profileId }: PricingRulesListProps) {
       const data = await response.json();
       setRules(data.rules || []);
     } catch (error) {
-      console.error('Error loading rules:', error);
+      // Error loading rules
     } finally {
       setLoading(false);
     }
@@ -61,7 +61,7 @@ export default function PricingRulesList({ profileId }: PricingRulesListProps) {
 
       setRules(prev => prev.map(r => r.id === ruleId ? { ...r, enabled } : r));
     } catch (error) {
-      console.error('Error toggling rule:', error);
+      // Error toggling rule
     }
   };
 

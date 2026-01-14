@@ -19,14 +19,11 @@ export const OwnerTelegramSetup = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d');
       const data = await response.json();
-      console.log('Bot info response:', data);
       if (data.bot_username) {
         setBotUsername(data.bot_username);
-      } else {
-        console.error('No bot_username in response:', data);
       }
     } catch (error) {
-      console.error('Failed to load bot info:', error);
+      // Failed to load bot info
     }
   };
 
@@ -39,7 +36,7 @@ export const OwnerTelegramSetup = () => {
         setUserId(user.id);
       }
     } catch (error) {
-      console.error('Failed to load user ID:', error);
+      // Failed to load user ID
     } finally {
       setLoading(false);
     }
@@ -59,10 +56,8 @@ export const OwnerTelegramSetup = () => {
   const openBot = () => {
     if (botUsername && userId) {
       const url = `https://t.me/${botUsername}?start=owner_${userId}`;
-      console.log('Opening bot URL:', url);
       window.open(url, '_blank');
     } else {
-      console.error('Cannot open bot: botUsername=', botUsername, 'userId=', userId);
       toast({
         title: 'Ошибка',
         description: 'Не удалось загрузить информацию о боте. Обновите страницу.',

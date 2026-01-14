@@ -65,7 +65,7 @@ const Simulator = () => {
         setBlogPosts(data.posts);
       }
     } catch (error) {
-      console.error('Ошибка загрузки постов:', error);
+      // Error loading posts
     } finally {
       setLoadingBlog(false);
     }

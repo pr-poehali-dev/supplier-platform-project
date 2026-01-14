@@ -213,7 +213,6 @@ export default function UnitsManagement({
                     onClick={async (e) => {
                       e.stopPropagation();
                       if (confirm(`Удалить объект "${unit.name}"?`)) {
-                        console.log('Deleting unit:', unit.id);
                         await onDeleteUnit(unit.id);
                       }
                     }}

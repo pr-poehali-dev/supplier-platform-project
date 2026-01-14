@@ -47,7 +47,7 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
       const data = await response.json();
       setRules(data.rules || []);
     } catch (error) {
-      console.error('Error loading rules:', error);
+      // Error loading rules
     }
   };
 
@@ -78,7 +78,7 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
       setEditingRule(null);
       onRulesUpdate?.();
     } catch (error) {
-      console.error('Error saving rule:', error);
+      // Error saving rule
     } finally {
       setLoading(false);
     }
@@ -112,7 +112,6 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
       setRules(prev => prev.map(r => r.id === ruleId ? { ...r, enabled } : r));
       onRulesUpdate?.();
     } catch (error) {
-      console.error('Error toggling rule:', error);
       // При ошибке перезагружаем с сервера
       await loadRules();
     } finally {
@@ -135,7 +134,6 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
       setRules(prev => prev.filter(r => r.id !== ruleId));
       onRulesUpdate?.();
     } catch (error) {
-      console.error('Error deleting rule:', error);
       // При ошибке перезагружаем с сервера
       await loadRules();
     } finally {

@@ -52,7 +52,7 @@ export default function AdditionalServices() {
       const data = await response.json();
       setServices(data.services || []);
     } catch (error) {
-      console.error('Error loading services:', error);
+      // Error loading services
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,6 @@ export default function AdditionalServices() {
         });
       }
     } catch (error) {
-      console.error('Error saving service:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось сохранить услугу',

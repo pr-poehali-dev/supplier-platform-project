@@ -105,7 +105,7 @@ const BlogPost = () => {
         }
       }
     } catch (error) {
-      console.error('Ошибка загрузки статьи:', error);
+      // Error loading post
     } finally {
       setLoading(false);
     }

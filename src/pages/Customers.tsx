@@ -52,7 +52,7 @@ export default function Customers() {
       const data = await response.json();
       setCustomers(data.customers || []);
     } catch (error) {
-      console.error('Error loading customers:', error);
+      // Error loading customers
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,6 @@ export default function Customers() {
       
       await loadCustomers();
     } catch (error) {
-      console.error('Error syncing customers:', error);
       toast({
         variant: 'destructive',
         title: 'Ошибка синхронизации',

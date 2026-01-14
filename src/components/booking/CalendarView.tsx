@@ -88,10 +88,7 @@ export default function CalendarView({
           fetch(`${PRICING_ENGINE_URL}?action=calculate_price&unit_id=${selectedUnit.id}&date=${dateStr}`)
             .then(res => res.json())
             .then(data => ({ dateStr, data }))
-            .catch(err => {
-              console.error(`Failed to load price for ${dateStr}:`, err);
-              return null;
-            })
+            .catch(() => null)
         );
       }
 
@@ -109,7 +106,7 @@ export default function CalendarView({
       
       setDynamicPrices(prices);
     } catch (error) {
-      console.error('Failed to load dynamic prices:', error);
+      // Failed to load dynamic prices
     } finally {
       setLoadingPrices(false);
     }

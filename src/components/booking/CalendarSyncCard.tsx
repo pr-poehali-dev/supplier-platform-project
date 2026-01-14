@@ -55,7 +55,7 @@ export default function CalendarSyncCard({ units }: { units: Unit[] }) {
         setSyncs(data.syncs || []);
       }
     } catch (error) {
-      console.error('Ошибка загрузки синхронизаций:', error);
+      // Error loading syncs
     }
   };
 
@@ -69,7 +69,7 @@ export default function CalendarSyncCard({ units }: { units: Unit[] }) {
           body: JSON.stringify({ id: sync.id })
         });
       } catch (error) {
-        console.error(`Ошибка автосинхронизации ${sync.platform}:`, error);
+        // Auto-sync error
       }
     }
     await loadSyncs();

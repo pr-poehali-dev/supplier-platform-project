@@ -66,7 +66,13 @@ export default function CalendarView({
   }, [selectedBooking]);
 
   useEffect(() => {
+    console.log('CalendarView: dynamic pricing check', {
+      hasUnit: !!selectedUnit,
+      dynamic_enabled: selectedUnit?.dynamic_pricing_enabled,
+      showPrices
+    });
     if (selectedUnit && selectedUnit.dynamic_pricing_enabled && showPrices) {
+      console.log('Loading dynamic prices...');
       loadDynamicPrices();
     }
   }, [selectedUnit, currentDate, showPrices]);
@@ -239,6 +245,7 @@ export default function CalendarView({
                 variant={showPrices ? "default" : "outline"}
                 size="sm" 
                 onClick={() => {
+                  console.log('Button clicked, current state:', { showPrices, dynamic_enabled: selectedUnit?.dynamic_pricing_enabled });
                   if (selectedUnit?.dynamic_pricing_enabled) {
                     setShowPrices(!showPrices);
                   }

@@ -248,7 +248,7 @@ const BlogPost = () => {
           <Card className="border-none shadow-xl mb-8">
             <CardContent className="pt-8">
               <div className="prose prose-lg max-w-none">
-                {post.content.split('\n').map((paragraph, index) => (
+                {post.content?.split('\n').map((paragraph, index) => (
                   paragraph.trim() && (
                     <p key={index} className="mb-4 text-gray-700 leading-relaxed">
                       {paragraph}

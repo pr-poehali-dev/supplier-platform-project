@@ -20,33 +20,49 @@ def handler(event: dict, context) -> dict:
         # Сначала очищаем все данные customers и пересчитываем с нуля
         cur.execute("DELETE FROM customers")
         
-        # Группируем бронирования по клиентам и пересчитываем статистику
+        # Группируем бронирования по телефону (один клиент = один телефон)
+        # Все имена с одним телефоном объединяем в одну строку
         cur.execute("""
-            WITH customer_bookings AS (
+            WITH phone_mapping AS (
                 SELECT 
                     u.created_by as owner_id,
+                    COALESCE(NULLIF(b.guest_phone, ''), 'no_phone') as phone_key,
                     b.guest_name,
-                    COALESCE(NULLIF(b.guest_phone, ''), 'no_phone_' || b.guest_name) as guest_phone,
-                    COALESCE(b.guest_email, '') as guest_email,
-                    COUNT(*) as total_bookings,
-                    SUM(b.total_price) as total_spent,
-                    MAX(b.check_in) as last_booking_date
+                    b.guest_email,
+                    b.status,
+                    b.total_price,
+                    b.check_in
                 FROM bookings b
                 LEFT JOIN units u ON b.unit_id = u.id
-                WHERE b.status IN ('confirmed', 'tentative')
-                    AND u.created_by IS NOT NULL
-                GROUP BY u.created_by, b.guest_name, guest_phone, b.guest_email
+                WHERE u.created_by IS NOT NULL
+            ),
+            customer_bookings AS (
+                SELECT 
+                    owner_id,
+                    phone_key,
+                    STRING_AGG(DISTINCT guest_name, ', ' ORDER BY guest_name) as all_names,
+                    MAX(COALESCE(guest_email, '')) as guest_email,
+                    COUNT(*) FILTER (WHERE status IN ('confirmed', 'tentative')) as total_bookings,
+                    COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_bookings,
+                    SUM(total_price) FILTER (WHERE status IN ('confirmed', 'tentative')) as total_spent,
+                    MAX(check_in) as last_booking_date
+                FROM phone_mapping
+                GROUP BY owner_id, phone_key
             )
             INSERT INTO customers 
-                (owner_id, name, phone, email, total_bookings, total_spent, last_booking_date)
+                (owner_id, name, phone, email, total_bookings, total_spent, last_booking_date, notes)
             SELECT 
                 owner_id, 
-                guest_name, 
-                CASE WHEN guest_phone LIKE 'no_phone_%' THEN '' ELSE guest_phone END,
+                all_names,
+                CASE WHEN phone_key = 'no_phone' THEN '' ELSE phone_key END,
                 guest_email,
                 total_bookings,
-                total_spent,
-                last_booking_date
+                COALESCE(total_spent, 0),
+                last_booking_date,
+                CASE 
+                    WHEN cancelled_bookings > 0 THEN 'Отменено броней: ' || cancelled_bookings
+                    ELSE ''
+                END
             FROM customer_bookings
         """)
         

@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "Get pricing profiles",
+      "method": "GET",
+      "path": "/?action=get_profiles",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "profiles": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Calculate dynamic price",
+      "method": "GET",
+      "path": "/?action=calculate_price&unit_id=1&date=2026-02-01",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "unit_id": "number",
+        "date": "string",
+        "price": "number",
+        "dynamic_enabled": "boolean"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

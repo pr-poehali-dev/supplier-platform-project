@@ -18,6 +18,8 @@ export interface Unit {
   max_guests: number;
   available_slots?: number;
   total_slots?: number;
+  dynamic_pricing_enabled?: boolean;
+  pricing_profile_id?: number;
 }
 
 interface UnitsManagementProps {

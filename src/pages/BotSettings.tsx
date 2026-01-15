@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth } from '@/lib/api';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
@@ -51,7 +52,7 @@ export default function BotSettings() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${AI_URL}?action=settings`, {
+      const response = await fetchWithAuth(`${AI_URL}?action=settings`, {
         headers: { 'X-User-Id': userId.toString() }
       });
       const data = await response.json();
@@ -75,7 +76,7 @@ export default function BotSettings() {
       nextYear.setFullYear(nextYear.getFullYear() + 1);
       const end = nextYear.toISOString().split('T')[0];
 
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${AI_URL}?action=holidays&start=${today}&end=${end}`,
         {
           headers: { 'X-User-Id': userId.toString() }
@@ -94,7 +95,7 @@ export default function BotSettings() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${AI_URL}?action=settings`, {
+      const response = await fetchWithAuth(`${AI_URL}?action=settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

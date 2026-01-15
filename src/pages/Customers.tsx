@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth } from '@/lib/api';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 const CUSTOMER_SYNC_URL = 'https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce';
@@ -46,7 +47,7 @@ export default function Customers() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${AI_URL}?action=customers`, {
+      const response = await fetchWithAuth(`${AI_URL}?action=customers`, {
         headers: { 'X-User-Id': userId.toString() }
       });
       const data = await response.json();
@@ -61,7 +62,7 @@ export default function Customers() {
   const syncCustomers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(CUSTOMER_SYNC_URL, { method: 'POST' });
+      const response = await fetchWithAuth(CUSTOMER_SYNC_URL, { method: 'POST' });
       const data = await response.json();
       
       toast({

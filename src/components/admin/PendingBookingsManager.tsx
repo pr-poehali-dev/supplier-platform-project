@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
+import { fetchWithAuth } from '@/lib/api';
 
 interface PendingBooking {
   id: number;
@@ -31,12 +32,7 @@ export const PendingBookingsManager = () => {
   const loadPendingBookings = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await fetch('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_pending_bookings', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
+      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_pending_bookings');
       const data = await response.json();
       setBookings(data.bookings || []);
     } catch (error) {
@@ -52,11 +48,9 @@ export const PendingBookingsManager = () => {
 
   const approveBooking = async (bookingId: number) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -83,11 +77,9 @@ export const PendingBookingsManager = () => {
 
   const rejectBooking = async (bookingId: number) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

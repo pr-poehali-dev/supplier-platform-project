@@ -9,6 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import Icon from '@/components/ui/icon';
 import { Unit } from '@/components/booking/UnitsManagement';
 import PricingRulesEditor from './PricingRulesEditor';
+import { fetchWithAuth } from '@/lib/api';
 
 const PRICING_ENGINE_URL = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4';
 
@@ -47,7 +48,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
 
   const loadProfile = async () => {
     try {
-      const response = await fetch(`${PRICING_ENGINE_URL}?action=get_profiles`);
+      const response = await fetchWithAuth(`${PRICING_ENGINE_URL}?action=get_profiles`);
       const data = await response.json();
       if (data.profiles && data.profiles.length > 0) {
         const defaultProfile = data.profiles[0];
@@ -65,7 +66,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
 
     setLoading(true);
     try {
-      await fetch(`${PRICING_ENGINE_URL}?action=toggle_dynamic`, {
+      await fetchWithAuth(`${PRICING_ENGINE_URL}?action=toggle_dynamic`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ unit_id: selectedUnit.id, enabled })
@@ -82,7 +83,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
   const enableAllUnits = async () => {
     setLoading(true);
     try {
-      await fetch(`${PRICING_ENGINE_URL}?action=toggle_dynamic`, {
+      await fetchWithAuth(`${PRICING_ENGINE_URL}?action=toggle_dynamic`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enable_all: true, enabled: true })
@@ -100,7 +101,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
 
     setLoading(true);
     try {
-      await fetch(`${PRICING_ENGINE_URL}?action=update_profile`, {
+      await fetchWithAuth(`${PRICING_ENGINE_URL}?action=update_profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

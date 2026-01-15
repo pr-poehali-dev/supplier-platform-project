@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import JsonLd from '@/components/seo/JsonLd';
 import { breadcrumbSchema } from '@/utils/seo';
+import { fetchWithAuth } from '@/lib/api';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 const DELETE_UNIT_URL = 'https://functions.poehali.dev/99916984-c945-4b8d-9af9-fc88342eb58a';
@@ -46,7 +47,7 @@ export default function BookingCalendar() {
 
   const loadUnits = async () => {
     try {
-      const response = await fetch(`${API_URL}?action=units`);
+      const response = await fetchWithAuth(`${API_URL}?action=units`);
       const data = await response.json();
       
       // Фоллбэк: если бэкенд не вернул dynamic_pricing_enabled, добавляем по умолчанию
@@ -67,7 +68,7 @@ export default function BookingCalendar() {
 
   const loadBookings = async () => {
     try {
-      const response = await fetch(`${API_URL}?action=bookings`);
+      const response = await fetchWithAuth(`${API_URL}?action=bookings`);
       const data = await response.json();
       setBookings(data.bookings || []);
     } catch (error) {
@@ -98,7 +99,7 @@ export default function BookingCalendar() {
     }
 
     try {
-      const response = await fetch(`${API_URL}?action=create-unit`, {
+      const response = await fetchWithAuth(`${API_URL}?action=create-unit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUnit)
@@ -125,7 +126,7 @@ export default function BookingCalendar() {
     }
 
     try {
-      const response = await fetch(`${API_URL}?action=update-unit&unit_id=${unitId}`, {
+      const response = await fetchWithAuth(`${API_URL}?action=update-unit&unit_id=${unitId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedUnit)
@@ -149,7 +150,7 @@ export default function BookingCalendar() {
 
   const deleteUnit = async (unitId: number) => {
     try {
-      const response = await fetch(`${DELETE_UNIT_URL}?unit_id=${unitId}`, {
+      const response = await fetchWithAuth(`${DELETE_UNIT_URL}?unit_id=${unitId}`, {
         method: 'DELETE'
       });
       
@@ -192,7 +193,7 @@ export default function BookingCalendar() {
     }
 
     try {
-      const response = await fetch(`${API_URL}?action=create-booking`, {
+      const response = await fetchWithAuth(`${API_URL}?action=create-booking`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -208,7 +209,7 @@ export default function BookingCalendar() {
         
         // Синхронизируем базу клиентов
         try {
-          await fetch(CUSTOMER_SYNC_URL, { method: 'POST' });
+          await fetchWithAuth(CUSTOMER_SYNC_URL, { method: 'POST' });
         } catch (err) {
           // Customer sync failed
         }
@@ -222,7 +223,7 @@ export default function BookingCalendar() {
 
   const deleteBooking = async (bookingId: number) => {
     try {
-      const response = await fetch(`${API_URL}?action=delete-booking&booking_id=${bookingId}`, {
+      const response = await fetchWithAuth(`${API_URL}?action=delete-booking&booking_id=${bookingId}`, {
         method: 'DELETE'
       });
       

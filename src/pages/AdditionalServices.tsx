@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth } from '@/lib/api';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
@@ -46,7 +47,7 @@ export default function AdditionalServices() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${AI_URL}?action=services`, {
+      const response = await fetchWithAuth(`${AI_URL}?action=services`, {
         headers: { 'X-User-Id': userId.toString() }
       });
       const data = await response.json();
@@ -70,7 +71,7 @@ export default function AdditionalServices() {
         ? `${AI_URL}?action=services&id=${editingService.id}`
         : `${AI_URL}?action=services`;
 
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method: editingService.id ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',

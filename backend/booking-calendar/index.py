@@ -29,7 +29,7 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Owner-Id',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
@@ -43,13 +43,26 @@ def handler(event: dict, context) -> dict:
         query_params = event.get('queryStringParameters') or {}
         action = query_params.get('action', '')
         
+        # Extract owner_id from headers for multi-tenancy isolation
+        headers = event.get('headers') or {}
+        owner_id = headers.get('x-owner-id') or headers.get('X-Owner-Id')
+        
+        if not owner_id:
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Unauthorized: owner_id required'}),
+                'isBase64Encoded': False
+            }
+        
         # GET /get_payment_links - получить платежные ссылки
         if method == 'GET' and action == 'get_payment_links':
-            cur.execute("""
+            cur.execute(f"""
                 SELECT pl.id, pl.unit_id, u.name, pl.payment_system, 
                        pl.payment_link, pl.recipient_name
                 FROM payment_links pl
                 JOIN units u ON pl.unit_id = u.id
+                WHERE u.owner_id = {owner_id}
                 ORDER BY u.id
             """)
             
@@ -73,13 +86,14 @@ def handler(event: dict, context) -> dict:
         
         # GET /get_pending_bookings - получить ожидающие брони
         if method == 'GET' and action == 'get_pending_bookings':
-            cur.execute("""
+            cur.execute(f"""
                 SELECT pb.id, u.name, pb.check_in, pb.check_out, pb.guest_name, 
                        pb.guest_contact, pb.amount, pb.payment_screenshot_url,
                        pb.verification_status, pb.verification_notes, pb.created_at
                 FROM pending_bookings pb
                 JOIN units u ON pb.unit_id = u.id
                 WHERE pb.verification_status IN ('pending', 'verified')
+                  AND u.owner_id = {owner_id}
                 ORDER BY pb.created_at DESC
             """)
             
@@ -112,9 +126,10 @@ def handler(event: dict, context) -> dict:
             booking_id = body.get('booking_id')
             
             cur.execute(f"""
-                SELECT unit_id, check_in, check_out, guest_name, guest_contact, amount
-                FROM pending_bookings
-                WHERE id = {booking_id}
+                SELECT pb.unit_id, pb.check_in, pb.check_out, pb.guest_name, pb.guest_contact, pb.amount
+                FROM pending_bookings pb
+                JOIN units u ON pb.unit_id = u.id
+                WHERE pb.id = {booking_id} AND u.owner_id = {owner_id}
             """)
             
             pending = cur.fetchone()
@@ -140,9 +155,10 @@ def handler(event: dict, context) -> dict:
             new_booking_id = cur.fetchone()[0]
             
             cur.execute(f"""
-                UPDATE pending_bookings
+                UPDATE pending_bookings pb
                 SET verification_status = 'verified'
-                WHERE id = {booking_id}
+                FROM units u
+                WHERE pb.id = {booking_id} AND pb.unit_id = u.id AND u.owner_id = {owner_id}
             """)
             
             conn.commit()
@@ -160,9 +176,10 @@ def handler(event: dict, context) -> dict:
             booking_id = body.get('booking_id')
             
             cur.execute(f"""
-                UPDATE pending_bookings
+                UPDATE pending_bookings pb
                 SET verification_status = 'rejected'
-                WHERE id = {booking_id}
+                FROM units u
+                WHERE pb.id = {booking_id} AND pb.unit_id = u.id AND u.owner_id = {owner_id}
             """)
             
             conn.commit()
@@ -181,6 +198,18 @@ def handler(event: dict, context) -> dict:
             payment_system = body.get('payment_system', 'sbp')
             payment_link = body.get('payment_link', '')
             recipient_name = body.get('recipient_name', '')
+            
+            # Verify unit ownership first
+            cur.execute(f"""
+                SELECT id FROM units WHERE id = {unit_id} AND owner_id = {owner_id}
+            """)
+            if not cur.fetchone():
+                return {
+                    'statusCode': 403,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Forbidden: unit not owned by user'}),
+                    'isBase64Encoded': False
+                }
             
             # Upsert - обновить или создать
             cur.execute(f"""
@@ -212,8 +241,8 @@ def handler(event: dict, context) -> dict:
             max_guests = int(body.get('max_guests', 2))
             
             cur.execute(f"""
-                INSERT INTO units (name, type, description, base_price, max_guests)
-                VALUES ('{name.replace("'", "''")}', '{unit_type}', '{description.replace("'", "''")}', {base_price}, {max_guests})
+                INSERT INTO units (name, type, description, base_price, max_guests, owner_id)
+                VALUES ('{name.replace("'", "''")}', '{unit_type}', '{description.replace("'", "''")}', {base_price}, {max_guests}, {owner_id})
                 RETURNING id
             """)
             unit_id = cur.fetchone()[0]
@@ -251,7 +280,7 @@ def handler(event: dict, context) -> dict:
                     description = '{description.replace("'", "''")}',
                     base_price = {base_price},
                     max_guests = {max_guests}
-                WHERE id = {unit_id}
+                WHERE id = {unit_id} AND owner_id = {owner_id}
             """)
             conn.commit()
             
@@ -274,11 +303,21 @@ def handler(event: dict, context) -> dict:
                 }
             
             try:
+                # Verify ownership first
+                cur.execute(f"SELECT id FROM units WHERE id = {unit_id} AND owner_id = {owner_id}")
+                if not cur.fetchone():
+                    return {
+                        'statusCode': 403,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'Forbidden: unit not owned by user'}),
+                        'isBase64Encoded': False
+                    }
+                
                 cur.execute(f"DELETE FROM price_modifiers WHERE unit_id = {unit_id}")
                 cur.execute(f"DELETE FROM pending_bookings WHERE unit_id = {unit_id}")
                 cur.execute(f"DELETE FROM payment_links WHERE unit_id = {unit_id}")
                 cur.execute(f"DELETE FROM bookings WHERE unit_id = {unit_id}")
-                cur.execute(f"DELETE FROM units WHERE id = {unit_id}")
+                cur.execute(f"DELETE FROM units WHERE id = {unit_id} AND owner_id = {owner_id}")
                 conn.commit()
                 
                 return {
@@ -307,7 +346,11 @@ def handler(event: dict, context) -> dict:
                     'isBase64Encoded': False
                 }
             
-            cur.execute(f"DELETE FROM bookings WHERE id = {booking_id}")
+            cur.execute(f"""
+                DELETE FROM bookings b
+                USING units u
+                WHERE b.id = {booking_id} AND b.unit_id = u.id AND u.owner_id = {owner_id}
+            """)
             conn.commit()
             
             return {
@@ -334,13 +377,25 @@ def handler(event: dict, context) -> dict:
                     'isBase64Encoded': False
                 }
             
+            # Verify unit ownership
+            cur.execute(f"SELECT id FROM units WHERE id = {unit_id} AND owner_id = {owner_id}")
+            if not cur.fetchone():
+                return {
+                    'statusCode': 403,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Forbidden: unit not owned by user'}),
+                    'isBase64Encoded': False
+                }
+            
             # Проверяем доступность
             cur.execute(f"""
-                SELECT COUNT(*) FROM bookings
-                WHERE unit_id = {unit_id}
-                AND status IN ('tentative', 'confirmed')
-                AND check_in < '{check_out}'
-                AND check_out > '{check_in}'
+                SELECT COUNT(*) FROM bookings b
+                JOIN units u ON b.unit_id = u.id
+                WHERE b.unit_id = {unit_id}
+                AND b.status IN ('tentative', 'confirmed')
+                AND b.check_in < '{check_out}'
+                AND b.check_out > '{check_in}'
+                AND u.owner_id = {owner_id}
             """)
             
             if cur.fetchone()[0] > 0:
@@ -352,7 +407,7 @@ def handler(event: dict, context) -> dict:
                 }
             
             # Получаем цену и рассчитываем стоимость
-            cur.execute(f"SELECT base_price FROM units WHERE id = {unit_id}")
+            cur.execute(f"SELECT base_price FROM units WHERE id = {unit_id} AND owner_id = {owner_id}")
             base_price = float(cur.fetchone()[0])
             
             check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
@@ -364,9 +419,9 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"""
                 INSERT INTO bookings 
                 (unit_id, guest_name, guest_phone, check_in, check_out, 
-                 guests_count, total_price, status, source)
+                 guests_count, total_price, status, source, owner_id)
                 VALUES ({unit_id}, '{guest_name.replace("'", "''")}', '{guest_phone.replace("'", "''")}', 
-                        '{check_in}', '{check_out}', 1, {total_price}, 'confirmed', 'manual')
+                        '{check_in}', '{check_out}', 1, {total_price}, 'confirmed', 'manual', {owner_id})
                 RETURNING id
             """)
             
@@ -387,12 +442,12 @@ def handler(event: dict, context) -> dict:
         
         # GET /bookings - получить все бронирования
         if method == 'GET' and action == 'bookings':
-            cur.execute("""
+            cur.execute(f"""
                 SELECT b.id, b.unit_id, u.name, b.check_in, b.check_out, 
                        b.guest_name, b.guest_phone, b.total_price, b.status, b.source
                 FROM bookings b
                 JOIN units u ON b.unit_id = u.id
-                WHERE b.status != 'cancelled'
+                WHERE b.status != 'cancelled' AND u.owner_id = {owner_id}
                 ORDER BY b.check_in DESC
             """)
             
@@ -442,9 +497,9 @@ def handler(event: dict, context) -> dict:
             
             # Создаём или получаем разговор
             if not conversation_id:
-                cur.execute("""
-                    INSERT INTO conversations (channel, status)
-                    VALUES ('web', 'active')
+                cur.execute(f"""
+                    INSERT INTO conversations (channel, status, owner_id)
+                    VALUES ('web', 'active', {owner_id})
                     RETURNING id
                 """)
                 conversation_id = cur.fetchone()[0]
@@ -467,10 +522,11 @@ def handler(event: dict, context) -> dict:
             messages = [{'role': row[0], 'content': row[1]} for row in cur.fetchall()]
             
             # Получаем информацию о доступных объектах
-            cur.execute("""
+            cur.execute(f"""
                 SELECT id, name, type, description, base_price, max_guests, 
                        dynamic_pricing_enabled, pricing_profile_id
                 FROM units
+                WHERE owner_id = {owner_id}
                 ORDER BY id
             """)
             

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import Icon from '@/components/ui/icon';
+import { fetchWithAuth } from '@/lib/api';
 
 const PRICING_ENGINE_URL = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4';
 
@@ -34,7 +35,7 @@ export default function PricingRulesList({ profileId }: PricingRulesListProps) {
   const loadRules = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${PRICING_ENGINE_URL}?action=get_rules&profile_id=${profileId}`);
+      const response = await fetchWithAuth(`${PRICING_ENGINE_URL}?action=get_rules&profile_id=${profileId}`);
       const data = await response.json();
       setRules(data.rules || []);
     } catch (error) {
@@ -49,7 +50,7 @@ export default function PricingRulesList({ profileId }: PricingRulesListProps) {
       const rule = rules.find(r => r.id === ruleId);
       if (!rule) return;
 
-      await fetch(`${PRICING_ENGINE_URL}?action=update_rule`, {
+      await fetchWithAuth(`${PRICING_ENGINE_URL}?action=update_rule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

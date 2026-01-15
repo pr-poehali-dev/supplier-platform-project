@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
+import { fetchWithAuth } from '@/lib/api';
 
 const PRICING_ENGINE_URL = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4';
 
@@ -45,7 +46,7 @@ export default function PriceCalendar({ unitId }: PriceCalendarProps) {
       const startDate = firstDay.toISOString().split('T')[0];
       const endDate = lastDay.toISOString().split('T')[0];
 
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${PRICING_ENGINE_URL}?action=get_price_calendar&unit_id=${unitId}&start_date=${startDate}&end_date=${endDate}`
       );
       const data = await response.json();

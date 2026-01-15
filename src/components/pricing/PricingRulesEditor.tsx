@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import { fetchWithAuth } from '@/lib/api';
 
 const PRICING_ENGINE_URL = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4';
 
@@ -43,7 +44,7 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
 
   const loadRules = async () => {
     try {
-      const response = await fetch(`${PRICING_ENGINE_URL}?action=get_rules&profile_id=${profileId}`);
+      const response = await fetchWithAuth(`${PRICING_ENGINE_URL}?action=get_rules&profile_id=${profileId}`);
       const data = await response.json();
       setRules(data.rules || []);
     } catch (error) {
@@ -56,7 +57,7 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
 
     setLoading(true);
     try {
-      await fetch(`${PRICING_ENGINE_URL}?action=update_rule`, {
+      await fetchWithAuth(`${PRICING_ENGINE_URL}?action=update_rule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

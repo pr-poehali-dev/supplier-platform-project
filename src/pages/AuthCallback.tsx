@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
-import { fetchWithAuth } from '@/lib/api';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -28,7 +27,7 @@ const AuthCallback = () => {
 
       try {
         const authUrl = 'https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70';
-        const response = await fetchWithAuth(`${authUrl}?code=${code}`);
+        const response = await fetch(`${authUrl}?code=${code}`);
         const data = await response.json();
 
         if (data.success && data.user) {

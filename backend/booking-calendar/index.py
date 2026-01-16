@@ -47,8 +47,8 @@ def handler(event: dict, context) -> dict:
         # GET /units - получить список объектов
         if method == 'GET' and action == 'units':
             cur.execute(f"""
-                SELECT id, name, description, capacity, price_per_night, amenities, 
-                       photos, created_at, dynamic_pricing_enabled, pricing_profile_id
+                SELECT id, name, description, max_guests, base_price, type, 
+                       created_at, dynamic_pricing_enabled, pricing_profile_id
                 FROM units 
                 WHERE owner_id = {owner_id}
                 ORDER BY id
@@ -59,15 +59,15 @@ def handler(event: dict, context) -> dict:
                 units.append({
                     'id': row[0],
                     'name': row[1],
-                    'description': row[2],
+                    'description': row[2] or '',
                     'capacity': row[3],
                     'price_per_night': float(row[4]) if row[4] else 0,
                     'amenities': row[5] or '',
-                    'photos': row[6] or '',
-                    'created_at': row[7].isoformat() if row[7] else None,
+                    'photos': '',
+                    'created_at': row[6].isoformat() if row[6] else None,
                     'calendars': [],
-                    'dynamic_pricing_enabled': row[8] if len(row) > 8 else False,
-                    'pricing_profile_id': row[9] if len(row) > 9 else None
+                    'dynamic_pricing_enabled': row[7] if row[7] is not None else False,
+                    'pricing_profile_id': row[8]
                 })
             
             return {
@@ -122,7 +122,7 @@ def handler(event: dict, context) -> dict:
             max_guests = int(body.get('max_guests', 1))
             
             cur.execute(f"""
-                INSERT INTO units (name, description, capacity, price_per_night, amenities, owner_id, created_at)
+                INSERT INTO units (name, description, max_guests, base_price, type, owner_id, created_at)
                 VALUES ('{name.replace("'", "''")}', '{description.replace("'", "''")}', 
                         {max_guests}, {base_price}, '{unit_type}', {owner_id}, NOW())
                 RETURNING id

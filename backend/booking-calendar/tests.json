@@ -1,0 +1,16 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS request allows X-Owner-Id",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET units requires owner_id",
+      "method": "GET",
+      "path": "/?action=units",
+      "expectedStatus": 401
+    }
+  ]
+}

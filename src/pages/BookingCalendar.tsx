@@ -36,18 +36,32 @@ export default function BookingCalendar() {
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const userData = JSON.parse(userStr);
-      setUser(userData);
-      setBotLink(`https://t.me/YOUR_BOT_USERNAME?start=${userData.id}`);
+    if (!userStr) {
+      toast({
+        title: 'Требуется авторизация',
+        description: 'Войдите в систему для доступа к календарю',
+        variant: 'destructive',
+      });
+      navigate('/');
+      return;
     }
+    
+    const userData = JSON.parse(userStr);
+    setUser(userData);
+    setBotLink(`https://t.me/YOUR_BOT_USERNAME?start=${userData.id}`);
+    
     loadUnits();
     loadBookings();
-  }, []);
+  }, [navigate, toast]);
 
   const loadUnits = async () => {
     try {
       const response = await fetchWithAuth(`${API_URL}?action=units`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
       // Фоллбэк: если бэкенд не вернул dynamic_pricing_enabled, добавляем по умолчанию
@@ -63,16 +77,31 @@ export default function BookingCalendar() {
       }
     } catch (error) {
       console.error('Error loading units:', error);
+      toast({
+        title: 'Ошибка загрузки объектов',
+        description: error instanceof Error ? error.message : 'Проверьте авторизацию',
+        variant: 'destructive',
+      });
     }
   };
 
   const loadBookings = async () => {
     try {
       const response = await fetchWithAuth(`${API_URL}?action=bookings`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       setBookings(data.bookings || []);
     } catch (error) {
       console.error('Error loading bookings:', error);
+      toast({
+        title: 'Ошибка загрузки броней',
+        description: error instanceof Error ? error.message : 'Проверьте авторизацию',
+        variant: 'destructive',
+      });
     }
   };
 

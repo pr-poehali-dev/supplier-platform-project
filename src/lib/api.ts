@@ -19,8 +19,11 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
   const user = getUser();
   
   if (!user) {
+    console.error('fetchWithAuth: User not found in localStorage');
     throw new Error('User not authenticated');
   }
+
+  console.log('fetchWithAuth: Making request with owner_id:', user.id);
 
   const headers = {
     ...options.headers,

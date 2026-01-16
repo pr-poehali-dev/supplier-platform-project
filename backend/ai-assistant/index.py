@@ -474,7 +474,7 @@ def cors_response():
         'headers': {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-User-Id',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Owner-Id, X-User-Id',
             'Access-Control-Max-Age': '86400'
         },
         'body': '',

@@ -16,7 +16,7 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Authorization',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Owner-Id, X-Authorization',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',

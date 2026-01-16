@@ -285,6 +285,14 @@ export default function BookingCalendar() {
           <Icon name="Home" size={20} />
           На главную
         </Button>
+        
+        {user && (
+          <div className="fixed top-4 right-4 bg-white px-4 py-2 rounded-lg shadow-md z-50 flex items-center gap-2">
+            <Icon name="User" size={16} className="text-indigo-600" />
+            <span className="text-sm font-medium text-gray-700">{user.full_name || user.email}</span>
+          </div>
+        )}
+        
         <div className="max-w-7xl mx-auto">
           <div className="mb-8 text-center">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">

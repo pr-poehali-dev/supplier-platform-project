@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth } from '@/lib/api';
 import PaymentLinksManager from '@/components/admin/PaymentLinksManager';
 import PendingBookingsManager from '@/components/admin/PendingBookingsManager';
 import SubscriptionManager from '@/components/admin/SubscriptionManager';
@@ -62,12 +63,7 @@ const Admin = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://functions.poehali.dev/admin-users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetchWithAuth('https://functions.poehali.dev/admin-users');
       
       if (response.status === 403) {
         toast({
@@ -105,11 +101,9 @@ const Admin = () => {
 
     try {
       setSendingEmail(true);
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://functions.poehali.dev/c8640daa-ffb2-4b32-986a-988223824954', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/c8640daa-ffb2-4b32-986a-988223824954', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -143,11 +137,9 @@ const Admin = () => {
 
   const toggleAdmin = async (userId: number) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://functions.poehali.dev/57e87325-acea-4f23-9b9b-048fa498ae14', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/57e87325-acea-4f23-9b9b-048fa498ae14', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

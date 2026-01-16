@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
+import { fetchWithAuth } from '@/lib/api';
 
 interface PaymentLink {
   id: number;
@@ -41,15 +42,10 @@ export const PaymentLinksManager = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('auth_token');
       
       const [unitsRes, linksRes] = await Promise.all([
-        fetch('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_units', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_payment_links', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_units'),
+        fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_payment_links')
       ]);
 
       const unitsData = await unitsRes.json();
@@ -79,11 +75,9 @@ export const PaymentLinksManager = () => {
     }
 
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

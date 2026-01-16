@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Unit } from './UnitsManagement';
+import { fetchWithAuth } from '@/lib/api';
 
 const PRICING_ENGINE_URL = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4';
 
@@ -85,7 +86,7 @@ export default function CalendarView({
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         promises.push(
-          fetch(`${PRICING_ENGINE_URL}?action=calculate_price&unit_id=${selectedUnit.id}&date=${dateStr}`)
+          fetchWithAuth(`${PRICING_ENGINE_URL}?action=calculate_price&unit_id=${selectedUnit.id}&date=${dateStr}`)
             .then(res => res.json())
             .then(data => ({ dateStr, data }))
             .catch(() => null)
@@ -120,13 +121,8 @@ export default function CalendarView({
       
       if (!user?.id) return;
 
-      const response = await fetch(
-        `https://functions.poehali.dev/b08b50dd-ee0f-4534-9865-afdf3582a91b?booking_id=${bookingId}`,
-        {
-          headers: {
-            'X-User-Id': user.id.toString()
-          }
-        }
+      const response = await fetchWithAuth(
+        `https://functions.poehali.dev/b08b50dd-ee0f-4534-9865-afdf3582a91b?booking_id=${bookingId}`
       );
       const data = await response.json();
       

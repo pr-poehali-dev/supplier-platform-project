@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
+import { fetchWithAuth } from '@/lib/api';
 
 interface Unit {
   id: number;
@@ -50,8 +51,8 @@ export default function CalendarSyncManager() {
     setLoading(true);
     try {
       const [unitsRes, syncsRes] = await Promise.all([
-        fetch(`${API_URL}?action=get-units`),
-        fetch(`${API_URL}?action=calendar-sync-list`)
+        fetchWithAuth(`${API_URL}?action=get-units`),
+        fetchWithAuth(`${API_URL}?action=calendar-sync-list`)
       ]);
 
       if (unitsRes.ok) {
@@ -77,7 +78,7 @@ export default function CalendarSyncManager() {
     }
 
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-add`, {
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSync)
@@ -97,7 +98,7 @@ export default function CalendarSyncManager() {
 
   const toggleActive = async (sync: CalendarSync) => {
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-update`, {
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -116,7 +117,7 @@ export default function CalendarSyncManager() {
 
   const updateUrl = async (sync: CalendarSync, newUrl: string) => {
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-update`, {
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -137,7 +138,7 @@ export default function CalendarSyncManager() {
     if (!confirm('Удалить синхронизацию?')) return;
 
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-delete&id=${id}`, {
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-delete&id=${id}`, {
         method: 'DELETE'
       });
 
@@ -151,7 +152,7 @@ export default function CalendarSyncManager() {
 
   const syncNow = async (id: number) => {
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-now`, {
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-now`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })

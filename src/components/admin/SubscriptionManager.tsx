@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { fetchWithAuth } from '@/lib/api';
 import {
   Select,
   SelectContent,
@@ -62,7 +63,7 @@ const SubscriptionManager = ({ users, onUpdate }: SubscriptionManagerProps) => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('https://functions.poehali.dev/a3b103f1-3e4d-4066-9bbe-f303bc55720a', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/a3b103f1-3e4d-4066-9bbe-f303bc55720a', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

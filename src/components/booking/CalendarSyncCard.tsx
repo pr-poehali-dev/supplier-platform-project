@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { fetchWithAuth } from '@/lib/api';
 
 interface Unit {
   id: number;
@@ -49,7 +50,7 @@ export default function CalendarSyncCard({ units }: { units: Unit[] }) {
 
   const loadSyncs = async () => {
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-list`);
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-list`);
       if (response.ok) {
         const data = await response.json();
         setSyncs(data.syncs || []);
@@ -63,7 +64,7 @@ export default function CalendarSyncCard({ units }: { units: Unit[] }) {
     const activeSyncs = syncs.filter(s => s.is_active && s.calendar_url);
     for (const sync of activeSyncs) {
       try {
-        await fetch(`${API_URL}?action=calendar-sync-now`, {
+        await fetchWithAuth(`${API_URL}?action=calendar-sync-now`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: sync.id })
@@ -82,7 +83,7 @@ export default function CalendarSyncCard({ units }: { units: Unit[] }) {
     }
 
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-add`, {
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSync)
@@ -102,7 +103,7 @@ export default function CalendarSyncCard({ units }: { units: Unit[] }) {
   const syncNow = async (id: number) => {
     setSyncing(id);
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-now`, {
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-now`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
@@ -128,7 +129,7 @@ export default function CalendarSyncCard({ units }: { units: Unit[] }) {
 
   const updateUrl = async (id: number, url: string) => {
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-update`, {
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, calendar_url: url })
@@ -148,7 +149,7 @@ export default function CalendarSyncCard({ units }: { units: Unit[] }) {
     if (!confirm('Удалить синхронизацию?')) return;
     
     try {
-      const response = await fetch(`${API_URL}?action=calendar-sync-delete`, {
+      const response = await fetchWithAuth(`${API_URL}?action=calendar-sync-delete`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })

@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth } from '@/lib/api';
 
 const Payment = () => {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ const Payment = () => {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('https://functions.poehali.dev/6c81ac6e-86fa-4b52-b7fa-f49593ba95f4', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/6c81ac6e-86fa-4b52-b7fa-f49593ba95f4', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

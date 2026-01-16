@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useNavigate } from 'react-router-dom';
+import { fetchWithAuth } from '@/lib/api';
 import {
   Select,
   SelectContent,
@@ -58,7 +59,7 @@ const Simulator = () => {
   const fetchBlogPosts = async () => {
     try {
       setLoadingBlog(true);
-      const response = await fetch('https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=3&channel_type=free');
+      const response = await fetchWithAuth('https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=3&channel_type=free');
       const data = await response.json();
       
       if (data.posts) {

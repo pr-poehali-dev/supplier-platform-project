@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { fetchWithAuth } from '@/lib/api';
 
 interface TelegramBotCardProps {
   botLink: string;
@@ -19,7 +20,7 @@ export default function TelegramBotCard({ botLink }: TelegramBotCardProps) {
     setWebhookStatus('⏳ Настраиваю webhook...');
     
     try {
-      const response = await fetch('https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d', {
         method: 'POST'
       });
       

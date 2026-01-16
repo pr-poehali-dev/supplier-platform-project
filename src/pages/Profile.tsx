@@ -6,6 +6,7 @@ import Icon from '@/components/ui/icon';
 import { getDiagnosticsResults, deleteDiagnosticsResult } from '@/utils/diagnosticsStorage';
 import { getUserSubscription, getPlanName, getPlanEmoji } from '@/utils/subscription';
 import { useState, useEffect } from 'react';
+import { fetchWithAuth } from '@/lib/api';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -48,11 +49,7 @@ const Profile = () => {
     const userData = JSON.parse(userStr);
     
     try {
-      const response = await fetch('https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70?action=refresh', {
-        headers: {
-          'X-User-Id': userData.id.toString()
-        }
-      });
+      const response = await fetchWithAuth('https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70?action=refresh');
       
       if (response.ok) {
         const data = await response.json();

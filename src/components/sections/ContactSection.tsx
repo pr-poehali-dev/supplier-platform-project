@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth } from '@/lib/api';
 
 const ContactSection = () => {
   const { toast } = useToast();
@@ -24,7 +25,7 @@ const ContactSection = () => {
     };
     
     try {
-      const response = await fetch('https://functions.poehali.dev/d00d6394-685d-4e42-9d5e-b5f3a12b31d1', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/d00d6394-685d-4e42-9d5e-b5f3a12b31d1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth } from '@/lib/api';
 
 interface BlogPost {
   id: number;
@@ -59,12 +60,8 @@ const BlogPost = () => {
 
     try {
       setDeleting(true);
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`https://functions.poehali.dev/57e87325-acea-4f23-9b9b-048fa498ae14?post_id=${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetchWithAuth(`https://functions.poehali.dev/57e87325-acea-4f23-9b9b-048fa498ae14?post_id=${id}`, {
+        method: 'DELETE'
       });
 
       if (response.ok) {
@@ -92,14 +89,14 @@ const BlogPost = () => {
       setLoading(true);
       
       // Загружаем конкретный пост с полным content
-      const postResponse = await fetch(`https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?id=${id}`);
+      const postResponse = await fetchWithAuth(`https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?id=${id}`);
       const postData = await postResponse.json();
       
       if (postData.post) {
         setPost(postData.post);
         
         // Загружаем похожие статьи
-        const listResponse = await fetch(`https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=100&channel_type=free`);
+        const listResponse = await fetchWithAuth(`https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=100&channel_type=free`);
         const listData = await listResponse.json();
         
         if (listData.posts) {

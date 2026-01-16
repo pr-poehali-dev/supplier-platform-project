@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
+import { fetchWithAuth } from '@/lib/api';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
@@ -43,12 +44,8 @@ export default function AIAssistant() {
 
       // Загружаем настройки и историю чата параллельно
       const [settingsRes, chatRes] = await Promise.all([
-        fetch(`${AI_URL}?action=settings`, {
-          headers: { 'X-User-Id': user.id.toString() }
-        }),
-        fetch(`${AI_URL}?action=chat`, {
-          headers: { 'X-User-Id': user.id.toString() }
-        })
+        fetchWithAuth(`${AI_URL}?action=settings`),
+        fetchWithAuth(`${AI_URL}?action=chat`)
       ]);
       
       const settingsData = await settingsRes.json();
@@ -96,11 +93,10 @@ export default function AIAssistant() {
         throw new Error('User not logged in');
       }
 
-      const response = await fetch(`${AI_URL}?action=chat`, {
+      const response = await fetchWithAuth(`${AI_URL}?action=chat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': user.id.toString()
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: messageText,

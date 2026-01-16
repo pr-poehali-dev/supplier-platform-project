@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
+import { fetchWithAuth } from '@/lib/api';
 
 export const OwnerTelegramSetup = () => {
   const { toast } = useToast();
@@ -17,7 +18,7 @@ export const OwnerTelegramSetup = () => {
 
   const loadBotInfo = async () => {
     try {
-      const response = await fetch('https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d');
+      const response = await fetchWithAuth('https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d');
       const data = await response.json();
       if (data.bot_username) {
         setBotUsername(data.bot_username);

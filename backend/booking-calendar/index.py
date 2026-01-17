@@ -212,7 +212,7 @@ def handler(event: dict, context) -> dict:
             unit_id = body.get('unit_id')
             
             # Verify unit ownership and get unit price
-            cur.execute(f"SELECT id, price FROM {schema}.units WHERE id = {unit_id} AND owner_id = {owner_id}")
+            cur.execute(f"SELECT id, base_price FROM {schema}.units WHERE id = {unit_id} AND owner_id = {owner_id}")
             unit = cur.fetchone()
             if not unit:
                 return {
@@ -222,7 +222,7 @@ def handler(event: dict, context) -> dict:
                     'isBase64Encoded': False
                 }
             
-            base_price = unit[1] or 0
+            base_price = float(unit[1]) if unit[1] else 0
             
             guest_name = body.get('guest_name', '')
             guest_phone = body.get('guest_phone', '')

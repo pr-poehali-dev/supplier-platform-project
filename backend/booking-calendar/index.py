@@ -60,12 +60,10 @@ def handler(event: dict, context) -> dict:
                     'id': row[0],
                     'name': row[1],
                     'description': row[2] or '',
-                    'capacity': row[3],
-                    'price_per_night': float(row[4]) if row[4] else 0,
-                    'amenities': row[5] or '',
-                    'photos': '',
+                    'max_guests': row[3],
+                    'base_price': float(row[4]) if row[4] else 0,
+                    'type': row[5] or 'room',
                     'created_at': row[6].isoformat() if row[6] else None,
-                    'calendars': [],
                     'dynamic_pricing_enabled': row[7] if row[7] is not None else False,
                     'pricing_profile_id': row[8]
                 })

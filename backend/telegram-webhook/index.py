@@ -256,13 +256,13 @@ def handler(event: dict, context) -> dict:
                         # Обновляем существующую запись
                         cur.execute(f"""
                             UPDATE {tbl('conversations')}
-                            SET user_id = {owner_id}, status = 'owner'
+                            SET owner_id = {owner_id}, status = 'owner'
                             WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
                         """)
                     else:
                         # Создаем новую запись
                         cur.execute(f"""
-                            INSERT INTO {tbl('conversations')} (user_id, channel, channel_user_id, status)
+                            INSERT INTO {tbl('conversations')} (owner_id, channel, channel_user_id, status)
                             VALUES ({owner_id}, 'telegram', '{chat_id}', 'owner')
                         """)
                     

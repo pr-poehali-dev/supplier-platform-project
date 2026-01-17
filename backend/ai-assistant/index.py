@@ -21,10 +21,10 @@ def handler(event: dict, context) -> dict:
         return cors_response()
     
     headers = event.get('headers', {})
-    owner_id = headers.get('X-User-Id') or headers.get('x-user-id')
+    owner_id = headers.get('X-Owner-Id') or headers.get('x-owner-id')
     
     if not owner_id:
-        return error_response('Owner ID required in X-User-Id header', 401)
+        return error_response('Owner ID required in X-Owner-Id header', 401)
     
     owner_id = int(owner_id)
     

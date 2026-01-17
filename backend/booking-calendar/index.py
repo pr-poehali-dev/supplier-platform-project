@@ -255,6 +255,45 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
+        # PUT /update-booking-status - обновить статус брони
+        if method == 'PUT' and action == 'update-booking-status':
+            body = json.loads(event.get('body', '{}'))
+            booking_id = body.get('booking_id')
+            new_status = body.get('status', 'confirmed')
+            payment_status = body.get('payment_status', 'pending')
+            is_pending = str(body.get('is_pending_confirmation', False)).lower()
+            
+            # Verify ownership through unit
+            cur.execute(f"""
+                SELECT b.id FROM {schema}.bookings b
+                JOIN {schema}.units u ON b.unit_id = u.id
+                WHERE b.id = {booking_id} AND u.owner_id = {owner_id}
+            """)
+            if not cur.fetchone():
+                return {
+                    'statusCode': 403,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Forbidden'}),
+                    'isBase64Encoded': False
+                }
+            
+            cur.execute(f"""
+                UPDATE {schema}.bookings 
+                SET status = '{new_status}',
+                    payment_status = '{payment_status}',
+                    is_pending_confirmation = {is_pending},
+                    updated_at = NOW()
+                WHERE id = {booking_id}
+            """)
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Booking status updated'}),
+                'isBase64Encoded': False
+            }
+        
         # DELETE /delete-booking - удалить бронь
         if method == 'DELETE' and action == 'delete-booking':
             booking_id = query_params.get('booking_id')

@@ -23,6 +23,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 const CUSTOMER_SYNC_URL = 'https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce';
@@ -41,6 +44,7 @@ export default function BookingCalendar() {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const user = getUser();
   const [botLink, setBotLink] = useState('');
+  const [showPendingRequests, setShowPendingRequests] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -255,6 +259,44 @@ export default function BookingCalendar() {
     }
   };
 
+  const updateBookingStatus = async (bookingId: number, newStatus: string) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=update-booking-status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          status: newStatus,
+          payment_status: newStatus === 'confirmed' ? 'paid' : 'pending',
+          is_pending_confirmation: false
+        })
+      });
+
+      if (response.ok) {
+        await loadBookings();
+        toast({
+          title: 'Статус обновлен',
+          description: newStatus === 'confirmed' ? 'Бронь подтверждена' : 'Статус изменен'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить статус',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const scrollToBooking = (bookingDate: string) => {
+    const date = new Date(bookingDate);
+    setCurrentDate(date);
+    setTimeout(() => {
+      const element = document.getElementById('calendar-view');
+      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   const deleteBooking = async (bookingId: number) => {
     try {
       const response = await fetchWithAuth(`${API_URL}?action=delete-booking&booking_id=${bookingId}`, {
@@ -339,6 +381,15 @@ export default function BookingCalendar() {
               Управляйте бронированиями для турбаз и гостевых домов
             </p>
             <div className="flex gap-3 justify-center flex-wrap">
+              {bookings.filter(b => b.is_pending_confirmation || b.payment_status === 'pending').length > 0 && (
+                <Button
+                  onClick={() => setShowPendingRequests(true)}
+                  className="gap-2 bg-yellow-500 hover:bg-yellow-600 animate-pulse"
+                >
+                  <Icon name="AlertCircle" size={16} />
+                  Заявки ({bookings.filter(b => b.is_pending_confirmation || b.payment_status === 'pending').length})
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => navigate('/additional-services')}
@@ -380,19 +431,21 @@ export default function BookingCalendar() {
             onUnitUpdate={loadUnits}
           />
 
-          <CalendarView
-            selectedUnit={selectedUnit}
-            currentDate={currentDate}
-            bookings={bookings}
-            onChangeMonth={changeMonth}
-            onDeleteBooking={deleteBooking}
-            renderBookingButton={
-              <BookingDialog
-                selectedUnit={selectedUnit}
-                onCreateBooking={createBooking}
-              />
-            }
-          />
+          <div id="calendar-view">
+            <CalendarView
+              selectedUnit={selectedUnit}
+              currentDate={currentDate}
+              bookings={bookings}
+              onChangeMonth={changeMonth}
+              onDeleteBooking={deleteBooking}
+              renderBookingButton={
+                <BookingDialog
+                  selectedUnit={selectedUnit}
+                  onCreateBooking={createBooking}
+                />
+              }
+            />
+          </div>
 
           <div className="mt-6">
             <SBPSettings />
@@ -403,6 +456,102 @@ export default function BookingCalendar() {
             units={units}
           />
         </div>
+
+        {/* Модальное окно со списком заявок */}
+        <Dialog open={showPendingRequests} onOpenChange={setShowPendingRequests}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Icon name="AlertCircle" size={24} className="text-yellow-500" />
+                Заявки на бронирование
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 mt-4">
+              {bookings
+                .filter(b => b.is_pending_confirmation || b.payment_status === 'pending')
+                .map((booking) => {
+                  const unit = units.find(u => u.id === booking.unit_id);
+                  const isPending = booking.is_pending_confirmation;
+                  const isWaitingPayment = booking.payment_status === 'pending' && !booking.is_pending_confirmation;
+                  
+                  return (
+                    <Card key={booking.id} className="border-2 border-yellow-400">
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-lg font-semibold">{booking.guest_name}</h3>
+                              {isPending && (
+                                <Badge className="bg-yellow-500 hover:bg-yellow-600">
+                                  Новая заявка
+                                </Badge>
+                              )}
+                              {isWaitingPayment && (
+                                <Badge className="bg-orange-500 hover:bg-orange-600">
+                                  Ждет оплаты
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-3">
+                              <div className="flex items-center gap-1">
+                                <Icon name="Home" size={14} />
+                                {unit?.name}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Icon name="Phone" size={14} />
+                                {booking.guest_phone}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Icon name="Calendar" size={14} />
+                                {new Date(booking.check_in).toLocaleDateString('ru-RU')} - {new Date(booking.check_out).toLocaleDateString('ru-RU')}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Icon name="DollarSign" size={14} />
+                                {booking.total_price}₽
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  scrollToBooking(booking.check_in);
+                                  setShowPendingRequests(false);
+                                }}
+                              >
+                                <Icon name="MapPin" size={14} className="mr-1" />
+                                Показать в календаре
+                              </Button>
+                              {isPending && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateBookingStatus(booking.id, 'pending')}
+                                  className="bg-blue-500 hover:bg-blue-600"
+                                >
+                                  <Icon name="Check" size={14} className="mr-1" />
+                                  Подтвердить бронь
+                                </Button>
+                              )}
+                              {isWaitingPayment && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                                  className="bg-green-500 hover:bg-green-600"
+                                >
+                                  <Icon name="DollarSign" size={14} className="mr-1" />
+                                  Оплачено
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </SubscriptionGuard>
   );

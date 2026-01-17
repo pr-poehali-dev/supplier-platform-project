@@ -205,17 +205,18 @@ export default function CalendarView({
       
       const priceColor = getPriceColor();
 
+      const getCellColor = () => {
+        if (!isBooked) return 'bg-white hover:bg-blue-50 cursor-pointer';
+        if (booking?.is_pending_confirmation) return 'bg-yellow-100 cursor-pointer hover:bg-yellow-200 animate-pulse';
+        if (booking?.payment_status === 'pending' && !booking?.is_pending_confirmation) return 'bg-orange-100 cursor-pointer hover:bg-orange-200';
+        return 'bg-red-100 cursor-pointer hover:bg-red-200';
+      };
+
       days.push(
         <div
           key={day}
           onClick={() => booking && setSelectedBooking(booking)}
-          className={`h-16 border border-gray-200 p-2 transition-colors relative group ${
-            isBooked 
-              ? booking?.is_pending_confirmation
-                ? 'bg-yellow-100 cursor-pointer hover:bg-yellow-200 animate-pulse'
-                : 'bg-red-100 cursor-pointer hover:bg-red-200'
-              : 'bg-white hover:bg-blue-50 cursor-pointer'
-          } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
+          className={`h-16 border border-gray-200 p-2 transition-colors relative group ${getCellColor()} ${isToday ? 'ring-2 ring-blue-500' : ''}`}
         >
           <div className="text-sm font-semibold">{day}</div>
           {showPriceLoading && (
@@ -244,6 +245,14 @@ export default function CalendarView({
                 {booking.is_pending_confirmation ? (
                   <Badge className="text-xs mt-1 bg-yellow-500 hover:bg-yellow-600 animate-pulse">
                     Заявка
+                  </Badge>
+                ) : booking.payment_status === 'pending' ? (
+                  <Badge className="text-xs mt-1 bg-orange-500 hover:bg-orange-600">
+                    Ждет оплаты
+                  </Badge>
+                ) : booking.status === 'confirmed' || booking.payment_status === 'paid' ? (
+                  <Badge variant="destructive" className="text-xs mt-1">
+                    Занято
                   </Badge>
                 ) : (
                   <Badge variant="destructive" className="text-xs mt-1">

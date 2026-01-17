@@ -72,6 +72,13 @@ def handler(event: dict, context) -> dict:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         print(f'DEBUG: Connected successfully')
         
+        # Проверяем текущего пользователя БД
+        test_cur = conn.cursor()
+        test_cur.execute("SELECT current_user, current_database()")
+        db_user, db_name = test_cur.fetchone()
+        print(f'DEBUG: DB User: {db_user}, DB Name: {db_name}')
+        test_cur.close()
+        
         # Обработка фото (скриншота оплаты)
         if photo:
             cur = conn.cursor()

@@ -366,7 +366,7 @@ def handler(event: dict, context) -> dict:
         cur.execute(f"""
             SELECT id, name, type, description, base_price, max_guests
             FROM {tbl('units')}
-            WHERE created_by = {owner_id}
+            WHERE owner_id = {owner_id}
             ORDER BY id
         """)
         
@@ -390,13 +390,14 @@ def handler(event: dict, context) -> dict:
         future_date = (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d')
         
         cur.execute(f"""
-            SELECT unit_id, check_in, check_out, status
-            FROM {tbl('bookings')}
-            WHERE created_by = {owner_id}
-            AND check_out >= '{today}'
-            AND check_in <= '{future_date}'
-            AND status IN ('confirmed', 'pending')
-            ORDER BY unit_id, check_in
+            SELECT b.unit_id, b.check_in, b.check_out, b.status
+            FROM {tbl('bookings')} b
+            JOIN {tbl('units')} u ON b.unit_id = u.id
+            WHERE u.owner_id = {owner_id}
+            AND b.check_out >= '{today}'
+            AND b.check_in <= '{future_date}'
+            AND b.status IN ('confirmed', 'pending')
+            ORDER BY b.unit_id, b.check_in
         """)
         
         bookings_by_unit = {}
@@ -517,7 +518,7 @@ def handler(event: dict, context) -> dict:
                 # Проверяем, что unit_id существует и принадлежит owner_id
                 cur.execute(f"""
                     SELECT base_price, name FROM {tbl('units')} 
-                    WHERE id = {booking_data['unit_id']} AND created_by = {owner_id}
+                    WHERE id = {booking_data['unit_id']} AND owner_id = {owner_id}
                 """)
                 unit_row = cur.fetchone()
                 

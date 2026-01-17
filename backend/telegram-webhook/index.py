@@ -7,6 +7,13 @@ import time
 import urllib.parse
 import hashlib
 
+# Получаем схему БД из переменной окружения
+DB_SCHEMA = os.environ.get('MAIN_DB_SCHEMA', 'public')
+
+def tbl(table_name):
+    '''Возвращает полное имя таблицы с схемой'''
+    return f'{DB_SCHEMA}.{table_name}'
+
 
 
 def handler(event: dict, context) -> dict:
@@ -58,12 +65,6 @@ def handler(event: dict, context) -> dict:
         first_name = message['from'].get('first_name', 'Гость')
         
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
-        cur = conn.cursor()
-        
-        # Устанавливаем схему из переменной окружения
-        schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
-        cur.execute(f"SET search_path TO {schema}")
-        cur.close()
         
         # Обработка фото (скриншота оплаты)
         if photo:
@@ -72,7 +73,7 @@ def handler(event: dict, context) -> dict:
             # Ищем pending booking для этого чата
             cur.execute(f"""
                 SELECT id, unit_id, amount, guest_name
-                FROM pending_bookings
+                FROM {tbl('pending_bookings')}
                 WHERE telegram_chat_id = {chat_id}
                 AND verification_status = 'pending'
                 ORDER BY created_at DESC
@@ -124,13 +125,13 @@ def handler(event: dict, context) -> dict:
                     # Создаем подтвержденное бронирование
                     cur.execute(f"""
                         SELECT check_in, check_out, guest_contact
-                        FROM pending_bookings
+                        FROM {tbl('pending_bookings')}
                         WHERE id = {pending_id}
                     """)
                     check_in, check_out, guest_contact = cur.fetchone()
                     
                     cur.execute(f"""
-                        INSERT INTO bookings 
+                        INSERT INTO {tbl('bookings')} 
                         (unit_id, guest_name, guest_phone, check_in, check_out, 
                          guests_count, total_price, status, source)
                         VALUES ({unit_id}, '{guest_name.replace("'", "''")}', '{guest_contact.replace("'", "''")}',
@@ -142,7 +143,7 @@ def handler(event: dict, context) -> dict:
                     
                     # Обновляем pending booking
                     cur.execute(f"""
-                        UPDATE pending_bookings
+                        UPDATE {tbl('pending_bookings')}
                         SET payment_screenshot_url = '{screenshot_url}',
                             verification_status = 'verified',
                             verification_notes = '{ai_result.replace("'", "''")}'
@@ -151,14 +152,14 @@ def handler(event: dict, context) -> dict:
                     
                     # Связываем все сообщения этого чата с созданным booking
                     cur.execute(f"""
-                        UPDATE telegram_messages
+                        UPDATE {tbl('telegram_messages')}
                         SET booking_id = {booking_id}
                         WHERE telegram_id = {chat_id} AND booking_id IS NULL
                     """)
                     
                     # Получаем owner_id из conversations
                     cur.execute(f"""
-                        SELECT user_id FROM conversations
+                        SELECT user_id FROM {tbl('conversations')}
                         WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
                     """)
                     owner_result = cur.fetchone()
@@ -176,7 +177,7 @@ def handler(event: dict, context) -> dict:
                     
                     # Уведомление владельцу
                     if owner_id_from_conv:
-                        cur.execute(f"SELECT name FROM units WHERE id = {unit_id}")
+                        cur.execute(f"SELECT name FROM {tbl('units')} WHERE id = {unit_id}")
                         unit_name_row = cur.fetchone()
                         unit_name_notify = unit_name_row[0] if unit_name_row else 'Объект'
                         
@@ -191,7 +192,7 @@ def handler(event: dict, context) -> dict:
                         )
                 else:
                     cur.execute(f"""
-                        UPDATE pending_bookings
+                        UPDATE {tbl('pending_bookings')}
                         SET payment_screenshot_url = '{screenshot_url}',
                             verification_notes = '{ai_result.replace("'", "''")}'
                         WHERE id = {pending_id}
@@ -241,7 +242,7 @@ def handler(event: dict, context) -> dict:
                     else:
                         # Создаем новую запись
                         cur.execute(f"""
-                            INSERT INTO conversations (user_id, channel, channel_user_id, status)
+                            INSERT INTO {tbl('conversations')} (user_id, channel, channel_user_id, status)
                             VALUES ({owner_id}, 'telegram', '{chat_id}', 'owner')
                         """)
                     
@@ -264,7 +265,7 @@ def handler(event: dict, context) -> dict:
                 owner_id = int(param)
                 
                 cur.execute(f"""
-                    SELECT id FROM users WHERE id = {owner_id}
+                    SELECT id FROM {tbl('users')} WHERE id = {owner_id}
                 """)
                 
                 if cur.fetchone() is None:
@@ -273,7 +274,7 @@ def handler(event: dict, context) -> dict:
                 
                 # Проверяем существующую беседу
                 cur.execute(f"""
-                    SELECT id FROM conversations
+                    SELECT id FROM {tbl('conversations')}
                     WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
                 """)
                 existing_conv = cur.fetchone()
@@ -281,13 +282,13 @@ def handler(event: dict, context) -> dict:
                 if existing_conv:
                     conversation_id = existing_conv[0]
                     cur.execute(f"""
-                        UPDATE conversations
+                        UPDATE {tbl('conversations')}
                         SET user_id = {owner_id}, status = 'active'
                         WHERE id = {conversation_id}
                     """)
                 else:
                     cur.execute(f"""
-                        INSERT INTO conversations (user_id, channel, channel_user_id, status)
+                        INSERT INTO {tbl('conversations')} (user_id, channel, channel_user_id, status)
                         VALUES ({owner_id}, 'telegram', '{chat_id}', 'active')
                         RETURNING id
                     """)
@@ -305,7 +306,7 @@ def handler(event: dict, context) -> dict:
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         
         cur.execute(f"""
-            SELECT id, user_id FROM conversations
+            SELECT id, user_id FROM {tbl('conversations')}
             WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
             AND status = 'active'
         """)
@@ -322,20 +323,20 @@ def handler(event: dict, context) -> dict:
         owner_id = conv[1]
         
         cur.execute(f"""
-            INSERT INTO messages (conversation_id, role, content)
+            INSERT INTO {tbl('messages')} (conversation_id, role, content)
             VALUES ({conversation_id}, 'user', '{text.replace("'", "''")}')
         """)
         
         # Сохраняем сообщение пользователя в telegram_messages
         cur.execute(f"""
-            INSERT INTO telegram_messages (telegram_id, message_text, sender)
+            INSERT INTO {tbl('telegram_messages')} (telegram_id, message_text, sender)
             VALUES ({chat_id}, '{text.replace("'", "''")}', 'user')
         """)
         
         conn.commit()
         
         cur.execute(f"""
-            SELECT role, content FROM messages
+            SELECT role, content FROM {tbl('messages')}
             WHERE conversation_id = {conversation_id}
             ORDER BY created_at ASC
         """)
@@ -344,7 +345,7 @@ def handler(event: dict, context) -> dict:
         
         cur.execute(f"""
             SELECT id, name, type, description, base_price, max_guests
-            FROM units
+            FROM {tbl('units')}
             WHERE created_by = {owner_id}
             ORDER BY id
         """)
@@ -432,7 +433,7 @@ def handler(event: dict, context) -> dict:
                 
                 # Проверяем, что unit_id существует и принадлежит owner_id
                 cur.execute(f"""
-                    SELECT base_price, name FROM units 
+                    SELECT base_price, name FROM {tbl('units')} 
                     WHERE id = {booking_data['unit_id']} AND created_by = {owner_id}
                 """)
                 unit_row = cur.fetchone()
@@ -447,7 +448,7 @@ def handler(event: dict, context) -> dict:
                 
                 # Проверяем доступность дат
                 cur.execute(f"""
-                    SELECT COUNT(*) FROM bookings
+                    SELECT COUNT(*) FROM {tbl('bookings')}
                     WHERE unit_id = {booking_data['unit_id']}
                     AND status IN ('tentative', 'confirmed')
                     AND check_in < '{booking_data['check_out']}'
@@ -463,7 +464,7 @@ def handler(event: dict, context) -> dict:
                     # Получаем платежную ссылку для объекта
                     cur.execute(f"""
                         SELECT payment_link, payment_system, recipient_name
-                        FROM payment_links
+                        FROM {tbl('payment_links')}
                         WHERE unit_id = {booking_data['unit_id']}
                         LIMIT 1
                     """)
@@ -488,7 +489,7 @@ def handler(event: dict, context) -> dict:
                         
                         # Создаем pending booking (ждет оплаты)
                         cur.execute(f"""
-                            INSERT INTO pending_bookings 
+                            INSERT INTO {tbl('pending_bookings')} 
                             (unit_id, check_in, check_out, guest_name, guest_contact, 
                              telegram_chat_id, amount, payment_link, verification_status, robokassa_inv_id)
                             VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
@@ -529,7 +530,7 @@ def handler(event: dict, context) -> dict:
                         payment_link = f"https://qr.nspk.ru/profi/cash.html?sum={int(total_price)}&comment={urllib.parse.quote(description)}"
                         
                         cur.execute(f"""
-                            INSERT INTO pending_bookings 
+                            INSERT INTO {tbl('pending_bookings')} 
                             (unit_id, check_in, check_out, guest_name, guest_contact, 
                              telegram_chat_id, amount, payment_link, verification_status)
                             VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
@@ -559,13 +560,13 @@ def handler(event: dict, context) -> dict:
                 assistant_message = f'❌ Ошибка при создании бронирования. Попробуйте ещё раз.'
         
         cur.execute(f"""
-            INSERT INTO messages (conversation_id, role, content)
+            INSERT INTO {tbl('messages')} (conversation_id, role, content)
             VALUES ({conversation_id}, 'assistant', '{assistant_message.replace("'", "''")}')
         """)
         
         # Сохраняем ответ бота в telegram_messages (связываем с booking_id если есть)
         cur.execute(f"""
-            SELECT id FROM pending_bookings 
+            SELECT id FROM {tbl('pending_bookings')} 
             WHERE telegram_chat_id = {chat_id}
             ORDER BY created_at DESC LIMIT 1
         """)
@@ -573,12 +574,12 @@ def handler(event: dict, context) -> dict:
         
         if pending_booking:
             cur.execute(f"""
-                INSERT INTO telegram_messages (telegram_id, message_text, sender)
+                INSERT INTO {tbl('telegram_messages')} (telegram_id, message_text, sender)
                 VALUES ({chat_id}, '{assistant_message.replace("'", "''")}', 'bot')
             """)
         else:
             cur.execute(f"""
-                INSERT INTO telegram_messages (telegram_id, message_text, sender)
+                INSERT INTO {tbl('telegram_messages')} (telegram_id, message_text, sender)
                 VALUES ({chat_id}, '{assistant_message.replace("'", "''")}', 'bot')
             """)
         
@@ -634,13 +635,9 @@ def notify_owner(owner_id: int, message: str):
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     
-    # Устанавливаем схему из переменной окружения
-    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
-    cur.execute(f"SET search_path TO {schema}")
-    
     # Получаем telegram_chat_id владельца (только если status='owner')
     cur.execute(f"""
-        SELECT channel_user_id FROM conversations
+        SELECT channel_user_id FROM {tbl('conversations')}
         WHERE user_id = {owner_id} 
         AND channel = 'telegram'
         AND status = 'owner'

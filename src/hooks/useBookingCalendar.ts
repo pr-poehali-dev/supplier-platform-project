@@ -44,6 +44,12 @@ export function useBookingCalendar() {
     
     loadUnits();
     loadBookings();
+
+    const interval = setInterval(() => {
+      loadBookings();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [navigate, toast]);
 
   const loadUnits = async () => {

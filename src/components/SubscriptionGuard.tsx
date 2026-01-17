@@ -14,9 +14,10 @@ interface SubscriptionGuardProps {
 const SubscriptionGuard = ({ feature, children, featureName = 'этой функции' }: SubscriptionGuardProps) => {
   const navigate = useNavigate();
   const isDevelopment = import.meta.env.DEV;
+  const isEditorMode = window.location.hostname.includes('poehali.dev') || window.location.hostname === 'localhost';
   const hasAccess = canAccessFeature(feature);
   
-  if (hasAccess || isDevelopment) {
+  if (hasAccess || isDevelopment || isEditorMode) {
     return <>{children}</>;
   }
   

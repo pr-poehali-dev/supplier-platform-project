@@ -561,32 +561,30 @@ def handler(event: dict, context) -> dict:
                     
                     total_price += additional_services_cost
                     
-                    # Получаем платежную ссылку для объекта
+                    # Получаем данные владельца для оплаты
                     cur.execute(f"""
-                        SELECT payment_link, payment_system, recipient_name
-                        FROM {tbl('payment_links')}
-                        WHERE unit_id = {booking_data['unit_id']}
+                        SELECT phone, name FROM {tbl('users')}
+                        WHERE id = {owner_id}
                         LIMIT 1
                     """)
                     
-                    payment_row = cur.fetchone()
-                    payment_link_template = payment_row[0] if payment_row else ''
-                    payment_system = payment_row[1] if payment_row else 'sbp'
-                    recipient_name = payment_row[2] if payment_row else ''
+                    owner_row = cur.fetchone()
+                    owner_phone = owner_row[0] if owner_row and owner_row[0] else 'Не указан'
+                    owner_name = owner_row[1] if owner_row and owner_row[1] else 'Владелец'
                     
-                    # Генерируем ссылку на оплату через СБП
-                    description = f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
-                    payment_link = f"https://qr.nspk.ru/profi/cash.html?sum={int(total_price)}&comment={urllib.parse.quote(description)}"
+                    # Формируем текст для оплаты
+                    payment_info = f"💳 Оплата по СБП:\n📱 Телефон: {owner_phone}\n👤 Получатель: {owner_name}"
+                    payment_link = ''  # Не используем ссылку
                     
                     # Создаем pending booking (ждет оплаты)
                     cur.execute(f"""
                         INSERT INTO {tbl('pending_bookings')} 
                         (unit_id, check_in, check_out, guest_name, guest_contact, 
-                         telegram_chat_id, amount, payment_link, verification_status)
+                         telegram_chat_id, amount, verification_status)
                         VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
                                 '{booking_data['guest_name'].replace("'", "''")}', 
                                 '{booking_data.get('guest_phone', '').replace("'", "''")}',
-                                {chat_id}, {total_price}, '{payment_link.replace("'", "''")}', 'pending')
+                                {chat_id}, {total_price}, 'pending')
                         RETURNING id
                     """)
                     
@@ -623,8 +621,9 @@ def handler(event: dict, context) -> dict:
                         f'📅 Даты: {booking_data["check_in"]} — {booking_data["check_out"]}\n\n'
                         f'💰 Стоимость:\n{cost_breakdown}\n'
                         f'Итого: {int(total_price)} ₽\n\n'
-                        f'💳 Оплатите по ссылке СБП:\n{payment_link}\n\n'
-                        f'📸 После оплаты отправьте скриншот чека в этот чат'
+                        f'{payment_info}\n\n'
+                        f'📸 После оплаты отправьте скриншот чека в этот чат.\n'
+                        f'⏳ Ждите подтверждения от владельца.'
                     )
                     else:
                         assistant_message = '❌ Объект не найден. Попробуйте выбрать другой вариант.'

@@ -39,6 +39,7 @@ def handler(event: dict, context) -> dict:
     
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     
     try:
         query_params = event.get('queryStringParameters') or {}
@@ -49,7 +50,7 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"""
                 SELECT id, name, description, max_guests, base_price, type, 
                        created_at, dynamic_pricing_enabled, pricing_profile_id
-                FROM units 
+                FROM {schema}.units 
                 WHERE owner_id = {owner_id}
                 ORDER BY id
             """)
@@ -81,8 +82,8 @@ def handler(event: dict, context) -> dict:
                 SELECT b.id, b.unit_id, b.guest_name, b.guest_email, b.guest_phone,
                        b.check_in, b.check_out, b.total_price, b.status, b.created_at,
                        u.name as unit_name
-                FROM bookings b
-                JOIN units u ON b.unit_id = u.id
+                FROM {schema}.bookings b
+                JOIN {schema}.units u ON b.unit_id = u.id
                 WHERE u.owner_id = {owner_id}
                 ORDER BY b.check_in DESC
             """)
@@ -120,7 +121,7 @@ def handler(event: dict, context) -> dict:
             max_guests = int(body.get('max_guests', 1))
             
             cur.execute(f"""
-                INSERT INTO units (name, description, max_guests, base_price, type, owner_id, created_at)
+                INSERT INTO {schema}.units (name, description, max_guests, base_price, type, owner_id, created_at)
                 VALUES ('{name.replace("'", "''")}', '{description.replace("'", "''")}', 
                         {max_guests}, {base_price}, '{unit_type}', {owner_id}, NOW())
                 RETURNING id
@@ -141,7 +142,7 @@ def handler(event: dict, context) -> dict:
             unit_id = query_params.get('unit_id')
             
             # Verify ownership
-            cur.execute(f"SELECT id FROM units WHERE id = {unit_id} AND owner_id = {owner_id}")
+            cur.execute(f"SELECT id FROM {schema}.units WHERE id = {unit_id} AND owner_id = {owner_id}")
             if not cur.fetchone():
                 return {
                     'statusCode': 403,
@@ -157,7 +158,7 @@ def handler(event: dict, context) -> dict:
             max_guests = int(body.get('max_guests', 1))
             
             cur.execute(f"""
-                UPDATE units 
+                UPDATE {schema}.units 
                 SET name = '{name.replace("'", "''")}', 
                     description = '{description.replace("'", "''")}',
                     max_guests = {max_guests},
@@ -179,7 +180,7 @@ def handler(event: dict, context) -> dict:
             unit_id = query_params.get('unit_id')
             
             # Verify ownership
-            cur.execute(f"SELECT id FROM units WHERE id = {unit_id} AND owner_id = {owner_id}")
+            cur.execute(f"SELECT id FROM {schema}.units WHERE id = {unit_id} AND owner_id = {owner_id}")
             if not cur.fetchone():
                 return {
                     'statusCode': 403,
@@ -189,9 +190,9 @@ def handler(event: dict, context) -> dict:
                 }
             
             # First delete all bookings for this unit
-            cur.execute(f"DELETE FROM bookings WHERE unit_id = {unit_id}")
+            cur.execute(f"DELETE FROM {schema}.bookings WHERE unit_id = {unit_id}")
             # Then delete the unit
-            cur.execute(f"DELETE FROM units WHERE id = {unit_id}")
+            cur.execute(f"DELETE FROM {schema}.units WHERE id = {unit_id}")
             conn.commit()
             
             return {
@@ -225,7 +226,7 @@ def handler(event: dict, context) -> dict:
             status = body.get('status', 'confirmed')
             
             cur.execute(f"""
-                INSERT INTO bookings (unit_id, guest_name, guest_phone, guest_email,
+                INSERT INTO {schema}.bookings (unit_id, guest_name, guest_phone, guest_email,
                                       check_in, check_out, total_price, status, created_at)
                 VALUES ({unit_id}, '{guest_name.replace("'", "''")}', '{guest_phone}', '{guest_email}',
                         '{check_in}', '{check_out}', {total_price}, '{status}', NOW())
@@ -247,8 +248,8 @@ def handler(event: dict, context) -> dict:
             
             # Verify ownership through unit
             cur.execute(f"""
-                SELECT b.id FROM bookings b
-                JOIN units u ON b.unit_id = u.id
+                SELECT b.id FROM {schema}.bookings b
+                JOIN {schema}.units u ON b.unit_id = u.id
                 WHERE b.id = {booking_id} AND u.owner_id = {owner_id}
             """)
             if not cur.fetchone():
@@ -259,7 +260,7 @@ def handler(event: dict, context) -> dict:
                     'isBase64Encoded': False
                 }
             
-            cur.execute(f"DELETE FROM bookings WHERE id = {booking_id}")
+            cur.execute(f"DELETE FROM {schema}.bookings WHERE id = {booking_id}")
             conn.commit()
             
             return {

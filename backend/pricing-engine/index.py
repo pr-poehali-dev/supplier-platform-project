@@ -82,14 +82,15 @@ def handler(event: dict, context) -> dict:
 
 
 def get_pricing_profiles(conn) -> dict:
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""
+        cur.execute(f"""
             SELECT 
                 pp.id, pp.name, pp.mode,
                 pp.min_price, pp.max_price, pp.is_default, pp.enabled,
                 COUNT(u.id) as units_count
-            FROM pricing_profiles pp
-            LEFT JOIN units u ON u.pricing_profile_id = pp.id
+            FROM {schema}.pricing_profiles pp
+            LEFT JOIN {schema}.units u ON u.pricing_profile_id = pp.id
             GROUP BY pp.id
             ORDER BY pp.is_default DESC, pp.name
         """)
@@ -102,17 +103,18 @@ def get_profile_details(conn, profile_id: str) -> dict:
     if not profile_id:
         return error_response('profile_id required', 400)
     
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""
-            SELECT * FROM pricing_profiles WHERE id = %s
+        cur.execute(f"""
+            SELECT * FROM {schema}.pricing_profiles WHERE id = %s
         """, (profile_id,))
         profile = cur.fetchone()
         
         if not profile:
             return error_response('Profile not found', 404)
         
-        cur.execute("""
-            SELECT * FROM pricing_rules 
+        cur.execute(f"""
+            SELECT * FROM {schema}.pricing_rules 
             WHERE profile_id = %s 
             ORDER BY priority DESC, id
         """, (profile_id,))
@@ -125,9 +127,10 @@ def get_profile_rules(conn, profile_id: str) -> dict:
     if not profile_id:
         return error_response('profile_id required', 400)
     
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""
-            SELECT * FROM pricing_rules 
+        cur.execute(f"""
+            SELECT * FROM {schema}.pricing_rules 
             WHERE profile_id = %s 
             ORDER BY priority DESC, id
         """, (profile_id,))
@@ -140,30 +143,31 @@ def calculate_dynamic_price(conn, unit_id: str, date_str: str, owner_id: int = N
     if not unit_id or not date_str:
         return error_response('unit_id and date required', 400)
     
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         # Если owner_id указан, проверяем владельца
         if owner_id:
-            cur.execute("""
+            cur.execute(f"""
                 SELECT 
                     u.id, u.name, u.base_price,
                     u.dynamic_pricing_enabled,
                     pp.id as profile_id, pp.mode,
                     pp.min_price as profile_min_price, pp.max_price as profile_max_price
-                FROM units u
-                LEFT JOIN pricing_profiles pp ON u.pricing_profile_id = pp.id
+                FROM {schema}.units u
+                LEFT JOIN {schema}.pricing_profiles pp ON u.pricing_profile_id = pp.id
                 WHERE u.id = %s AND u.owner_id = %s
             """, (unit_id, owner_id))
         else:
-            cur.execute("""
+            cur.execute(f"""
                 SELECT 
                     u.id, u.name, u.base_price,
                     u.dynamic_pricing_enabled,
                     pp.id as profile_id, pp.mode,
                     pp.min_price as profile_min_price, pp.max_price as profile_max_price
-                FROM units u
-                LEFT JOIN pricing_profiles pp ON u.pricing_profile_id = pp.id
+                FROM {schema}.units u
+                LEFT JOIN {schema}.pricing_profiles pp ON u.pricing_profile_id = pp.id
                 WHERE u.id = %s
             """, (unit_id,))
         unit = cur.fetchone()
@@ -186,8 +190,8 @@ def calculate_dynamic_price(conn, unit_id: str, date_str: str, owner_id: int = N
         min_price = unit['profile_min_price'] or base_price * Decimal('0.5')
         max_price = unit['profile_max_price'] or base_price * Decimal('2.0')
         
-        cur.execute("""
-            SELECT * FROM pricing_rules 
+        cur.execute(f"""
+            SELECT * FROM {schema}.pricing_rules 
             WHERE profile_id = %s AND enabled = TRUE
             ORDER BY priority DESC
         """, (unit['profile_id'],))
@@ -221,8 +225,8 @@ def calculate_dynamic_price(conn, unit_id: str, date_str: str, owner_id: int = N
         
         final_price = max(min_price, min(max_price, current_price))
         
-        cur.execute("""
-            INSERT INTO price_calculation_logs 
+        cur.execute(f"""
+            INSERT INTO {schema}.price_calculation_logs 
             (unit_id, date, original_price, final_price, applied_rules, calculation_source)
             VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (unit_id, date) 
@@ -273,17 +277,18 @@ def get_price_logs(conn, unit_id: str, date_str: str = None) -> dict:
     if not unit_id:
         return error_response('unit_id required', 400)
     
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         if date_str:
-            cur.execute("""
-                SELECT * FROM price_calculation_logs
+            cur.execute(f"""
+                SELECT * FROM {schema}.price_calculation_logs
                 WHERE unit_id = %s AND date = %s
                 ORDER BY created_at DESC
                 LIMIT 10
             """, (unit_id, date_str))
         else:
-            cur.execute("""
-                SELECT * FROM price_calculation_logs
+            cur.execute(f"""
+                SELECT * FROM {schema}.price_calculation_logs
                 WHERE unit_id = %s
                 ORDER BY date DESC, created_at DESC
                 LIMIT 30
@@ -297,10 +302,11 @@ def get_price_logs(conn, unit_id: str, date_str: str = None) -> dict:
 def update_pricing_profile(conn, data: dict) -> dict:
     profile_id = data.get('profile_id')
     
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     with conn.cursor() as cur:
         if profile_id:
-            cur.execute("""
-                UPDATE pricing_profiles 
+            cur.execute(f"""
+                UPDATE {schema}.pricing_profiles 
                 SET name = %s, mode = %s,
                     min_price = %s, max_price = %s, updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
@@ -309,8 +315,8 @@ def update_pricing_profile(conn, data: dict) -> dict:
                 data['min_price'], data['max_price'], profile_id
             ))
         else:
-            cur.execute("""
-                INSERT INTO pricing_profiles 
+            cur.execute(f"""
+                INSERT INTO {schema}.pricing_profiles 
                 (name, mode, min_price, max_price, created_by)
                 VALUES (%s, %s, %s, %s, %s)
                 RETURNING id
@@ -328,10 +334,11 @@ def update_pricing_profile(conn, data: dict) -> dict:
 def update_pricing_rule(conn, data: dict) -> dict:
     rule_id = data.get('rule_id')
     
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     with conn.cursor() as cur:
         if rule_id:
-            cur.execute("""
-                UPDATE pricing_rules 
+            cur.execute(f"""
+                UPDATE {schema}.pricing_rules 
                 SET name = %s, condition_type = %s, condition_operator = %s,
                     condition_value = %s, action_type = %s, action_value = %s,
                     action_unit = %s, priority = %s, enabled = %s
@@ -343,8 +350,8 @@ def update_pricing_rule(conn, data: dict) -> dict:
                 data.get('enabled', True), rule_id
             ))
         else:
-            cur.execute("""
-                INSERT INTO pricing_rules 
+            cur.execute(f"""
+                INSERT INTO {schema}.pricing_rules 
                 (profile_id, name, condition_type, condition_operator, condition_value,
                  action_type, action_value, action_unit, priority)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -368,8 +375,9 @@ def delete_pricing_rule(conn, data: dict) -> dict:
     if not rule_id:
         return error_response('rule_id required', 400)
     
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM pricing_rules WHERE id = %s", (rule_id,))
+        cur.execute(f"DELETE FROM {schema}.pricing_rules WHERE id = %s", (rule_id,))
         conn.commit()
     
     return success_response({'message': 'Rule deleted'})
@@ -380,15 +388,16 @@ def toggle_dynamic_pricing(conn, data: dict) -> dict:
     enabled = data.get('enabled', True)
     enable_all = data.get('enable_all', False)
     
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     with conn.cursor() as cur:
         if enable_all:
-            cur.execute("""
-                UPDATE units 
+            cur.execute(f"""
+                UPDATE {schema}.units 
                 SET dynamic_pricing_enabled = %s
             """, (enabled,))
         elif unit_id:
-            cur.execute("""
-                UPDATE units 
+            cur.execute(f"""
+                UPDATE {schema}.units 
                 SET dynamic_pricing_enabled = %s
                 WHERE id = %s
             """, (enabled, unit_id))
@@ -401,9 +410,10 @@ def toggle_dynamic_pricing(conn, data: dict) -> dict:
 
 
 def get_occupancy_rate(conn, unit_id: str, date) -> float:
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     with conn.cursor() as cur:
-        cur.execute("""
-            SELECT COUNT(*) FROM bookings
+        cur.execute(f"""
+            SELECT COUNT(*) FROM {schema}.bookings
             WHERE unit_id = %s 
             AND status = 'confirmed'
             AND check_in <= %s 

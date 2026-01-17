@@ -175,7 +175,7 @@ def handler(event: dict, context) -> dict:
                     
                     # Получаем owner_id из conversations
                     cur.execute(f"""
-                        SELECT user_id FROM {tbl('conversations')}
+                        SELECT owner_id FROM {tbl('conversations')}
                         WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
                     """)
                     owner_result = cur.fetchone()
@@ -308,7 +308,7 @@ def handler(event: dict, context) -> dict:
                     """)
                 else:
                     cur.execute(f"""
-                        INSERT INTO {tbl('conversations')} (user_id, channel, channel_user_id, status)
+                        INSERT INTO {tbl('conversations')} (owner_id, channel, channel_user_id, status)
                         VALUES ({owner_id}, 'telegram', '{chat_id}', 'active')
                         RETURNING id
                     """)
@@ -326,7 +326,7 @@ def handler(event: dict, context) -> dict:
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         
         cur.execute(f"""
-            SELECT id, user_id FROM {tbl('conversations')}
+            SELECT id, owner_id FROM {tbl('conversations')}
             WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
             AND status = 'active'
         """)

@@ -58,6 +58,12 @@ def handler(event: dict, context) -> dict:
         first_name = message['from'].get('first_name', 'Гость')
         
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        # Устанавливаем схему из переменной окружения
+        schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+        cur.execute(f"SET search_path TO {schema}")
+        cur.close()
         
         # Обработка фото (скриншота оплаты)
         if photo:
@@ -627,6 +633,10 @@ def notify_owner(owner_id: int, message: str):
     '''Отправляет уведомление владельцу турбазы'''
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
+    
+    # Устанавливаем схему из переменной окружения
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+    cur.execute(f"SET search_path TO {schema}")
     
     # Получаем telegram_chat_id владельца (только если status='owner')
     cur.execute(f"""

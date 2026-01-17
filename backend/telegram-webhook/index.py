@@ -77,14 +77,17 @@ def handler(event: dict, context) -> dict:
             cur = conn.cursor()
             
             # Ищем pending booking для этого чата
-            cur.execute(f"""
+            query = f"""
                 SELECT id, unit_id, amount, guest_name
                 FROM {tbl('pending_bookings')}
                 WHERE telegram_chat_id = {chat_id}
                 AND verification_status = 'pending'
                 ORDER BY created_at DESC
                 LIMIT 1
-            """)
+            """
+            print(f'DEBUG: Executing query: {query}')
+            cur.execute(query)
+            print(f'DEBUG: Query executed')
             
             pending = cur.fetchone()
             if not pending:
@@ -219,23 +222,26 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         cur = conn.cursor()
+        print(f'DEBUG: Cursor created. Message text: {text[:50]}')
         
         owner_id = None
         
         if text.startswith('/start'):
+            print(f'DEBUG: Processing /start command')
             parts = text.split(' ')
             if len(parts) > 1:
                 param = parts[1]
+                print(f'DEBUG: Start parameter: {param}')
                 
                 # Проверяем, это владелец или клиент
                 if param.startswith('owner_'):
                     owner_id = int(param.replace('owner_', ''))
                     
                     # Проверяем, есть ли уже запись для этого chat_id
-                    cur.execute(f"""
-                        SELECT id FROM {tbl('conversations')}
-                        WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
-                    """)
+                    query = f"SELECT id FROM {tbl('conversations')} WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'"
+                    print(f'DEBUG: Executing: {query}')
+                    cur.execute(query)
+                    print(f'DEBUG: Query executed successfully')
                     existing = cur.fetchone()
                     
                     if existing:

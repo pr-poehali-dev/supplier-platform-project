@@ -728,7 +728,10 @@ def send_telegram_message(chat_id: int, text: str):
     
     token = os.environ.get('TELEGRAM_BOT_TOKEN')
     if not token:
+        print('ERROR: TELEGRAM_BOT_TOKEN not found')
         return
+    
+    print(f'Sending message to chat {chat_id}: {text[:100]}...')
     
     url = f'https://api.telegram.org/bot{token}/sendMessage'
     data = json.dumps({
@@ -740,7 +743,8 @@ def send_telegram_message(chat_id: int, text: str):
     req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
     
     try:
-        urllib.request.urlopen(req)
+        response = urllib.request.urlopen(req)
+        print(f'Message sent successfully: {response.status}')
     except Exception as e:
         print(f'Failed to send Telegram message: {e}')
 

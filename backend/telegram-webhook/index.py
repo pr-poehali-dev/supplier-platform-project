@@ -385,20 +385,61 @@ def handler(event: dict, context) -> dict:
             send_telegram_message(chat_id, '❌ У владельца пока нет доступных объектов для бронирования.')
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
         
+        # Получаем бронирования для каждого дома (на ближайшие 3 месяца)
+        today = datetime.now().strftime('%Y-%m-%d')
+        future_date = (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d')
+        
+        cur.execute(f"""
+            SELECT unit_id, check_in, check_out, status
+            FROM {tbl('bookings')}
+            WHERE created_by = {owner_id}
+            AND check_out >= '{today}'
+            AND check_in <= '{future_date}'
+            AND status IN ('confirmed', 'pending')
+            ORDER BY unit_id, check_in
+        """)
+        
+        bookings_by_unit = {}
+        for row in cur.fetchall():
+            unit_id = row[0]
+            if unit_id not in bookings_by_unit:
+                bookings_by_unit[unit_id] = []
+            bookings_by_unit[unit_id].append({
+                'check_in': row[1].strftime('%Y-%m-%d') if hasattr(row[1], 'strftime') else str(row[1]),
+                'check_out': row[2].strftime('%Y-%m-%d') if hasattr(row[2], 'strftime') else str(row[2]),
+                'status': row[3]
+            })
+        
+        # Формируем информацию о занятости для промпта
+        availability_info = []
+        for unit in units_info:
+            unit_id = unit['id']
+            bookings = bookings_by_unit.get(unit_id, [])
+            if bookings:
+                occupied_dates = ', '.join([f"{b['check_in']} по {b['check_out']}" for b in bookings])
+                availability_info.append(f"{unit['name']} (ID {unit_id}): занято {occupied_dates}")
+            else:
+                availability_info.append(f"{unit['name']} (ID {unit_id}): полностью свободно")
+        
         system_prompt = f"""Ты — менеджер по бронированию турбазы. Твоя задача помочь клиенту забронировать проживание.
 
 Доступные объекты:
 {json.dumps(units_info, ensure_ascii=False, indent=2)}
 
+Календарь занятости (ближайшие 3 месяца):
+{chr(10).join(availability_info)}
+
 Правила:
 1. Будь дружелюбным и профессиональным
-2. Узнай даты заезда и выезда (формат: 2026-02-15)
-3. Узнай количество гостей
-4. Предложи подходящие варианты из списка
-5. Назови точную цену (base_price × количество ночей)
-6. Для бронирования запроси имя и телефон клиента
-7. НИКОГДА не придумывай доступность
-8. Когда все данные собраны, отправь JSON:
+2. ВСЕГДА проверяй календарь занятости перед предложением дат
+3. Если клиент спрашивает про доступность — используй ТОЛЬКО информацию из календаря выше
+4. Узнай даты заезда и выезда (формат: 2026-02-15)
+5. Узнай количество гостей
+6. Предложи подходящие СВОБОДНЫЕ варианты из списка
+7. Назови точную цену (base_price × количество ночей)
+8. Для бронирования запроси имя и телефон клиента
+9. НИКОГДА не придумывай доступность — говори только про свободные даты из календаря
+10. Когда все данные собраны, отправь JSON:
 {{"action": "create_booking", "unit_id": 1, "check_in": "2026-02-15", "check_out": "2026-02-17", "guest_name": "Иван Петров", "guest_phone": "+79991234567", "guests_count": 2}}
 
 Текущая дата: {datetime.now().strftime('%Y-%m-%d')}"""

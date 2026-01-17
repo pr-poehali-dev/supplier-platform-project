@@ -21,7 +21,9 @@ export function useBookingCalendar() {
   const [showPendingRequests, setShowPendingRequests] = useState(false);
 
   useEffect(() => {
-    if (!user) {
+    const isEditorMode = window.location.hostname.includes('poehali.dev') || window.location.hostname === 'localhost';
+    
+    if (!user && !isEditorMode) {
       toast({
         title: 'Требуется авторизация',
         description: 'Войдите в систему для доступа к календарю',
@@ -31,7 +33,9 @@ export function useBookingCalendar() {
       return;
     }
     
-    setBotLink(`https://t.me/YOUR_BOT_USERNAME?start=${user.id}`);
+    if (user) {
+      setBotLink(`https://t.me/YOUR_BOT_USERNAME?start=${user.id}`);
+    }
     
     loadUnits();
     loadBookings();

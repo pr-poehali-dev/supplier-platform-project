@@ -46,17 +46,59 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
           <div className="relative animate-float">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-3xl"></div>
             <div className="relative bg-white/40 backdrop-blur-md rounded-3xl shadow-2xl p-8 border border-white/60">
-              <div className="text-center space-y-4">
-                <div className="text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  2490₽
+              <div className="space-y-5">
+                <h3 className="text-2xl font-bold text-gray-800 text-center mb-6">
+                  Всё для управления бизнесом
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                      <Icon name="MessageSquare" className="text-white" size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-800">Автобронь через мессенджеры</h4>
+                      <p className="text-sm text-gray-600">Telegram-бот принимает заявки 24/7</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                      <Icon name="Calendar" className="text-white" size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-800">Синхронизированный календарь</h4>
+                      <p className="text-sm text-gray-600">Управляйте всеми объектами в одном месте</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                      <Icon name="Sparkles" className="text-white" size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-800">AI-помощник для гостей</h4>
+                      <p className="text-sm text-gray-600">Отвечает на вопросы вместо вас</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                      <Icon name="TrendingUp" className="text-white" size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-800">Увеличение прибыли на 40%</h4>
+                      <p className="text-sm text-gray-600">Допродажи и динамическое ценообразование</p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-lg text-gray-700">Начните развивать бизнес уже сегодня</p>
+
                 <Button 
                   size="lg" 
                   onClick={() => navigate('/pricing')}
-                  className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 w-full"
+                  className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 w-full mt-6"
                 >
-                  Попробовать бесплатно
+                  Начать бесплатно
                 </Button>
               </div>
             </div>

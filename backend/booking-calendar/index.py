@@ -112,8 +112,8 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
-        # POST /add-unit - добавить объект
-        if method == 'POST' and action == 'add-unit':
+        # POST /create-unit - добавить объект
+        if method == 'POST' and action == 'create-unit':
             body = json.loads(event.get('body', '{}'))
             name = body.get('name', '')
             unit_type = body.get('type', 'room')
@@ -137,6 +137,45 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
+        # PUT /update-unit - обновить объект
+        if method == 'PUT' and action == 'update-unit':
+            body = json.loads(event.get('body', '{}'))
+            unit_id = query_params.get('unit_id')
+            
+            # Verify ownership
+            cur.execute(f"SELECT id FROM units WHERE id = {unit_id} AND owner_id = {owner_id}")
+            if not cur.fetchone():
+                return {
+                    'statusCode': 403,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Forbidden'}),
+                    'isBase64Encoded': False
+                }
+            
+            name = body.get('name', '')
+            unit_type = body.get('type', 'room')
+            description = body.get('description', '')
+            base_price = float(body.get('base_price', 0))
+            max_guests = int(body.get('max_guests', 1))
+            
+            cur.execute(f"""
+                UPDATE units 
+                SET name = '{name.replace("'", "''")}', 
+                    description = '{description.replace("'", "''")}',
+                    max_guests = {max_guests},
+                    base_price = {base_price},
+                    type = '{unit_type}'
+                WHERE id = {unit_id}
+            """)
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Unit updated'}),
+                'isBase64Encoded': False
+            }
+        
         # DELETE /delete-unit - удалить объект
         if method == 'DELETE' and action == 'delete-unit':
             unit_id = query_params.get('unit_id')
@@ -151,6 +190,9 @@ def handler(event: dict, context) -> dict:
                     'isBase64Encoded': False
                 }
             
+            # First delete all bookings for this unit
+            cur.execute(f"DELETE FROM bookings WHERE unit_id = {unit_id}")
+            # Then delete the unit
             cur.execute(f"DELETE FROM units WHERE id = {unit_id}")
             conn.commit()
             
@@ -158,6 +200,74 @@ def handler(event: dict, context) -> dict:
                 'statusCode': 200,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                 'body': json.dumps({'message': 'Unit deleted'}),
+                'isBase64Encoded': False
+            }
+        
+        # POST /create-booking - создать бронь
+        if method == 'POST' and action == 'create-booking':
+            body = json.loads(event.get('body', '{}'))
+            unit_id = body.get('unit_id')
+            
+            # Verify unit ownership
+            cur.execute(f"SELECT id FROM units WHERE id = {unit_id} AND owner_id = {owner_id}")
+            if not cur.fetchone():
+                return {
+                    'statusCode': 403,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Forbidden'}),
+                    'isBase64Encoded': False
+                }
+            
+            guest_name = body.get('guest_name', '')
+            guest_phone = body.get('guest_phone', '')
+            guest_email = body.get('guest_email', '')
+            check_in = body.get('check_in')
+            check_out = body.get('check_out')
+            total_price = float(body.get('total_price', 0))
+            status = body.get('status', 'confirmed')
+            
+            cur.execute(f"""
+                INSERT INTO bookings (unit_id, guest_name, guest_phone, guest_email,
+                                      check_in, check_out, total_price, status, created_at)
+                VALUES ({unit_id}, '{guest_name.replace("'", "''")}', '{guest_phone}', '{guest_email}',
+                        '{check_in}', '{check_out}', {total_price}, '{status}', NOW())
+                RETURNING id
+            """)
+            booking_id = cur.fetchone()[0]
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Booking created', 'booking_id': booking_id}),
+                'isBase64Encoded': False
+            }
+        
+        # DELETE /delete-booking - удалить бронь
+        if method == 'DELETE' and action == 'delete-booking':
+            booking_id = query_params.get('booking_id')
+            
+            # Verify ownership through unit
+            cur.execute(f"""
+                SELECT b.id FROM bookings b
+                JOIN units u ON b.unit_id = u.id
+                WHERE b.id = {booking_id} AND u.owner_id = {owner_id}
+            """)
+            if not cur.fetchone():
+                return {
+                    'statusCode': 403,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Forbidden'}),
+                    'isBase64Encoded': False
+                }
+            
+            cur.execute(f"DELETE FROM bookings WHERE id = {booking_id}")
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Booking deleted'}),
                 'isBase64Encoded': False
             }
         

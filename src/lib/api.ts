@@ -23,8 +23,6 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
     throw new Error('User not authenticated');
   }
 
-  console.log('fetchWithAuth: Making request with owner_id:', user.id);
-
   const headers = {
     ...options.headers,
     'X-Owner-Id': user.id.toString(),

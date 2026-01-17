@@ -13,7 +13,15 @@ import { useToast } from '@/hooks/use-toast';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import JsonLd from '@/components/seo/JsonLd';
 import { breadcrumbSchema } from '@/utils/seo';
-import { fetchWithAuth } from '@/lib/api';
+import { fetchWithAuth, getUser } from '@/lib/api';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 const DELETE_UNIT_URL = 'https://functions.poehali.dev/99916984-c945-4b8d-9af9-fc88342eb58a';
@@ -31,12 +39,11 @@ export default function BookingCalendar() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const user = getUser();
   const [botLink, setBotLink] = useState('');
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
+    if (!user) {
       toast({
         title: 'Требуется авторизация',
         description: 'Войдите в систему для доступа к календарю',
@@ -46,9 +53,7 @@ export default function BookingCalendar() {
       return;
     }
     
-    const userData = JSON.parse(userStr);
-    setUser(userData);
-    setBotLink(`https://t.me/YOUR_BOT_USERNAME?start=${userData.id}`);
+    setBotLink(`https://t.me/YOUR_BOT_USERNAME?start=${user.id}`);
     
     loadUnits();
     loadBookings();
@@ -287,10 +292,41 @@ export default function BookingCalendar() {
         </Button>
         
         {user && (
-          <div className="fixed top-4 right-4 bg-white px-4 py-2 rounded-lg shadow-md z-50 flex items-center gap-2">
-            <Icon name="User" size={16} className="text-indigo-600" />
-            <span className="text-sm font-medium text-gray-700">{user.full_name || user.email}</span>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="fixed top-4 right-4 gap-2 z-50 bg-white hover:bg-gray-50 shadow-md"
+              >
+                <Icon name="User" size={16} className="text-indigo-600" />
+                <span className="text-sm font-medium text-gray-700">{user.full_name || user.email}</span>
+                <Icon name="ChevronDown" size={16} className="text-gray-500" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Мой аккаунт</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
+                <Icon name="User" className="mr-2" size={16} />
+                Профиль
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/pricing')}>
+                <Icon name="CreditCard" className="mr-2" size={16} />
+                Подписка
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  localStorage.removeItem('user');
+                  navigate('/auth');
+                }}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Icon name="LogOut" className="mr-2" size={16} />
+                Выйти
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         
         <div className="max-w-7xl mx-auto">

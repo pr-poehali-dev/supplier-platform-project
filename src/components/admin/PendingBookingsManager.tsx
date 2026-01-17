@@ -185,14 +185,24 @@ export const PendingBookingsManager = () => {
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  <Button
-                    onClick={() => approveBooking(booking.id)}
-                    disabled={booking.verification_status === 'verified'}
-                    className="flex-1"
-                  >
-                    <Icon name="Check" size={16} className="mr-2" />
-                    Подтвердить
-                  </Button>
+                  {booking.verification_status === 'verified' ? (
+                    <Button
+                      onClick={() => approveBooking(booking.id)}
+                      className="flex-1"
+                    >
+                      <Icon name="Check" size={16} className="mr-2" />
+                      Создать бронь
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => approveBooking(booking.id)}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Icon name="CheckCircle2" size={16} className="mr-2" />
+                      Подтвердить оплату
+                    </Button>
+                  )}
                   <Button
                     onClick={() => rejectBooking(booking.id)}
                     variant="destructive"

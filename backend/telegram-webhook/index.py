@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import requests
 import time
 import urllib.parse
-import hashlib
 
 # Получаем схему БД из переменной окружения
 DB_SCHEMA = os.environ.get('MAIN_DB_SCHEMA', 'public')
@@ -21,6 +20,7 @@ def handler(event: dict, context) -> dict:
     Webhook для обработки сообщений от Telegram бота.
     Каждый владелец турбазы имеет свою уникальную ссылку на бота через start параметр.
     Бот анализирует сообщения клиентов и автоматически создаёт бронирования через AI.
+    Оплата только через СБП.
     '''
     # Логируем схему БД для отладки
     print(f'DEBUG: DB_SCHEMA = {DB_SCHEMA}')
@@ -574,94 +574,58 @@ def handler(event: dict, context) -> dict:
                     payment_system = payment_row[1] if payment_row else 'sbp'
                     recipient_name = payment_row[2] if payment_row else ''
                     
-                    # Создаем заказ в Robokassa
-                    try:
-                        robokassa_result = create_robokassa_payment(
-                            amount=total_price,
-                            user_name=booking_data['guest_name'],
-                            user_email=booking_data.get('guest_email', f'guest{chat_id}@telegram.bot'),
-                            user_phone=booking_data.get('guest_phone', ''),
-                            description=f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
-                        )
-                        
-                        payment_link = robokassa_result['payment_url']
-                        robokassa_inv_id = robokassa_result.get('robokassa_inv_id')
-                        
-                        # Создаем pending booking (ждет оплаты)
-                        cur.execute(f"""
-                            INSERT INTO {tbl('pending_bookings')} 
-                            (unit_id, check_in, check_out, guest_name, guest_contact, 
-                             telegram_chat_id, amount, payment_link, verification_status, robokassa_inv_id)
-                            VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
-                                    '{booking_data['guest_name'].replace("'", "''")}', 
-                                    '{booking_data.get('guest_phone', '').replace("'", "''")}',
-                                    {chat_id}, {total_price}, '{payment_link.replace("'", "''")}', 'pending', {robokassa_inv_id if robokassa_inv_id else 'NULL'})
-                            RETURNING id
-                        """)
-                        
-                        pending_id = cur.fetchone()[0]
-                        conn.commit()
-                        
-                        # Уведомление владельцу о новой брони
-                        services_text = ''
-                        if selected_services:
-                            services_text = '\nДоп. услуги: ' + ', '.join([s['name'] for s in selected_services])
-                        
-                        notify_owner(
-                            owner_id,
-                            f'📋 <b>Новая бронь!</b>\n\n'
-                            f'Объект: {unit_name}\n'
-                            f'Гость: {booking_data["guest_name"]}\n'
-                            f'Телефон: {booking_data.get("guest_phone", "—")}\n'
-                            f'Даты: {booking_data["check_in"]} — {booking_data["check_out"]}{services_text}\n'
-                            f'Сумма: {int(total_price)} ₽\n\n'
-                            f'⏳ Ожидает оплаты (№{pending_id})'
-                        )
-                        
-                        # Формируем детализацию стоимости
-                        cost_breakdown = f'Проживание: {int(base_price * nights)} ₽ ({nights} ночей × {int(base_price)} ₽)'
-                        if selected_services:
-                            cost_breakdown += '\nДоп. услуги:\n'
-                            for svc in selected_services:
-                                cost_breakdown += f"  • {svc['name']}: {int(svc['price'])} ₽\n"
-                        
-                        assistant_message = (
-                            f'✅ Предварительная бронь создана!\n\n'
-                            f'📋 Номер: {pending_id}\n'
-                            f'🏠 Объект: {unit_name}\n'
-                            f'📅 Даты: {booking_data["check_in"]} — {booking_data["check_out"]}\n\n'
-                            f'💰 Стоимость:\n{cost_breakdown}\n'
-                            f'Итого: {int(total_price)} ₽\n\n'
-                            f'💳 Для подтверждения брони оплатите по ссылке:\n{payment_link}\n\n'
-                            f'⏳ После оплаты ожидайте подтверждения от владельца.'
-                        )
-                    except Exception as e:
-                        print(f'Robokassa payment creation error: {str(e)}')
-                        # Fallback на СБП
-                        description = f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
-                        payment_link = f"https://qr.nspk.ru/profi/cash.html?sum={int(total_price)}&comment={urllib.parse.quote(description)}"
-                        
-                        cur.execute(f"""
-                            INSERT INTO {tbl('pending_bookings')} 
-                            (unit_id, check_in, check_out, guest_name, guest_contact, 
-                             telegram_chat_id, amount, payment_link, verification_status)
-                            VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
-                                    '{booking_data['guest_name'].replace("'", "''")}', 
-                                    '{booking_data.get('guest_phone', '').replace("'", "''")}',
-                                    {chat_id}, {total_price}, '{payment_link.replace("'", "''")}', 'pending')
-                            RETURNING id
-                        """)
-                        
-                        pending_id = cur.fetchone()[0]
-                        conn.commit()
-                        
-                        assistant_message = (
-                            f'✅ Предварительная бронь создана!\n\n'
-                            f'📋 Номер: {pending_id}\n'
-                            f'💰 Стоимость: {int(total_price)} руб.\n\n'
-                            f'💳 Оплатите по ссылке СБП:\n{payment_link}\n\n'
-                            f'📸 После оплаты отправьте скриншот чека'
-                        )
+                    # Генерируем ссылку на оплату через СБП
+                    description = f"Бронь {unit_name} {booking_data['check_in']}-{booking_data['check_out']}"
+                    payment_link = f"https://qr.nspk.ru/profi/cash.html?sum={int(total_price)}&comment={urllib.parse.quote(description)}"
+                    
+                    # Создаем pending booking (ждет оплаты)
+                    cur.execute(f"""
+                        INSERT INTO {tbl('pending_bookings')} 
+                        (unit_id, check_in, check_out, guest_name, guest_contact, 
+                         telegram_chat_id, amount, payment_link, verification_status)
+                        VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
+                                '{booking_data['guest_name'].replace("'", "''")}', 
+                                '{booking_data.get('guest_phone', '').replace("'", "''")}',
+                                {chat_id}, {total_price}, '{payment_link.replace("'", "''")}', 'pending')
+                        RETURNING id
+                    """)
+                    
+                    pending_id = cur.fetchone()[0]
+                    conn.commit()
+                    
+                    # Уведомление владельцу о новой брони
+                    services_text = ''
+                    if selected_services:
+                        services_text = '\nДоп. услуги: ' + ', '.join([s['name'] for s in selected_services])
+                    
+                    notify_owner(
+                        owner_id,
+                        f'📋 <b>Новая бронь!</b>\n\n'
+                        f'Объект: {unit_name}\n'
+                        f'Гость: {booking_data["guest_name"]}\n'
+                        f'Телефон: {booking_data.get("guest_phone", "—")}\n'
+                        f'Даты: {booking_data["check_in"]} — {booking_data["check_out"]}{services_text}\n'
+                        f'Сумма: {int(total_price)} ₽\n\n'
+                        f'⏳ Ожидает оплаты (№{pending_id})'
+                    )
+                    
+                    # Формируем детализацию стоимости
+                    cost_breakdown = f'Проживание: {int(base_price * nights)} ₽ ({nights} ночей × {int(base_price)} ₽)'
+                    if selected_services:
+                        cost_breakdown += '\nДоп. услуги:\n'
+                        for svc in selected_services:
+                            cost_breakdown += f"  • {svc['name']}: {int(svc['price'])} ₽\n"
+                    
+                    assistant_message = (
+                        f'✅ Предварительная бронь создана!\n\n'
+                        f'📋 Номер: {pending_id}\n'
+                        f'🏠 Объект: {unit_name}\n'
+                        f'📅 Даты: {booking_data["check_in"]} — {booking_data["check_out"]}\n\n'
+                        f'💰 Стоимость:\n{cost_breakdown}\n'
+                        f'Итого: {int(total_price)} ₽\n\n'
+                        f'💳 Оплатите по ссылке СБП:\n{payment_link}\n\n'
+                        f'📸 После оплаты отправьте скриншот чека в этот чат'
+                    )
                     else:
                         assistant_message = '❌ Объект не найден. Попробуйте выбрать другой вариант.'
                 else:
@@ -769,36 +733,3 @@ def notify_owner(owner_id: int, message: str):
     
     if owner_chat:
         send_telegram_message(int(owner_chat[0]), f'🔔 <b>Уведомление</b>\n\n{message}')
-
-
-def create_robokassa_payment(amount: float, user_name: str, user_email: str, user_phone: str, description: str) -> dict:
-    '''Создает заказ в Robokassa и возвращает payment_url'''
-    merchant_login = os.environ.get('ROBOKASSA_MERCHANT_LOGIN')
-    password_1 = os.environ.get('ROBOKASSA_PASSWORD_1')
-    
-    if not merchant_login or not password_1:
-        raise ValueError('Robokassa credentials not configured')
-    
-    import random
-    robokassa_inv_id = random.randint(100000, 2147483647)
-    amount_str = f"{amount:.2f}"
-    
-    # Подпись: MerchantLogin:OutSum:InvId:Password#1
-    signature_string = f"{merchant_login}:{amount_str}:{robokassa_inv_id}:{password_1}"
-    signature = hashlib.md5(signature_string.encode()).hexdigest()
-    
-    payment_url = (
-        f"https://auth.robokassa.ru/Merchant/Index.aspx?"
-        f"MerchantLogin={urllib.parse.quote(merchant_login)}&"
-        f"OutSum={amount_str}&"
-        f"InvoiceID={robokassa_inv_id}&"
-        f"SignatureValue={signature}&"
-        f"Email={urllib.parse.quote(user_email)}&"
-        f"Culture=ru&"
-        f"Description={urllib.parse.quote(description)}"
-    )
-    
-    return {
-        'payment_url': payment_url,
-        'robokassa_inv_id': robokassa_inv_id
-    }

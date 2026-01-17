@@ -12,37 +12,53 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
   const navigate = useNavigate();
 
   return (
-    <section id="home" className="pt-32 pb-20 px-4">
-      <div className="container mx-auto">
+    <section id="home" className="pt-32 pb-20 px-4 relative overflow-hidden">
+      <div className="absolute inset-0 z-0">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover"
+        >
+          <source src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/bucket/0_Background_Abstract_1920x1080.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/90 to-white/85"></div>
+      </div>
+      
+      <div className="container mx-auto relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6 animate-fade-in">
-            <Badge className="bg-primary/10 text-primary border-primary/20">
+            <Badge className="bg-primary/10 text-primary border-primary/20 backdrop-blur-sm">
               🚀 Платформа нового поколения
             </Badge>
-            <h2 className="text-5xl lg:text-6xl font-bold font-heading leading-tight">
+            <h2 className="text-5xl lg:text-6xl font-bold font-heading leading-tight drop-shadow-sm">
               Инструменты для{' '}
               <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                 бизнеса
               </span>{' '}
               в туризме
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-700 drop-shadow-sm">
               Помогаем предпринимателям открыть и развить бизнес в сфере туризма России. Инструменты, советы и сообщество единомышленников.
             </p>
           </div>
           <div className="relative animate-float">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-3xl"></div>
-            <div className="relative rounded-3xl shadow-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent z-10"></div>
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover rounded-3xl"
-              >
-                <source src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/bucket/0_Background_Abstract_1920x1080.mp4" type="video/mp4" />
-              </video>
+            <div className="relative bg-white/40 backdrop-blur-md rounded-3xl shadow-2xl p-8 border border-white/60">
+              <div className="text-center space-y-4">
+                <div className="text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  2490₽
+                </div>
+                <p className="text-lg text-gray-700">Начните развивать бизнес уже сегодня</p>
+                <Button 
+                  size="lg" 
+                  onClick={() => navigate('/pricing')}
+                  className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 w-full"
+                >
+                  Попробовать бесплатно
+                </Button>
+              </div>
             </div>
           </div>
         </div>

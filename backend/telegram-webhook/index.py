@@ -68,7 +68,9 @@ def handler(event: dict, context) -> dict:
         username = message['from'].get('username', '')
         first_name = message['from'].get('first_name', 'Гость')
         
+        print(f'DEBUG: Connecting to DB...')
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        print(f'DEBUG: Connected successfully')
         
         # Обработка фото (скриншота оплаты)
         if photo:
@@ -231,7 +233,7 @@ def handler(event: dict, context) -> dict:
                     
                     # Проверяем, есть ли уже запись для этого chat_id
                     cur.execute(f"""
-                        SELECT id FROM conversations
+                        SELECT id FROM {tbl('conversations')}
                         WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
                     """)
                     existing = cur.fetchone()
@@ -239,7 +241,7 @@ def handler(event: dict, context) -> dict:
                     if existing:
                         # Обновляем существующую запись
                         cur.execute(f"""
-                            UPDATE conversations
+                            UPDATE {tbl('conversations')}
                             SET user_id = {owner_id}, status = 'owner'
                             WHERE channel = 'telegram' AND channel_user_id = '{chat_id}'
                         """)

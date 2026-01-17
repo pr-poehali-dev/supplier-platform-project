@@ -410,6 +410,24 @@ def handler(event: dict, context) -> dict:
                 'status': row[3]
             })
         
+        # Получаем дополнительные услуги
+        cur.execute(f"""
+            SELECT id, name, description, price, category
+            FROM {tbl('additional_services')}
+            WHERE owner_id = {owner_id} AND enabled = true
+            ORDER BY category, name
+        """)
+        
+        additional_services = []
+        for row in cur.fetchall():
+            additional_services.append({
+                'id': row[0],
+                'name': row[1],
+                'description': row[2] or '',
+                'price': float(row[3]),
+                'category': row[4] or 'Другое'
+            })
+        
         # Формируем информацию о занятости для промпта
         availability_info = []
         for unit in units_info:
@@ -429,6 +447,9 @@ def handler(event: dict, context) -> dict:
 Календарь занятости (ближайшие 3 месяца):
 {chr(10).join(availability_info)}
 
+Дополнительные услуги:
+{json.dumps(additional_services, ensure_ascii=False, indent=2) if additional_services else 'Нет доступных услуг'}
+
 Правила:
 1. Будь дружелюбным и профессиональным
 2. ВСЕГДА проверяй календарь занятости перед предложением дат
@@ -436,11 +457,12 @@ def handler(event: dict, context) -> dict:
 4. Узнай даты заезда и выезда (формат: 2026-02-15)
 5. Узнай количество гостей
 6. Предложи подходящие СВОБОДНЫЕ варианты из списка
-7. Назови точную цену (base_price × количество ночей)
-8. Для бронирования запроси имя и телефон клиента
-9. НИКОГДА не придумывай доступность — говори только про свободные даты из календаря
-10. Когда все данные собраны, отправь JSON:
-{{"action": "create_booking", "unit_id": 1, "check_in": "2026-02-15", "check_out": "2026-02-17", "guest_name": "Иван Петров", "guest_phone": "+79991234567", "guests_count": 2}}
+7. Предложи дополнительные услуги, если они есть (баня, мангал, экскурсии и т.д.)
+8. Назови точную цену: (base_price × количество ночей) + доп.услуги
+9. Для бронирования запроси имя и телефон клиента
+10. НИКОГДА не придумывай доступность — говори только про свободные даты из календаря
+11. Когда все данные собраны, отправь JSON:
+{{"action": "create_booking", "unit_id": 1, "check_in": "2026-02-15", "check_out": "2026-02-17", "guest_name": "Иван Петров", "guest_phone": "+79991234567", "guests_count": 2, "additional_service_ids": [1, 3]}}
 
 Текущая дата: {datetime.now().strftime('%Y-%m-%d')}"""
         
@@ -522,6 +544,22 @@ def handler(event: dict, context) -> dict:
                     nights = (check_out - check_in).days
                     total_price = base_price * nights
                     
+                    # Добавляем стоимость дополнительных услуг
+                    selected_services = []
+                    additional_services_cost = 0
+                    if 'additional_service_ids' in booking_data and booking_data['additional_service_ids']:
+                        service_ids = ','.join(map(str, booking_data['additional_service_ids']))
+                        cur.execute(f"""
+                            SELECT id, name, price FROM {tbl('additional_services')}
+                            WHERE id IN ({service_ids}) AND owner_id = {owner_id}
+                        """)
+                        for svc_row in cur.fetchall():
+                            svc_price = float(svc_row[2])
+                            selected_services.append({'id': svc_row[0], 'name': svc_row[1], 'price': svc_price})
+                            additional_services_cost += svc_price
+                    
+                    total_price += additional_services_cost
+                    
                     # Получаем платежную ссылку для объекта
                     cur.execute(f"""
                         SELECT payment_link, payment_system, recipient_name
@@ -564,25 +602,37 @@ def handler(event: dict, context) -> dict:
                         conn.commit()
                         
                         # Уведомление владельцу о новой брони
+                        services_text = ''
+                        if selected_services:
+                            services_text = '\nДоп. услуги: ' + ', '.join([s['name'] for s in selected_services])
+                        
                         notify_owner(
                             owner_id,
                             f'📋 <b>Новая бронь!</b>\n\n'
                             f'Объект: {unit_name}\n'
                             f'Гость: {booking_data["guest_name"]}\n'
                             f'Телефон: {booking_data.get("guest_phone", "—")}\n'
-                            f'Даты: {booking_data["check_in"]} — {booking_data["check_out"]}\n'
+                            f'Даты: {booking_data["check_in"]} — {booking_data["check_out"]}{services_text}\n'
                             f'Сумма: {int(total_price)} ₽\n\n'
                             f'⏳ Ожидает оплаты (№{pending_id})'
                         )
+                        
+                        # Формируем детализацию стоимости
+                        cost_breakdown = f'Проживание: {int(base_price * nights)} ₽ ({nights} ночей × {int(base_price)} ₽)'
+                        if selected_services:
+                            cost_breakdown += '\nДоп. услуги:\n'
+                            for svc in selected_services:
+                                cost_breakdown += f"  • {svc['name']}: {int(svc['price'])} ₽\n"
                         
                         assistant_message = (
                             f'✅ Предварительная бронь создана!\n\n'
                             f'📋 Номер: {pending_id}\n'
                             f'🏠 Объект: {unit_name}\n'
-                            f'📅 Даты: {booking_data["check_in"]} — {booking_data["check_out"]}\n'
-                            f'💰 Стоимость: {int(total_price)} руб. за {nights} ночей\n\n'
+                            f'📅 Даты: {booking_data["check_in"]} — {booking_data["check_out"]}\n\n'
+                            f'💰 Стоимость:\n{cost_breakdown}\n'
+                            f'Итого: {int(total_price)} ₽\n\n'
                             f'💳 Для подтверждения брони оплатите по ссылке:\n{payment_link}\n\n'
-                            f'После оплаты бронь автоматически подтвердится!'
+                            f'⏳ После оплаты ожидайте подтверждения от владельца.'
                         )
                     except Exception as e:
                         print(f'Robokassa payment creation error: {str(e)}')

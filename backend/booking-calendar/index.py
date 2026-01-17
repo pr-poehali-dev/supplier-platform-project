@@ -114,6 +114,41 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
+        # GET /get_pending_bookings - получить ожидающие подтверждения брони
+        if method == 'GET' and action == 'get_pending_bookings':
+            cur.execute(f"""
+                SELECT pb.id, u.name as unit_name, pb.check_in, pb.check_out,
+                       pb.guest_name, pb.guest_contact, pb.amount, pb.payment_screenshot_url,
+                       pb.verification_status, pb.verification_notes, pb.created_at
+                FROM {schema}.pending_bookings pb
+                JOIN {schema}.units u ON pb.unit_id = u.id
+                WHERE u.owner_id = {owner_id}
+                ORDER BY pb.created_at DESC
+            """)
+            
+            pending_bookings = []
+            for row in cur.fetchall():
+                pending_bookings.append({
+                    'id': row[0],
+                    'unit_name': row[1],
+                    'check_in': row[2].isoformat() if row[2] else None,
+                    'check_out': row[3].isoformat() if row[3] else None,
+                    'guest_name': row[4],
+                    'guest_contact': row[5],
+                    'amount': float(row[6]) if row[6] else 0,
+                    'payment_screenshot_url': row[7],
+                    'verification_status': row[8],
+                    'verification_notes': row[9],
+                    'created_at': row[10].isoformat() if row[10] else None
+                })
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'bookings': pending_bookings}),
+                'isBase64Encoded': False
+            }
+        
         # POST /create-unit - добавить объект
         if method == 'POST' and action == 'create-unit':
             body = json.loads(event.get('body', '{}'))

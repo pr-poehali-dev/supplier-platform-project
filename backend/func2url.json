@@ -1,4 +1,5 @@
 {
+  "telegram-setup-webhook": "https://functions.poehali.dev/61d49d2c-cb8a-4629-ab2e-3f104ffd2a9f",
   "send-telegram-notification": "https://functions.poehali.dev/3525cc1c-2eef-4928-b1ac-4c43956b051d",
   "customer-sync": "https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce",
   "ai-assistant": "https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a",
@@ -14,6 +15,7 @@
   "robokassa-robokassa": "https://functions.poehali.dev/a1a4be1c-d18a-43fc-839d-3f01ba50bfb8",
   "chatgpt-polza-chatgpt": "https://functions.poehali.dev/e13712ed-a9c9-41b9-8408-3330a2e22fef",
   "telegram-setup": "https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d",
+  "telegram-webhook": "https://functions.poehali.dev/c2a7d78f-5e5c-4130-8e7e-2b513f841761",
   "booking-calendar": "https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d",
   "user-auth": "https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70",
   "admin-users": "https://functions.poehali.dev/57e87325-acea-4f23-9b9b-048fa498ae14"

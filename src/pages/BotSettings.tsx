@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { fetchWithAuth } from '@/lib/api';
 import BotSettingsForm from '@/components/bot/BotSettingsForm';
 import HolidaysList from '@/components/bot/HolidaysList';
+import WebhookSetup from '@/components/telegram/WebhookSetup';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
@@ -136,6 +137,10 @@ export default function BotSettings() {
           <p className="text-gray-600">
             Персонализируйте поведение вашего AI-помощника
           </p>
+        </div>
+
+        <div className="mb-6">
+          <WebhookSetup />
         </div>
 
         <BotSettingsForm settings={settings} onChange={setSettings} />

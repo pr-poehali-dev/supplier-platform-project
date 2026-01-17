@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { fetchWithAuth } from '@/lib/api';
+import RulesList from './RulesList';
+import RuleDialog from './RuleDialog';
 
 const PRICING_ENGINE_URL = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4';
 
@@ -109,11 +104,9 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
         })
       });
       
-      // Обновляем локально без перезагрузки
       setRules(prev => prev.map(r => r.id === ruleId ? { ...r, enabled } : r));
       onRulesUpdate?.();
     } catch (error) {
-      // При ошибке перезагружаем с сервера
       await loadRules();
     } finally {
       setLoading(false);
@@ -131,11 +124,9 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
         body: JSON.stringify({ rule_id: ruleId })
       });
       
-      // Удаляем локально
       setRules(prev => prev.filter(r => r.id !== ruleId));
       onRulesUpdate?.();
     } catch (error) {
-      // При ошибке перезагружаем с сервера
       await loadRules();
     } finally {
       setLoading(false);
@@ -162,86 +153,6 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
     setIsDialogOpen(true);
   };
 
-  const renderConditionEditor = () => {
-    if (!editingRule) return null;
-
-    switch (editingRule.condition_type) {
-      case 'occupancy':
-        return (
-          <div className="space-y-2">
-            <Label>Порог загрузки (%)</Label>
-            <Input
-              type="number"
-              value={editingRule.condition_value?.threshold || 0}
-              onChange={(e) => setEditingRule({
-                ...editingRule,
-                condition_value: { threshold: parseInt(e.target.value) }
-              })}
-              placeholder="70"
-            />
-          </div>
-        );
-
-      case 'days_before':
-        return (
-          <div className="space-y-3">
-            <div>
-              <Label>Количество дней до заезда</Label>
-              <Input
-                type="number"
-                value={editingRule.condition_value?.days || 0}
-                onChange={(e) => setEditingRule({
-                  ...editingRule,
-                  condition_value: {
-                    ...editingRule.condition_value,
-                    days: parseInt(e.target.value)
-                  }
-                })}
-                placeholder="5"
-              />
-            </div>
-            <div>
-              <Label>Макс. загрузка для применения (%)</Label>
-              <Input
-                type="number"
-                value={editingRule.condition_value?.occupancy_max || 100}
-                onChange={(e) => setEditingRule({
-                  ...editingRule,
-                  condition_value: {
-                    ...editingRule.condition_value,
-                    occupancy_max: parseInt(e.target.value)
-                  }
-                })}
-                placeholder="40"
-              />
-            </div>
-          </div>
-        );
-
-      case 'day_of_week':
-        return (
-          <div className="space-y-2">
-            <Label>Дни недели (0=ВС, 6=СБ)</Label>
-            <Input
-              type="text"
-              value={editingRule.condition_value?.days?.join(',') || ''}
-              onChange={(e) => setEditingRule({
-                ...editingRule,
-                condition_value: {
-                  days: e.target.value.split(',').map(d => parseInt(d.trim())).filter(n => !isNaN(n))
-                }
-              })}
-              placeholder="5,6"
-            />
-            <p className="text-xs text-gray-500">Введите номера дней через запятую</p>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -253,190 +164,29 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
         <Button 
           size="sm" 
           onClick={openNewRuleDialog}
-          className="gap-2"
+          disabled={loading}
         >
-          <Icon name="Plus" size={16} />
+          <Icon name="Plus" size={16} className="mr-1" />
           Добавить правило
         </Button>
       </div>
-      <div className="space-y-3">
-        {rules.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Icon name="AlertCircle" size={32} className="mx-auto mb-2 opacity-30" />
-            <p>Нет правил. Создайте первое правило!</p>
-          </div>
-        ) : (
-          rules.map((rule) => (
-            <div
-              key={rule.id}
-              className="flex items-center justify-between p-3 bg-white border rounded-lg hover:shadow-sm transition-shadow"
-            >
-              <div className="flex items-center gap-3 flex-1">
-                <Switch
-                  checked={rule.enabled}
-                  onCheckedChange={(checked) => toggleRule(rule.id, checked)}
-                  disabled={loading}
-                />
-                <div className="flex-1">
-                  <p className="font-semibold text-sm">{rule.name}</p>
-                  <p className="text-xs text-gray-600">
-                    {rule.action_type === 'increase' ? '+' : rule.action_type === 'decrease' ? '-' : '='}
-                    {rule.action_value}{rule.action_unit === 'percent' ? '%' : '₽'}
-                    {' • Приоритет: '}{rule.priority}
-                  </p>
-                </div>
-                <Badge variant={rule.enabled ? "default" : "secondary"}>
-                  {rule.enabled ? 'Активно' : 'Выкл'}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-1 ml-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openEditRuleDialog(rule)}
-                  title="Редактировать"
-                >
-                  <Icon name="Edit" size={16} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteRule(rule.id)}
-                  disabled={loading}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  title="Удалить"
-                >
-                  <Icon name="Trash2" size={16} />
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {editingRule?.id ? 'Редактировать правило' : 'Новое правило'}
-              </DialogTitle>
-            </DialogHeader>
-            {editingRule && (
-              <div className="space-y-4">
-                <div>
-                  <Label>Название</Label>
-                  <Input
-                    value={editingRule.name || ''}
-                    onChange={(e) => setEditingRule({ ...editingRule, name: e.target.value })}
-                    placeholder="Высокая загрузка"
-                  />
-                </div>
+      <RulesList
+        rules={rules}
+        loading={loading}
+        onToggle={toggleRule}
+        onEdit={openEditRuleDialog}
+        onDelete={deleteRule}
+      />
 
-                <div>
-                  <Label>Тип условия</Label>
-                  <Select
-                    value={editingRule.condition_type}
-                    onValueChange={(value: any) => setEditingRule({
-                      ...editingRule,
-                      condition_type: value
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="occupancy">Загрузка</SelectItem>
-                      <SelectItem value="days_before">Дни до заезда</SelectItem>
-                      <SelectItem value="day_of_week">День недели</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {renderConditionEditor()}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Действие</Label>
-                    <Select
-                      value={editingRule.action_type}
-                      onValueChange={(value: any) => setEditingRule({
-                        ...editingRule,
-                        action_type: value
-                      })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="increase">Увеличить</SelectItem>
-                        <SelectItem value="decrease">Уменьшить</SelectItem>
-                        <SelectItem value="set">Установить</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Единица</Label>
-                    <Select
-                      value={editingRule.action_unit}
-                      onValueChange={(value: any) => setEditingRule({
-                        ...editingRule,
-                        action_unit: value
-                      })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percent">Проценты</SelectItem>
-                        <SelectItem value="fixed">Фиксированная</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Значение</Label>
-                  <Input
-                    type="number"
-                    value={editingRule.action_value || 0}
-                    onChange={(e) => setEditingRule({
-                      ...editingRule,
-                      action_value: parseFloat(e.target.value)
-                    })}
-                    placeholder="15"
-                  />
-                </div>
-
-                <div>
-                  <Label>Приоритет (чем выше, тем раньше применяется)</Label>
-                  <Input
-                    type="number"
-                    value={editingRule.priority || 0}
-                    onChange={(e) => setEditingRule({
-                      ...editingRule,
-                      priority: parseInt(e.target.value)
-                    })}
-                    placeholder="0"
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button onClick={saveRule} disabled={loading} className="flex-1">
-                    {loading ? 'Сохранение...' : 'Сохранить'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                    className="flex-1"
-                  >
-                    Отмена
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+      <RuleDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        rule={editingRule}
+        onRuleChange={setEditingRule}
+        onSave={saveRule}
+        loading={loading}
+      />
     </div>
   );
 }

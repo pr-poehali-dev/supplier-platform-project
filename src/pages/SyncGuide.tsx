@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import PlatformGuide from '@/components/pages/PlatformGuide';
 
 export default function SyncGuide() {
   usePageMeta({
@@ -13,6 +13,146 @@ export default function SyncGuide() {
   });
 
   const navigate = useNavigate();
+
+  const avitoSteps = [
+    {
+      number: 1,
+      title: 'Войдите в личный кабинет Авито',
+      description: (
+        <>
+          Перейдите на <a href="https://www.avito.ru/profile" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">avito.ru/profile</a> и откройте раздел "Мои объявления"
+        </>
+      ),
+      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/2b931891-e7bb-4f0f-82da-b3bee4944dd5.jpg'
+    },
+    {
+      number: 2,
+      title: 'Найдите настройки календаря',
+      description: 'В объявлении вашего объекта размещения:',
+      details: (
+        <ul className="space-y-2 text-gray-700 mb-4">
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Нажмите "Редактировать"</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Прокрутите до раздела "Календарь"</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Найдите кнопку "Экспорт календаря" или "Получить ссылку iCal"</span>
+          </li>
+        </ul>
+      )
+    },
+    {
+      number: 3,
+      title: 'Скопируйте iCal ссылку',
+      description: 'После нажатия на "Экспорт календаря" появится ссылка вида:',
+      details: (
+        <>
+          <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300 font-mono text-sm break-all">
+            https://www.avito.ru/calendar/export/...
+          </div>
+          <p className="text-gray-600 text-sm mt-2">📋 Скопируйте эту ссылку полностью</p>
+        </>
+      )
+    },
+    {
+      number: 4,
+      title: 'Добавьте в TOURCONNECT',
+      description: 'В календаре бронирований:',
+      details: (
+        <ul className="space-y-2 text-gray-700 mb-4">
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Откройте раздел "Синхронизация календарей"</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Нажмите "Добавить синхронизацию"</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Выберите объект и "Авито"</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Вставьте скопированную ссылку</span>
+          </li>
+        </ul>
+      ),
+      image: 'https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/2be05b47-bbf2-4c8e-9113-dbc55ee6464c.jpg'
+    }
+  ];
+
+  const yandexSteps = [
+    {
+      number: 1,
+      title: 'Откройте личный кабинет',
+      description: (
+        <>
+          Перейдите на <a href="https://travel.yandex.ru/business/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">travel.yandex.ru/business</a> и войдите в личный кабинет партнёра
+        </>
+      )
+    },
+    {
+      number: 2,
+      title: 'Настройки объекта',
+      description: 'Выберите нужный объект размещения и перейдите в его настройки',
+      details: (
+        <ul className="space-y-2 text-gray-700 mb-4">
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Откройте раздел "Управление" → "Календарь"</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Найдите блок "Синхронизация с другими сервисами"</span>
+          </li>
+        </ul>
+      )
+    },
+    {
+      number: 3,
+      title: 'Получите ссылку экспорта',
+      description: 'В разделе синхронизации найдите опцию "Экспорт календаря" и скопируйте ссылку формата:',
+      details: (
+        <>
+          <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300 font-mono text-sm break-all">
+            https://travel.yandex.ru/api/ical/...
+          </div>
+          <p className="text-gray-600 text-sm mt-2">📋 Сохраните эту ссылку</p>
+        </>
+      )
+    },
+    {
+      number: 4,
+      title: 'Подключите в TOURCONNECT',
+      description: 'В разделе "Синхронизация календарей":',
+      details: (
+        <ul className="space-y-2 text-gray-700 mb-4">
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Выберите нужный объект</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Выберите источник "Яндекс Путешествия"</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Вставьте скопированную ссылку</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
+            <span>Сохраните настройки</span>
+          </li>
+        </ul>
+      )
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50/30 to-pink-50/30 p-6">
@@ -56,292 +196,36 @@ export default function SyncGuide() {
           </div>
         </div>
 
-        <Card className="mb-12 border-2 border-orange-300 shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                🟠
-              </div>
-              Синхронизация с Авито
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8">
-            <div className="space-y-8">
-              <div className="flex gap-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center flex-shrink-0 text-white text-xl font-bold">
-                  1
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-semibold mb-3">Войдите в личный кабинет Авито</h4>
-                  <p className="text-gray-700 mb-4">
-                    Перейдите на <a href="https://www.avito.ru/profile" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">avito.ru/profile</a> и откройте раздел "Мои объявления"
-                  </p>
-                  <img 
-                    src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/2b931891-e7bb-4f0f-82da-b3bee4944dd5.jpg"
-                    alt="Авито - шаг 1"
-                    className="rounded-lg border-2 border-gray-200 w-full shadow-md"
-                  />
-                </div>
-              </div>
+        <PlatformGuide
+          title="Синхронизация с Авито"
+          icon="🟠"
+          color="border-orange-300"
+          steps={avitoSteps}
+        />
 
-              <div className="flex gap-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center flex-shrink-0 text-white text-xl font-bold">
-                  2
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-semibold mb-3">Найдите настройки календаря</h4>
-                  <p className="text-gray-700 mb-2">
-                    В объявлении вашего объекта размещения:
-                  </p>
-                  <ul className="space-y-2 text-gray-700 mb-4">
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Нажмите "Редактировать"</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Прокрутите до раздела "Календарь"</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Найдите кнопку "Экспорт календаря" или "Получить ссылку iCal"</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
+        <PlatformGuide
+          title="Синхронизация с Яндекс Путешествиями"
+          icon="🔵"
+          color="border-blue-300"
+          steps={yandexSteps}
+        />
 
-              <div className="flex gap-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center flex-shrink-0 text-white text-xl font-bold">
-                  3
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-semibold mb-3">Скопируйте iCal ссылку</h4>
-                  <p className="text-gray-700 mb-4">
-                    После нажатия на "Экспорт календаря" появится ссылка вида:
-                  </p>
-                  <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300 font-mono text-sm break-all">
-                    https://www.avito.ru/calendar/export/...
-                  </div>
-                  <p className="text-gray-600 text-sm mt-2">
-                    📋 Скопируйте эту ссылку полностью
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center flex-shrink-0 text-white text-xl font-bold">
-                  4
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-semibold mb-3">Добавьте в TOURCONNECT</h4>
-                  <p className="text-gray-700 mb-4">
-                    В календаре бронирований:
-                  </p>
-                  <ul className="space-y-2 text-gray-700 mb-4">
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Откройте раздел "Синхронизация календарей"</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Нажмите "Добавить синхронизацию"</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Выберите объект и "Авито"</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Вставьте скопированную ссылку</span>
-                    </li>
-                  </ul>
-                  <img 
-                    src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/2be05b47-bbf2-4c8e-9113-dbc55ee6464c.jpg"
-                    alt="TOURCONNECT - добавление синхронизации"
-                    className="rounded-lg border-2 border-gray-200 w-full shadow-md"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-green-50 border-2 border-green-300 rounded-xl p-6">
-                <div className="flex items-start gap-4">
-                  <Icon name="CheckCircle" size={32} className="text-green-600 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-xl font-bold text-green-900 mb-2">Готово!</h4>
-                    <p className="text-green-800 text-lg">
-                      Теперь брони с Авито будут автоматически появляться в вашем календаре каждые 30 минут. 
-                      Даты заблокируются, и вы не получите двойное бронирование!
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-12 border-2 border-yellow-300 shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                🟡
-              </div>
-              Синхронизация с Яндекс Путешествиями
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8">
-            <div className="space-y-8">
-              <div className="flex gap-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center flex-shrink-0 text-white text-xl font-bold">
-                  1
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-semibold mb-3">Станьте партнером Яндекс Путешествий</h4>
-                  <p className="text-gray-700 mb-4">
-                    Перейдите на <a href="https://travel.yandex.ru/partners" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">travel.yandex.ru/partners</a> и зарегистрируйтесь как партнер
-                  </p>
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                    <p className="text-sm text-gray-700">
-                      <strong>Важно:</strong> Регистрация в партнерской программе занимает 1-3 дня. После одобрения получите доступ к личному кабинету.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center flex-shrink-0 text-white text-xl font-bold">
-                  2
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-semibold mb-3">Откройте настройки объекта</h4>
-                  <p className="text-gray-700 mb-4">
-                    В личном кабинете партнера:
-                  </p>
-                  <ul className="space-y-2 text-gray-700 mb-4">
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Выберите ваш объект размещения</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Перейдите в раздел "Календарь и цены"</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Icon name="CheckCircle" size={18} className="text-green-600 mt-1 flex-shrink-0" />
-                      <span>Найдите "Экспорт календаря" или "Настройки синхронизации"</span>
-                    </li>
-                  </ul>
-                  <img 
-                    src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/82b5a26a-604d-4555-8143-b3ccd33ea41a.jpg"
-                    alt="Яндекс Путешествия - шаг 2"
-                    className="rounded-lg border-2 border-gray-200 w-full shadow-md"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center flex-shrink-0 text-white text-xl font-bold">
-                  3
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-semibold mb-3">Получите iCal ссылку</h4>
-                  <p className="text-gray-700 mb-4">
-                    Нажмите "Экспорт календаря" и скопируйте ссылку:
-                  </p>
-                  <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300 font-mono text-sm break-all">
-                    https://travel.yandex.ru/api/calendar/...
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center flex-shrink-0 text-white text-xl font-bold">
-                  4
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-semibold mb-3">Добавьте в TOURCONNECT</h4>
-                  <p className="text-gray-700 mb-4">
-                    Аналогично Авито: откройте "Синхронизация календарей", нажмите "Добавить", 
-                    выберите "Яндекс Путешествия" и вставьте ссылку.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-green-50 border-2 border-green-300 rounded-xl p-6">
-                <div className="flex items-start gap-4">
-                  <Icon name="CheckCircle" size={32} className="text-green-600 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-xl font-bold text-green-900 mb-2">Синхронизация настроена!</h4>
-                    <p className="text-green-800 text-lg">
-                      Брони из Яндекс Путешествий автоматически блокируют даты в вашем календаре.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-12 border-2 border-purple-300 shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <Icon name="HelpCircle" size={28} />
-              Частые вопросы
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8">
-            <div className="space-y-6">
-              <div>
-                <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                  <Icon name="Clock" size={20} className="text-purple-600" />
-                  Как часто обновляются календари?
-                </h4>
-                <p className="text-gray-700 pl-7">
-                  Автоматически каждые 30 минут. Вы также можете нажать "Синхронизировать" вручную в любой момент.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                  <Icon name="Shield" size={20} className="text-purple-600" />
-                  Это безопасно?
-                </h4>
-                <p className="text-gray-700 pl-7">
-                  Да! iCal — стандартный протокол, который используют все календари мира. 
-                  Ссылка позволяет только читать занятые даты, но не изменять их.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                  <Icon name="Zap" size={20} className="text-purple-600" />
-                  Что если бронь отменят на площадке?
-                </h4>
-                <p className="text-gray-700 pl-7">
-                  При следующей синхронизации (через 30 минут) даты автоматически освободятся в вашем календаре.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                  <Icon name="Link" size={20} className="text-purple-600" />
-                  Можно подключить несколько площадок?
-                </h4>
-                <p className="text-gray-700 pl-7">
-                  Да! Добавьте синхронизацию для каждой площадки отдельно. Все брони будут собираться в один календарь.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="text-center pb-12">
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-8 text-center">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-4">
+            <Icon name="CheckCircle" size={40} className="text-white" />
+          </div>
+          <h3 className="text-3xl font-bold mb-4">Готово!</h3>
+          <p className="text-xl text-gray-700 mb-6">
+            Теперь все брони с Авито и Яндекс Путешествий будут автоматически синхронизироваться с вашим календарём. 
+            Проверяйте статус синхронизации в разделе "Синхронизация календарей".
+          </p>
           <Button
-            onClick={() => navigate('/booking-calendar')}
             size="lg"
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-lg px-8 py-6"
+            onClick={() => navigate('/booking-calendar')}
+            className="bg-gradient-to-r from-green-600 to-emerald-600"
           >
-            <Icon name="ArrowLeft" size={20} className="mr-2" />
-            Вернуться к календарю
+            Перейти к календарю
+            <Icon name="ArrowRight" size={20} className="ml-2" />
           </Button>
         </div>
       </div>

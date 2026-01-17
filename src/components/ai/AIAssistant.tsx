@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
 import { fetchWithAuth } from '@/lib/api';
+import ChatMessages from './ChatMessages';
+import ChatInput from './ChatInput';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
@@ -20,8 +20,6 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
-  const [greeting, setGreeting] = useState('');
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -29,20 +27,12 @@ export default function AIAssistant() {
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
-
   const loadSettings = async () => {
     try {
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
-      
       if (!user?.id) return;
 
-      // Загружаем настройки и историю чата параллельно
       const [settingsRes, chatRes] = await Promise.all([
         fetchWithAuth(`${AI_URL}?action=settings`),
         fetchWithAuth(`${AI_URL}?action=chat`)
@@ -51,15 +41,12 @@ export default function AIAssistant() {
       const settingsData = await settingsRes.json();
       const chatData = await chatRes.json();
       
-      // Если есть история - показываем её
       if (chatData.messages && chatData.messages.length > 0) {
         setMessages(chatData.messages);
       } else {
-        // Иначе показываем приветствие
         const greetingText = settingsData.settings?.greeting_message || 
           'Привет! Я ваш AI-помощник. Могу проанализировать загрузку, дать советы по ценам или помочь с настройкой бизнеса. Чем могу помочь?';
         
-        setGreeting(greetingText);
         setMessages([{
           role: 'assistant',
           content: greetingText,
@@ -88,16 +75,11 @@ export default function AIAssistant() {
     try {
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
-      
-      if (!user?.id) {
-        throw new Error('User not logged in');
-      }
+      if (!user?.id) throw new Error('User not logged in');
 
       const response = await fetchWithAuth(`${AI_URL}?action=chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageText,
           conversation_id: conversationId
@@ -123,7 +105,6 @@ export default function AIAssistant() {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -144,7 +125,6 @@ export default function AIAssistant() {
 
   return (
     <>
-      {/* Кнопка открытия чата */}
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
@@ -155,7 +135,6 @@ export default function AIAssistant() {
         </Button>
       )}
 
-      {/* Окно чата */}
       {isOpen && (
         <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col border-2 border-blue-500">
           <CardHeader className="pb-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
@@ -190,100 +169,15 @@ export default function AIAssistant() {
           </CardHeader>
 
           <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
-            {/* Сообщения */}
-            <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-              <div className="space-y-4">
-                {messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-lg px-4 py-2 ${
-                        msg.role === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-900 border border-gray-200'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                      <p className={`text-xs mt-1 ${msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
-                        {new Date(msg.created_at).toLocaleTimeString('ru-RU', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {loading && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-100 rounded-lg px-4 py-3 border border-gray-200">
-                      <Icon name="Loader2" size={16} className="animate-spin text-gray-600" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-
-            {/* Подсказки */}
-            {messages.length <= 1 && (
-              <div className="px-4 pb-2">
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setInput('Какая загрузка на ближайший месяц?');
-                    }}
-                    className="text-xs"
-                  >
-                    📊 Загрузка
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setInput('Дай совет как увеличить выручку');
-                    }}
-                    className="text-xs"
-                  >
-                    💡 Советы
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setInput('Какие праздники скоро?');
-                    }}
-                    className="text-xs"
-                  >
-                    🎉 Праздники
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Поле ввода */}
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Напишите сообщение..."
-                  disabled={loading}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={sendMessage}
-                  disabled={!input.trim() || loading}
-                  size="icon"
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Icon name="Send" size={16} />
-                </Button>
-              </div>
-            </div>
+            <ChatMessages messages={messages} loading={loading} />
+            <ChatInput
+              input={input}
+              loading={loading}
+              messagesCount={messages.length}
+              onInputChange={setInput}
+              onSend={sendMessage}
+              onKeyPress={handleKeyPress}
+            />
           </CardContent>
         </Card>
       )}

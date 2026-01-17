@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { fetchWithAuth } from '@/lib/api';
@@ -13,6 +9,8 @@ import PaymentLinksManager from '@/components/admin/PaymentLinksManager';
 import PendingBookingsManager from '@/components/admin/PendingBookingsManager';
 import SubscriptionManager from '@/components/admin/SubscriptionManager';
 import CalendarSyncManager from '@/components/admin/CalendarSyncManager';
+import UsersTable from '@/components/admin/UsersTable';
+import EmailSender from '@/components/admin/EmailSender';
 
 interface User {
   id: number;
@@ -148,261 +146,107 @@ const Admin = () => {
         })
       });
 
+      const data = await response.json();
+      
       if (response.ok) {
         toast({
-          title: 'Права обновлены',
-          description: 'Статус администратора изменен'
+          title: 'Успешно',
+          description: data.message || 'Права изменены'
         });
         fetchUsers();
+      } else {
+        throw new Error(data.error || 'Ошибка');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Ошибка',
-        description: 'Не удалось изменить права',
+        description: error.message || 'Не удалось изменить права',
         variant: 'destructive'
       });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-blue-50/30">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/')}
-        className="fixed top-4 left-4 gap-2 z-50"
-      >
-        <Icon name="Home" size={20} />
-        На главную
-      </Button>
-      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-lg z-50 border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            TourConnect Admin
-          </h1>
-          <Button onClick={() => navigate('/')} variant="outline">
-            <Icon name="Home" className="mr-2" size={20} />
-            На главную
-          </Button>
-        </div>
-      </nav>
-
-      <div className="container mx-auto px-4 pt-24 pb-12">
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Icon name="Users" size={24} />
-                Всего пользователей
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold text-primary">{total}</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Icon name="Send" size={24} />
-                В Telegram
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold text-secondary">
-                {users.filter(u => u.telegram_invited).length}
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Icon name="Shield" size={24} />
-                Администраторы
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold text-accent">
-                {users.filter(u => u.is_admin).length}
-              </p>
-            </CardContent>
-          </Card>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 p-6">
+      <div className="container mx-auto max-w-7xl">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <Icon name="ArrowLeft" size={20} />
+              Назад
+            </Button>
+            <h1 className="text-4xl font-bold">Панель администратора</h1>
+          </div>
         </div>
 
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Icon name="MessageCircle" size={24} />
-              Ссылка на бота для клиентов
-            </CardTitle>
-            <CardDescription>
-              Отправьте эту ссылку клиентам для начала общения в Telegram
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3">
-              <Input 
-                readOnly 
-                value={`https://t.me/TourConnectSupBot?start=${JSON.parse(localStorage.getItem('user') || '{}').id}`}
-                className="font-mono text-sm"
-              />
-              <Button
-                onClick={() => {
-                  const userStr = localStorage.getItem('user');
-                  if (userStr) {
-                    const user = JSON.parse(userStr);
-                    const link = `https://t.me/TourConnectSupBot?start=${user.id}`;
-                    navigator.clipboard.writeText(link);
-                    toast({
-                      title: 'Скопировано!',
-                      description: 'Ссылка скопирована в буфер обмена'
-                    });
-                  }
-                }}
-                className="shrink-0"
-              >
-                <Icon name="Copy" size={20} className="mr-2" />
-                Копировать
-              </Button>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              Клиенты, перешедшие по этой ссылке, смогут забронировать ваши объекты через бота
-            </p>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="users">
+              <Icon name="Users" size={16} className="mr-2" />
+              Пользователи
+            </TabsTrigger>
+            <TabsTrigger value="email">
+              <Icon name="Mail" size={16} className="mr-2" />
+              Рассылка
+            </TabsTrigger>
+            <TabsTrigger value="payments">
+              <Icon name="CreditCard" size={16} className="mr-2" />
+              Платежи
+            </TabsTrigger>
+            <TabsTrigger value="bookings">
+              <Icon name="Calendar" size={16} className="mr-2" />
+              Брони
+            </TabsTrigger>
+            <TabsTrigger value="subscriptions">
+              <Icon name="Crown" size={16} className="mr-2" />
+              Подписки
+            </TabsTrigger>
+            <TabsTrigger value="sync">
+              <Icon name="RefreshCw" size={16} className="mr-2" />
+              Синхронизация
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="mb-8">
-          <PaymentLinksManager />
-        </div>
+          <TabsContent value="users">
+            <UsersTable
+              users={users}
+              total={total}
+              loading={loading}
+              onToggleAdmin={toggleAdmin}
+            />
+          </TabsContent>
 
-        <div className="mb-8">
-          <PendingBookingsManager />
-        </div>
+          <TabsContent value="email">
+            <EmailSender
+              subject={emailSubject}
+              message={emailMessage}
+              onSubjectChange={setEmailSubject}
+              onMessageChange={setEmailMessage}
+              onSend={sendEmail}
+              sending={sendingEmail}
+            />
+          </TabsContent>
 
-        <div className="mb-8">
-          <CalendarSyncManager />
-        </div>
+          <TabsContent value="payments">
+            <PaymentLinksManager />
+          </TabsContent>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Email рассылка</CardTitle>
-              <CardDescription>
-                Отправить письмо всем зарегистрированным пользователям
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="subject">Тема письма</Label>
-                <Input
-                  id="subject"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder="Новые возможности TourConnect"
-                />
-              </div>
-              <div>
-                <Label htmlFor="message">Текст письма</Label>
-                <Textarea
-                  id="message"
-                  value={emailMessage}
-                  onChange={(e) => setEmailMessage(e.target.value)}
-                  placeholder="Здравствуйте, {name}!&#10;&#10;Рады сообщить вам..."
-                  rows={8}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Используйте {'{name}'} для персонализации
-                </p>
-              </div>
-              <Button
-                onClick={sendEmail}
-                disabled={sendingEmail || !emailSubject || !emailMessage}
-                className="w-full"
-              >
-                {sendingEmail ? (
-                  <>
-                    <Icon name="Loader2" className="mr-2 animate-spin" size={20} />
-                    Отправка...
-                  </>
-                ) : (
-                  <>
-                    <Icon name="Send" className="mr-2" size={20} />
-                    Отправить рассылку
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+          <TabsContent value="bookings">
+            <PendingBookingsManager />
+          </TabsContent>
 
-          <SubscriptionManager users={users} onUpdate={fetchUsers} />
+          <TabsContent value="subscriptions">
+            <SubscriptionManager />
+          </TabsContent>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Пользователи</CardTitle>
-              <CardDescription>
-                Список зарегистрированных пользователей
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Icon name="Loader2" className="animate-spin" size={32} />
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                  {users.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        {user.avatar_url ? (
-                          <img
-                            src={user.avatar_url}
-                            alt={user.full_name}
-                            className="w-10 h-10 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                            <Icon name="User" className="text-white" size={20} />
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-semibold">{user.full_name}</p>
-                          <p className="text-sm text-gray-600">{user.email}</p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              {user.provider}
-                            </Badge>
-                            {user.telegram_invited && (
-                              <Badge variant="outline" className="text-xs bg-blue-50">
-                                <Icon name="Send" size={12} className="mr-1" />
-                                TG
-                              </Badge>
-                            )}
-                            {user.is_admin && (
-                              <Badge variant="outline" className="text-xs bg-purple-50">
-                                <Icon name="Shield" size={12} className="mr-1" />
-                                Admin
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleAdmin(user.id)}
-                      >
-                        <Icon name="Shield" size={16} />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+          <TabsContent value="sync">
+            <CalendarSyncManager />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

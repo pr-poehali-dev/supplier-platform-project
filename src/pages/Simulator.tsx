@@ -1,18 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useNavigate } from 'react-router-dom';
 import { fetchWithAuth } from '@/lib/api';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import SimulatorInputs from '@/components/simulator/SimulatorInputs';
+import SimulatorResults from '@/components/simulator/SimulatorResults';
+import ExpertComments from '@/components/simulator/ExpertComments';
 
 interface BlogPost {
   id: number;
@@ -198,293 +193,92 @@ const Simulator = () => {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8 mb-8">
-            <Card className="border-none shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Icon name="Settings" className="text-primary" size={24} />
-                  Параметры проекта
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Формат проекта</Label>
-                  <Select value={format} onValueChange={(v: any) => setFormat(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="weekend">База выходного дня</SelectItem>
-                      <SelectItem value="eco">Эко-отель</SelectItem>
-                      <SelectItem value="glamping">Глэмпинг</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <SimulatorInputs
+              format={format}
+              setFormat={setFormat}
+              units={units}
+              setUnits={setUnits}
+              price={price}
+              setPrice={setPrice}
+              occupancy={occupancy}
+              setOccupancy={setOccupancy}
+              season={season}
+              setSeason={setSeason}
+              staffExpenses={staffExpenses}
+              setStaffExpenses={setStaffExpenses}
+              marketingExpenses={marketingExpenses}
+              setMarketingExpenses={setMarketingExpenses}
+              otherExpenses={otherExpenses}
+              setOtherExpenses={setOtherExpenses}
+            />
 
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Количество домиков / номеров</Label>
-                  <input
-                    type="number"
-                    value={units}
-                    onChange={(e) => setUnits(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    min="1"
-                    max="50"
-                  />
-                  <p className="text-sm text-gray-500">От 1 до 50</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Средняя цена за ночь (₽)</Label>
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(Math.max(1000, parseInt(e.target.value) || 1000))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    min="1000"
-                    step="500"
-                  />
-                  <p className="text-sm text-gray-500">{formatMoney(price)}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Средняя загрузка (%)</Label>
-                  <input
-                    type="number"
-                    value={occupancy}
-                    onChange={(e) => setOccupancy(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    min="0"
-                    max="100"
-                  />
-                  <p className="text-sm text-gray-500">От 0 до 100%</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Сезонность</Label>
-                  <Select value={season} onValueChange={(v: any) => setSeason(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Низкий сезон (×0.6)</SelectItem>
-                      <SelectItem value="medium">Средний сезон (×1.0)</SelectItem>
-                      <SelectItem value="high">Высокий сезон (×1.3)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="h-px bg-gray-200 my-4"></div>
-
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Расходы на персонал (₽/мес)</Label>
-                  <input
-                    type="number"
-                    value={staffExpenses}
-                    onChange={(e) => setStaffExpenses(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    min="0"
-                    step="10000"
-                  />
-                  <p className="text-sm text-gray-500">{formatMoney(staffExpenses)}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Расходы на маркетинг (₽/мес)</Label>
-                  <input
-                    type="number"
-                    value={marketingExpenses}
-                    onChange={(e) => setMarketingExpenses(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    min="0"
-                    step="5000"
-                    placeholder="По умолчанию 5% от дохода"
-                  />
-                  <p className="text-sm text-gray-500">
-                    {marketingExpenses > 0 ? formatMoney(marketingExpenses) : '5% от дохода (по умолчанию)'}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Прочие расходы (₽/мес)</Label>
-                  <input
-                    type="number"
-                    value={otherExpenses}
-                    onChange={(e) => setOtherExpenses(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    min="0"
-                    step="5000"
-                  />
-                  <p className="text-sm text-gray-500">{formatMoney(otherExpenses)}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-6">
-              <Card className="border-none shadow-xl">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Icon name="Calculator" className="text-primary" size={24} />
-                    Расчёт за месяц
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                    <span className="text-gray-700 font-medium">Доход</span>
-                    <span className="text-xl font-bold text-green-600">{formatMoney(monthlyRevenue)}</span>
-                  </div>
-                  
-                  <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Персонал</span>
-                      <span className="font-medium">{formatMoney(staffExpenses)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Коммунальные и обслуживание</span>
-                      <span className="font-medium">{formatMoney(utilities)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Маркетинг</span>
-                      <span className="font-medium">{formatMoney(marketing)}</span>
-                    </div>
-                    {otherExpenses > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Прочие расходы</span>
-                        <span className="font-medium">{formatMoney(otherExpenses)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-300">
-                      <span className="text-gray-700 font-medium">Расходы</span>
-                      <span className="text-lg font-bold text-red-600">{formatMoney(totalExpenses)}</span>
-                    </div>
-                  </div>
-
-                  <div className={`flex justify-between items-center p-4 ${interpretation.bg} rounded-lg border-2 ${result >= 0 ? 'border-green-200' : 'border-red-200'}`}>
-                    <span className="text-gray-700 font-semibold text-lg">Валовый результат</span>
-                    <span className={`text-2xl font-bold ${interpretation.color}`}>
-                      {formatMoney(result)}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className={`border-none shadow-xl ${interpretation.bg}`}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-3 mb-3">
-                    <Icon name={interpretation.icon as any} className={interpretation.color} size={28} />
-                    <div>
-                      <h3 className={`font-bold text-lg ${interpretation.color} mb-1`}>
-                        {interpretation.title}
-                      </h3>
-                      <p className="text-gray-700">
-                        {interpretation.description}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <SimulatorResults
+              monthlyRevenue={monthlyRevenue}
+              staffExpenses={staffExpenses}
+              utilities={utilities}
+              marketing={marketing}
+              otherExpenses={otherExpenses}
+              totalExpenses={totalExpenses}
+              result={result}
+              interpretation={interpretation}
+            />
           </div>
 
-          {expertComments.length > 0 && (
-            <Card className="border-none shadow-xl mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Icon name="Lightbulb" className="text-amber-500" size={24} />
-                  Экспертные комментарии
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {expertComments.map((comment, index) => (
-                    <div key={index} className="flex items-start gap-3 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                      <Icon name={comment.icon as any} className="text-amber-600 flex-shrink-0 mt-1" size={20} />
-                      <p className="text-gray-700">{comment.text}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <ExpertComments comments={expertComments} />
 
-          <Card className="border-none shadow-xl bg-gray-50 mb-8">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <Icon name="Info" className="text-gray-500 flex-shrink-0 mt-1" size={20} />
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  <strong>Дисклеймер:</strong> Все расчёты являются ориентировочными и служат для понимания модели. 
-                  Симулятор не является бизнес-планом и не учитывает индивидуальные условия проекта.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <section className="py-12">
-            <div className="text-center mb-12">
-              <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">
-                📚 Знания и инсайты
-              </Badge>
-              <h2 className="text-3xl lg:text-4xl font-bold font-heading mb-4">
-                Блог экспертов
-              </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Актуальные тренды, практические советы и кейсы из мира туризма
-              </p>
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold font-heading">Полезные материалы</h2>
+              <Button variant="outline" onClick={() => navigate('/club')}>
+                Все материалы
+              </Button>
             </div>
 
             {loadingBlog ? (
-              <div className="text-center py-12">
-                <Icon name="Loader2" className="animate-spin mx-auto text-primary" size={48} />
-                <p className="mt-4 text-gray-600">Загрузка статей...</p>
-              </div>
-            ) : blogPosts.length === 0 ? (
-              <div className="text-center py-12">
-                <Icon name="FileText" className="mx-auto text-gray-400 mb-4" size={48} />
-                <p className="text-gray-600">Пока нет опубликованных статей</p>
+              <div className="grid md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="border-none shadow-lg animate-pulse">
+                    <div className="h-48 bg-gray-200 rounded-t-lg"></div>
+                    <CardContent className="pt-4">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                 {blogPosts.map((post) => (
-                <Card 
-                  key={post.id} 
-                  className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-none cursor-pointer"
-                  onClick={() => navigate(`/blog/${post.id}`)}
-                >
-                  <div className="relative overflow-hidden">
-                    {post.image_url && (
+                  <Card key={post.id} className="border-none shadow-lg hover:shadow-xl transition-shadow cursor-pointer group">
+                    <div className="relative overflow-hidden rounded-t-lg h-48">
                       <img
                         src={post.image_url}
                         alt={post.title}
-                        className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
-                    )}
-                    <div className="absolute top-4 left-4">
-                      <Badge className="bg-white/90 text-primary border-none">
+                      <Badge className="absolute top-3 left-3 bg-white/90 text-gray-800">
                         {categoryMap[post.category] || post.category}
                       </Badge>
                     </div>
-                  </div>
-                  <CardContent className="pt-6">
-                    <p className="text-sm text-gray-500 mb-2">
-                      {new Date(post.published_at).toLocaleDateString('ru-RU', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
-                    </p>
-                    <h3 className="text-xl font-bold font-heading mb-3 group-hover:text-primary transition-colors">
-                      {post.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4">{post.excerpt}</p>
-                    <Button variant="ghost" className="group/btn p-0 h-auto font-semibold text-primary">
-                      Читать далее
-                      <Icon name="ArrowRight" className="ml-2 group-hover/btn:translate-x-1 transition-transform" size={16} />
-                    </Button>
-                  </CardContent>
-                </Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
+                        {post.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-600 line-clamp-3">{post.excerpt}</p>
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="text-xs text-gray-500">
+                          {new Date(post.published_at).toLocaleDateString('ru-RU')}
+                        </span>
+                        <Icon name="ArrowRight" size={16} className="text-primary group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}
-          </section>
+          </div>
         </div>
       </div>
     </div>

@@ -133,15 +133,16 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
                 <Icon name="Crown" className="text-white" size={32} />
               </div>
               <Badge className="mb-3 bg-purple-50 text-purple-700 border-purple-200">
-                👥 Нетворкинг
+                👥 Сообщество профессионалов
               </Badge>
               <h3 className="text-2xl font-bold font-heading mb-3">Закрытый клуб</h3>
               <p className="text-gray-600 mb-4">
-                Сообщество, партнёрства и доступ к инструментам
+                Объединяем владельцев турбаз, глэмпингов и баз отдыха. Обмен опытом, партнёрства и взаимная поддержка в развитии бизнеса
               </p>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="text-xs">Нетворкинг</Badge>
-                <Badge variant="outline" className="text-xs">От 2490₽/мес</Badge>
+                <Badge variant="outline" className="text-xs">Взаимопомощь</Badge>
+                <Badge variant="outline" className="text-xs">Партнёрства</Badge>
               </div>
             </CardContent>
           </Card>

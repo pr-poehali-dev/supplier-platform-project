@@ -30,9 +30,12 @@ export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showPendingOnly, setShowPendingOnly] = useState(false);
+  const [pendingBookings, setPendingBookings] = useState<any[]>([]);
 
   useEffect(() => {
     loadCustomers();
+    loadPendingBookings();
   }, []);
 
   const getUserId = () => {
@@ -48,7 +51,7 @@ export default function Customers() {
     setLoading(true);
     try {
       const response = await fetchWithAuth(`${AI_URL}?action=customers`, {
-        headers: { 'X-User-Id': userId.toString() }
+        headers: { 'X-Owner-Id': userId.toString() }
       });
       const data = await response.json();
       setCustomers(data.customers || []);
@@ -56,6 +59,22 @@ export default function Customers() {
       // Error loading customers
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPendingBookings = async () => {
+    const userId = getUserId();
+    if (!userId) return;
+
+    try {
+      const response = await fetchWithAuth(`https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=bookings`, {
+        headers: { 'X-Owner-Id': userId.toString() }
+      });
+      const data = await response.json();
+      const pending = (data.bookings || []).filter((b: any) => b.is_pending_confirmation);
+      setPendingBookings(pending);
+    } catch (error) {
+      // Error loading bookings
     }
   };
 
@@ -110,11 +129,20 @@ export default function Customers() {
     });
   };
 
-  const filteredCustomers = customers.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone?.includes(searchQuery) ||
-    c.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCustomers = customers.filter(c => {
+    const matchesSearch = 
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.phone?.includes(searchQuery) ||
+      c.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (showPendingOnly) {
+      // Показываем только клиентов с pending бронированиями
+      const hasPending = pendingBookings.some(b => b.guest_phone === c.phone || b.guest_name === c.name);
+      return matchesSearch && hasPending;
+    }
+    
+    return matchesSearch;
+  });
 
   const stats = {
     total: customers.length,
@@ -194,6 +222,14 @@ export default function Customers() {
                 </CardDescription>
               </div>
               <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowPendingOnly(!showPendingOnly)}
+                  variant={showPendingOnly ? "default" : "outline"}
+                  className={`gap-2 ${showPendingOnly ? 'animate-pulse' : ''}`}
+                >
+                  <Icon name="AlertCircle" size={16} />
+                  Заявки {pendingBookings.length > 0 && `(${pendingBookings.length})`}
+                </Button>
                 <Input
                   placeholder="Поиск по имени, телефону, email..."
                   value={searchQuery}
@@ -236,18 +272,40 @@ export default function Customers() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredCustomers.map((customer) => (
-                  <Card key={customer.id} className="hover:shadow-md transition-shadow">
+                {filteredCustomers.map((customer) => {
+                  const customerPendingBookings = pendingBookings.filter(
+                    b => b.guest_phone === customer.phone || b.guest_name === customer.name
+                  );
+                  
+                  return (
+                  <Card key={customer.id} className={`hover:shadow-md transition-shadow ${customerPendingBookings.length > 0 ? 'border-2 border-yellow-400 animate-pulse' : ''}`}>
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-lg font-semibold">{customer.name}</h3>
+                            {customerPendingBookings.length > 0 && (
+                              <Badge className="gap-1 bg-yellow-500 hover:bg-yellow-600">
+                                <Icon name="AlertCircle" size={12} />
+                                Заявка ({customerPendingBookings.length})
+                              </Badge>
+                            )}
                             {customer.telegram_id && (
                               <Badge variant="outline" className="gap-1">
                                 <Icon name="MessageCircle" size={12} />
                                 Telegram
                               </Badge>
+                            )}
+                            {customerPendingBookings.length > 0 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/booking-calendar?highlight=${customerPendingBookings[0].id}`)}
+                                className="ml-auto"
+                              >
+                                <Icon name="MapPin" size={14} className="mr-1" />
+                                Показать в календаре
+                              </Button>
                             )}
                           </div>
                           <div className="grid md:grid-cols-3 gap-3 text-sm text-gray-600">
@@ -290,7 +348,8 @@ export default function Customers() {
                       )}
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

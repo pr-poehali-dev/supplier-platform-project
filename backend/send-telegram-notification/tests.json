@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "Send notification without auth",
+      "method": "POST",
+      "path": "/",
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "Owner ID required in X-Owner-Id header"
+      }
+    },
+    {
+      "name": "Send notification with auth",
+      "method": "POST",
+      "path": "/",
+      "headers": {
+        "X-Owner-Id": "1"
+      },
+      "body": {
+        "booking_id": 1,
+        "message": "Test notification"
+      },
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

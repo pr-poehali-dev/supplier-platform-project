@@ -147,7 +147,8 @@ def handler(event: dict, context) -> dict:
         if method == 'GET' and action == 'settings':
             cur.execute(f"""
                 SELECT bot_name, greeting_message, communication_style,
-                       reminder_enabled, reminder_days, production_calendar_enabled
+                       reminder_enabled, reminder_days, production_calendar_enabled,
+                       sbp_phone, sbp_recipient_name
                 FROM bot_settings
                 WHERE owner_id = {owner_id}
             """)
@@ -160,7 +161,9 @@ def handler(event: dict, context) -> dict:
                     'communication_style': row[2],
                     'reminder_enabled': row[3],
                     'reminder_days': row[4],
-                    'production_calendar_enabled': row[5]
+                    'production_calendar_enabled': row[5],
+                    'sbp_phone': row[6] or '',
+                    'sbp_recipient_name': row[7] or ''
                 }
             else:
                 settings = {
@@ -169,7 +172,9 @@ def handler(event: dict, context) -> dict:
                     'communication_style': 'Дружелюбный и профессиональный',
                     'reminder_enabled': True,
                     'reminder_days': 30,
-                    'production_calendar_enabled': True
+                    'production_calendar_enabled': True,
+                    'sbp_phone': '',
+                    'sbp_recipient_name': ''
                 }
             
             return success_response({'settings': settings})
@@ -201,6 +206,41 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             
             return success_response({'message': 'Settings saved'})
+        
+        # PUT /settings - обновить любые настройки (включая СБП)
+        if method == 'PUT' and action == 'settings':
+            body = json.loads(event.get('body', '{}'))
+            updates = []
+            
+            if 'sbp_phone' in body:
+                updates.append(f"sbp_phone = $${body['sbp_phone']}$$")
+            if 'sbp_recipient_name' in body:
+                updates.append(f"sbp_recipient_name = $${body['sbp_recipient_name']}$$")
+            if 'bot_name' in body:
+                updates.append(f"bot_name = $${body['bot_name']}$$")
+            if 'greeting_message' in body:
+                updates.append(f"greeting_message = $${body['greeting_message']}$$")
+            
+            if updates:
+                # Check if settings exist
+                cur.execute(f"SELECT id FROM bot_settings WHERE owner_id = {owner_id}")
+                if cur.fetchone():
+                    cur.execute(f"""
+                        UPDATE bot_settings 
+                        SET {', '.join(updates)}, updated_at = CURRENT_TIMESTAMP
+                        WHERE owner_id = {owner_id}
+                    """)
+                else:
+                    # Insert with defaults
+                    sbp_phone = body.get('sbp_phone', '')
+                    sbp_name = body.get('sbp_recipient_name', '')
+                    cur.execute(f"""
+                        INSERT INTO bot_settings (owner_id, sbp_phone, sbp_recipient_name)
+                        VALUES ({owner_id}, $${sbp_phone}$$, $${sbp_name}$$)
+                    """)
+                conn.commit()
+            
+            return success_response({'message': 'Settings updated'})
         
         # GET /services - получить допродажи
         if method == 'GET' and action == 'services':
@@ -259,6 +299,18 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             
             return success_response({'message': 'Service updated'})
+        
+        # DELETE /services - удалить допродажу
+        if method == 'DELETE' and action == 'services':
+            service_id = query_params.get('id')
+            
+            cur.execute(f"""
+                DELETE FROM additional_services
+                WHERE id = {service_id} AND owner_id = {owner_id}
+            """)
+            conn.commit()
+            
+            return success_response({'message': 'Service deleted'})
         
         # GET /customers - получить базу клиентов
         if method == 'GET' and action == 'customers':

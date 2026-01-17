@@ -81,7 +81,7 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"""
                 SELECT b.id, b.unit_id, b.guest_name, b.guest_email, b.guest_phone,
                        b.check_in, b.check_out, b.total_price, b.status, b.created_at,
-                       u.name as unit_name
+                       u.name as unit_name, b.source, b.payment_status, b.is_pending_confirmation
                 FROM {schema}.bookings b
                 JOIN {schema}.units u ON b.unit_id = u.id
                 WHERE u.owner_id = {owner_id}
@@ -101,7 +101,10 @@ def handler(event: dict, context) -> dict:
                     'total_price': float(row[7]) if row[7] else 0,
                     'status': row[8],
                     'created_at': row[9].isoformat() if row[9] else None,
-                    'unit_name': row[10]
+                    'unit_name': row[10],
+                    'source': row[11],
+                    'payment_status': row[12],
+                    'is_pending_confirmation': row[13] if len(row) > 13 else False
                 })
             
             return {
@@ -208,9 +211,10 @@ def handler(event: dict, context) -> dict:
             body = json.loads(event.get('body', '{}'))
             unit_id = body.get('unit_id')
             
-            # Verify unit ownership
-            cur.execute(f"SELECT id FROM {schema}.units WHERE id = {unit_id} AND owner_id = {owner_id}")
-            if not cur.fetchone():
+            # Verify unit ownership and get unit price
+            cur.execute(f"SELECT id, price FROM {schema}.units WHERE id = {unit_id} AND owner_id = {owner_id}")
+            unit = cur.fetchone()
+            if not unit:
                 return {
                     'statusCode': 403,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -218,13 +222,21 @@ def handler(event: dict, context) -> dict:
                     'isBase64Encoded': False
                 }
             
+            base_price = unit[1] or 0
+            
             guest_name = body.get('guest_name', '')
             guest_phone = body.get('guest_phone', '')
             guest_email = body.get('guest_email', '')
             check_in = body.get('check_in')
             check_out = body.get('check_out')
-            total_price = float(body.get('total_price', 0))
             status = body.get('status', 'confirmed')
+            
+            # Calculate total price based on number of nights
+            from datetime import datetime
+            check_in_date = datetime.strptime(check_in, '%Y-%m-%d')
+            check_out_date = datetime.strptime(check_out, '%Y-%m-%d')
+            nights = (check_out_date - check_in_date).days
+            total_price = base_price * max(nights, 1)
             
             cur.execute(f"""
                 INSERT INTO {schema}.bookings (unit_id, guest_name, guest_phone, guest_email,
@@ -239,7 +251,7 @@ def handler(event: dict, context) -> dict:
             return {
                 'statusCode': 200,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'message': 'Booking created', 'booking_id': booking_id}),
+                'body': json.dumps({'message': 'Booking created', 'booking_id': booking_id, 'total_price': total_price}),
                 'isBase64Encoded': False
             }
         

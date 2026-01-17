@@ -100,6 +100,37 @@ export default function AdditionalServices() {
     }
   };
 
+  const deleteService = async (serviceId: number) => {
+    const userId = getUserId();
+    if (!userId) return;
+
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${AI_URL}?action=services&id=${serviceId}`, {
+        method: 'DELETE',
+        headers: { 'X-User-Id': userId.toString() }
+      });
+
+      if (response.ok) {
+        await loadServices();
+        setIsDialogOpen(false);
+        setEditingService(null);
+        toast({
+          title: 'Успешно',
+          description: 'Услуга удалена'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить услугу',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openNewServiceDialog = () => {
     setEditingService({
       name: '',
@@ -289,10 +320,18 @@ export default function AdditionalServices() {
                   <Button onClick={saveService} disabled={loading} className="flex-1">
                     {loading ? 'Сохранение...' : 'Сохранить'}
                   </Button>
+                  {editingService.id && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => deleteService(editingService.id!)}
+                      disabled={loading}
+                    >
+                      <Icon name="Trash2" size={16} />
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => setIsDialogOpen(false)}
-                    className="flex-1"
                   >
                     Отмена
                   </Button>

@@ -8,6 +8,7 @@ import BookingDialog from '@/components/booking/BookingDialog';
 import IntegrationAccordion from '@/components/booking/IntegrationAccordion';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
 import DynamicPricing from '@/components/pricing/DynamicPricing';
+import SBPSettings from '@/components/payment/SBPSettings';
 import { canAddUnit, getSubscriptionLimits } from '@/utils/subscription';
 import { useToast } from '@/hooks/use-toast';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -392,6 +393,10 @@ export default function BookingCalendar() {
               />
             }
           />
+
+          <div className="mt-6">
+            <SBPSettings />
+          </div>
 
           <IntegrationAccordion 
             botLink={botLink} 

@@ -29,6 +29,8 @@ export interface Booking {
   total_price: number;
   status: string;
   source?: string;
+  payment_status?: string;
+  is_pending_confirmation?: boolean;
 }
 
 interface CalendarViewProps {
@@ -209,7 +211,9 @@ export default function CalendarView({
           onClick={() => booking && setSelectedBooking(booking)}
           className={`h-16 border border-gray-200 p-2 transition-colors relative group ${
             isBooked 
-              ? 'bg-red-100 cursor-pointer hover:bg-red-200' 
+              ? booking?.is_pending_confirmation
+                ? 'bg-yellow-100 cursor-pointer hover:bg-yellow-200 animate-pulse'
+                : 'bg-red-100 cursor-pointer hover:bg-red-200'
               : 'bg-white hover:bg-blue-50 cursor-pointer'
           } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
         >
@@ -237,9 +241,15 @@ export default function CalendarView({
           {isBooked && booking && (
             <>
               <div className="flex items-center gap-1">
-                <Badge variant="destructive" className="text-xs mt-1">
-                  Занято
-                </Badge>
+                {booking.is_pending_confirmation ? (
+                  <Badge className="text-xs mt-1 bg-yellow-500 hover:bg-yellow-600 animate-pulse">
+                    Заявка
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive" className="text-xs mt-1">
+                    Занято
+                  </Badge>
+                )}
                 {booking.source === 'telegram' && (
                   <span className="text-sm" title="Бронирование из Telegram">💬</span>
                 )}

@@ -22,6 +22,10 @@ def handler(event: dict, context) -> dict:
     Каждый владелец турбазы имеет свою уникальную ссылку на бота через start параметр.
     Бот анализирует сообщения клиентов и автоматически создаёт бронирования через AI.
     '''
+    # Логируем схему БД для отладки
+    print(f'DEBUG: DB_SCHEMA = {DB_SCHEMA}')
+    print(f'DEBUG: MAIN_DB_SCHEMA env = {os.environ.get("MAIN_DB_SCHEMA", "NOT SET")}')
+    
     method = event.get('httpMethod', 'POST')
     
     if method == 'OPTIONS':

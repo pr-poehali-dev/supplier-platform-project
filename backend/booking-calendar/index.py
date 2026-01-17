@@ -189,8 +189,9 @@ def handler(event: dict, context) -> dict:
                     'isBase64Encoded': False
                 }
             
-            # First delete all bookings for this unit
+            # Delete all related data first
             cur.execute(f"DELETE FROM {schema}.bookings WHERE unit_id = {unit_id}")
+            cur.execute(f"DELETE FROM {schema}.price_calculation_logs WHERE unit_id = {unit_id}")
             # Then delete the unit
             cur.execute(f"DELETE FROM {schema}.units WHERE id = {unit_id}")
             conn.commit()

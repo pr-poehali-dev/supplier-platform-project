@@ -28,6 +28,11 @@ def handler(event: dict, context) -> dict:
     if not dsn:
         return error_response('Database connection not configured', 500)
     
+    # Извлечь owner_id из заголовков
+    headers = event.get('headers') or {}
+    owner_id_str = headers.get('x-owner-id') or headers.get('X-Owner-Id')
+    owner_id = int(owner_id_str) if owner_id_str else None
+    
     conn = psycopg2.connect(dsn)
     
     try:
@@ -45,7 +50,7 @@ def handler(event: dict, context) -> dict:
         elif action == 'calculate_price':
             unit_id = params.get('unit_id')
             date_str = params.get('date')
-            return calculate_dynamic_price(conn, unit_id, date_str)
+            return calculate_dynamic_price(conn, unit_id, date_str, owner_id)
         elif action == 'get_price_calendar':
             unit_id = params.get('unit_id')
             start_date = params.get('start_date')
@@ -131,27 +136,40 @@ def get_profile_rules(conn, profile_id: str) -> dict:
     return success_response({'rules': rules})
 
 
-def calculate_dynamic_price(conn, unit_id: str, date_str: str) -> dict:
+def calculate_dynamic_price(conn, unit_id: str, date_str: str, owner_id: int = None) -> dict:
     if not unit_id or not date_str:
         return error_response('unit_id and date required', 400)
     
     target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""
-            SELECT 
-                u.id, u.name, u.base_price,
-                u.dynamic_pricing_enabled,
-                pp.id as profile_id, pp.mode,
-                pp.min_price as profile_min_price, pp.max_price as profile_max_price
-            FROM units u
-            LEFT JOIN pricing_profiles pp ON u.pricing_profile_id = pp.id
-            WHERE u.id = %s
-        """, (unit_id,))
+        # Если owner_id указан, проверяем владельца
+        if owner_id:
+            cur.execute("""
+                SELECT 
+                    u.id, u.name, u.base_price,
+                    u.dynamic_pricing_enabled,
+                    pp.id as profile_id, pp.mode,
+                    pp.min_price as profile_min_price, pp.max_price as profile_max_price
+                FROM units u
+                LEFT JOIN pricing_profiles pp ON u.pricing_profile_id = pp.id
+                WHERE u.id = %s AND u.owner_id = %s
+            """, (unit_id, owner_id))
+        else:
+            cur.execute("""
+                SELECT 
+                    u.id, u.name, u.base_price,
+                    u.dynamic_pricing_enabled,
+                    pp.id as profile_id, pp.mode,
+                    pp.min_price as profile_min_price, pp.max_price as profile_max_price
+                FROM units u
+                LEFT JOIN pricing_profiles pp ON u.pricing_profile_id = pp.id
+                WHERE u.id = %s
+            """, (unit_id,))
         unit = cur.fetchone()
         
         if not unit:
-            return error_response('Unit not found', 404)
+            return error_response('Unit not found or access denied', 404)
         
         if not unit['dynamic_pricing_enabled']:
             return success_response({

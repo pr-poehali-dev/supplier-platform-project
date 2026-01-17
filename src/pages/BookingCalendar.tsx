@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
-const DELETE_UNIT_URL = 'https://functions.poehali.dev/99916984-c945-4b8d-9af9-fc88342eb58a';
 const CUSTOMER_SYNC_URL = 'https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce';
 
 export default function BookingCalendar() {
@@ -184,7 +183,7 @@ export default function BookingCalendar() {
 
   const deleteUnit = async (unitId: number) => {
     try {
-      const response = await fetchWithAuth(`${DELETE_UNIT_URL}?unit_id=${unitId}`, {
+      const response = await fetchWithAuth(`${API_URL}?action=delete-unit&unit_id=${unitId}`, {
         method: 'DELETE'
       });
       

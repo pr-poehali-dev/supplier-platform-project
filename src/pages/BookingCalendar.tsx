@@ -7,7 +7,7 @@ import CalendarHeader from '@/components/calendar/CalendarHeader';
 import PendingRequestsDialog from '@/components/calendar/PendingRequestsDialog';
 import UnitsManagement from '@/components/booking/UnitsManagement';
 import CalendarView from '@/components/booking/CalendarView';
-import BookingDialog from '@/components/booking/BookingDialog';
+import CreateBookingDialog from '@/components/booking/CreateBookingDialog';
 import IntegrationAccordion from '@/components/booking/IntegrationAccordion';
 import DynamicPricing from '@/components/pricing/DynamicPricing';
 import SBPSettings from '@/components/payment/SBPSettings';
@@ -78,7 +78,7 @@ export default function BookingCalendar() {
               onChangeMonth={changeMonth}
               onDeleteBooking={deleteBooking}
               renderBookingButton={
-                <BookingDialog
+                <CreateBookingDialog
                   selectedUnit={selectedUnit}
                   onCreateBooking={createBooking}
                 />

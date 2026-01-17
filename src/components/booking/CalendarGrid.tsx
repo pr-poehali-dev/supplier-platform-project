@@ -82,19 +82,21 @@ export default function CalendarGrid({
           className={`h-20 border border-gray-200 p-2.5 transition-all duration-200 relative group rounded-lg ${getCellColor()} ${isToday ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
         >
           <div className={`text-sm font-bold ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>{day}</div>
-          {showPriceLoading && (
+          {showPrice && loadingPrices && (
             <div className="text-xs mt-1 px-2 py-1 rounded-md bg-gray-200 animate-pulse inline-block">
               <div className="h-3 w-14 bg-gray-300 rounded"></div>
             </div>
           )}
-          {showPrice && !loadingPrices && priceData && (
+          {showPrice && !loadingPrices && (
             <div className={`text-xs font-bold mt-1 px-2 py-1 rounded-md inline-block shadow-sm ${
-              priceColor === 'green' ? 'text-green-700 bg-gradient-to-r from-green-100 to-emerald-100' :
-              priceColor === 'red' ? 'text-red-700 bg-gradient-to-r from-red-100 to-orange-100' :
-              priceColor === 'purple' ? 'text-purple-700 bg-gradient-to-r from-purple-100 to-pink-100' :
-              'text-emerald-700 bg-gradient-to-r from-emerald-100 to-teal-100'
+              priceData ? (
+                priceColor === 'green' ? 'text-green-700 bg-gradient-to-r from-green-100 to-emerald-100' :
+                priceColor === 'red' ? 'text-red-700 bg-gradient-to-r from-red-100 to-orange-100' :
+                priceColor === 'purple' ? 'text-purple-700 bg-gradient-to-r from-purple-100 to-pink-100' :
+                'text-emerald-700 bg-gradient-to-r from-emerald-100 to-teal-100'
+              ) : 'text-gray-500 bg-gray-100'
             }`}>
-              {Math.round(priceData.price)} ₽
+              {priceData ? `${Math.round(priceData.price)} ₽` : '—'}
             </div>
           )}
           {isBooked && booking && (

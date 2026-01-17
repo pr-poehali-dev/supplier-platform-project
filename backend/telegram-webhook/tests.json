@@ -1,13 +1,13 @@
 {
   "tests": [
     {
-      "name": "Handle OPTIONS request",
+      "name": "OPTIONS request for CORS",
       "method": "OPTIONS",
       "path": "/",
       "expectedStatus": 200
     },
     {
-      "name": "Handle empty POST (webhook health check)",
+      "name": "Webhook health check",
       "method": "POST",
       "path": "/",
       "body": "{}",

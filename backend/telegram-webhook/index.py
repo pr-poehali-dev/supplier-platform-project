@@ -572,19 +572,19 @@ def handler(event: dict, context) -> dict:
                     owner_phone = owner_row[0] if owner_row and owner_row[0] else 'Не указан'
                     owner_name = owner_row[1] if owner_row and owner_row[1] else 'Владелец'
                     
-                    # Формируем текст для оплаты
+                    # Формируем текст для оплаты через СБП
                     payment_info = f"💳 Оплата по СБП:\n📱 Телефон: {owner_phone}\n👤 Получатель: {owner_name}"
-                    payment_link = ''  # Не используем ссылку
+                    payment_link = payment_info
                     
                     # Создаем pending booking (ждет оплаты)
                     cur.execute(f"""
                         INSERT INTO {tbl('pending_bookings')} 
                         (unit_id, check_in, check_out, guest_name, guest_contact, 
-                         telegram_chat_id, amount, verification_status)
+                         telegram_chat_id, amount, payment_link, verification_status)
                         VALUES ({booking_data['unit_id']}, '{booking_data['check_in']}', '{booking_data['check_out']}',
                                 '{booking_data['guest_name'].replace("'", "''")}', 
                                 '{booking_data.get('guest_phone', '').replace("'", "''")}',
-                                {chat_id}, {total_price}, 'pending')
+                                {chat_id}, {total_price}, '{payment_link.replace("'", "''")}', 'pending')
                         RETURNING id
                     """)
                     

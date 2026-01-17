@@ -214,18 +214,18 @@ export default function CalendarView({
             onBookingClick={setSelectedBooking}
           />
 
-          <div className="flex gap-4 mt-4 text-sm">
+          <div className="flex flex-wrap gap-4 mt-6 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-100 border border-gray-200"></div>
-              <span>Забронировано</span>
+              <div className="w-5 h-5 bg-gradient-to-br from-red-100 to-pink-100 border-2 border-red-200 rounded shadow-sm"></div>
+              <span className="font-medium text-gray-700">Забронировано</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-100 border border-gray-200"></div>
-              <span>Ожидает подтверждения</span>
+              <div className="w-5 h-5 bg-gradient-to-br from-yellow-100 to-amber-100 border-2 border-yellow-300 rounded shadow-sm animate-pulse"></div>
+              <span className="font-medium text-gray-700">Ожидает подтверждения</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-orange-100 border border-gray-200"></div>
-              <span>Ожидает оплаты</span>
+              <div className="w-5 h-5 bg-gradient-to-br from-orange-100 to-red-100 border-2 border-orange-200 rounded shadow-sm"></div>
+              <span className="font-medium text-gray-700">Ожидает оплаты</span>
             </div>
           </div>
         </CardContent>

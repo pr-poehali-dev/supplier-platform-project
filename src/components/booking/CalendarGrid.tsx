@@ -52,7 +52,7 @@ export default function CalendarGrid({
     const days = [];
     
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="h-16 border border-gray-100"></div>);
+      days.push(<div key={`empty-${i}`} className="h-20 border border-gray-100 bg-gray-50/50"></div>);
     }
     
     for (let day = 1; day <= daysInMonth; day++) {
@@ -65,42 +65,40 @@ export default function CalendarGrid({
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const priceData = dynamicPrices[dateStr];
       const showPrice = showPrices && !isBooked;
-      const showPriceLoading = showPrices && loadingPrices && !isBooked && !priceData;
+      const showPriceLoading = showPrices && loadingPrices && !isBooked;
       const priceColor = getPriceColor(priceData);
 
       const getCellColor = () => {
-        if (!isBooked) return 'bg-white hover:bg-blue-50 cursor-pointer';
-        if (booking?.is_pending_confirmation) return 'bg-yellow-100 cursor-pointer hover:bg-yellow-200 animate-pulse';
-        if (booking?.payment_status === 'pending' && !booking?.is_pending_confirmation) return 'bg-orange-100 cursor-pointer hover:bg-orange-200';
-        return 'bg-red-100 cursor-pointer hover:bg-red-200';
+        if (!isBooked) return 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 cursor-default';
+        if (booking?.is_pending_confirmation) return 'bg-gradient-to-br from-yellow-100 to-amber-100 cursor-pointer hover:from-yellow-200 hover:to-amber-200 shadow-lg animate-pulse';
+        if (booking?.payment_status === 'pending' && !booking?.is_pending_confirmation) return 'bg-gradient-to-br from-orange-100 to-red-100 cursor-pointer hover:from-orange-200 hover:to-red-200 shadow-md';
+        return 'bg-gradient-to-br from-red-100 to-pink-100 cursor-pointer hover:from-red-200 hover:to-pink-200 shadow-md';
       };
 
       days.push(
         <div
           key={day}
           onClick={() => booking && onBookingClick(booking)}
-          className={`h-16 border border-gray-200 p-2 transition-colors relative group ${getCellColor()} ${isToday ? 'ring-2 ring-blue-500' : ''}`}
+          className={`h-20 border border-gray-200 p-2.5 transition-all duration-200 relative group rounded-lg ${getCellColor()} ${isToday ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
         >
-          <div className="text-sm font-semibold">{day}</div>
+          <div className={`text-sm font-bold ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>{day}</div>
           {showPriceLoading && (
-            <div className="text-xs mt-0.5 px-1.5 py-0.5 rounded bg-gray-200 animate-pulse">
-              <div className="h-3 w-12 bg-gray-300 rounded"></div>
+            <div className="text-xs mt-1 px-2 py-1 rounded-md bg-gray-200 animate-pulse inline-block">
+              <div className="h-3 w-14 bg-gray-300 rounded"></div>
             </div>
           )}
-          {showPrice && !loadingPrices && (
-            <div className={`text-xs font-bold mt-0.5 px-1.5 py-0.5 rounded ${
-              priceData ? (
-                priceColor === 'green' ? 'text-green-700 bg-green-100' :
-                priceColor === 'red' ? 'text-red-700 bg-red-100' :
-                priceColor === 'purple' ? 'text-purple-700 bg-purple-100' :
-                'text-emerald-700 bg-emerald-100'
-              ) : 'text-gray-500 bg-gray-100'
+          {showPrice && !loadingPrices && priceData && (
+            <div className={`text-xs font-bold mt-1 px-2 py-1 rounded-md inline-block shadow-sm ${
+              priceColor === 'green' ? 'text-green-700 bg-gradient-to-r from-green-100 to-emerald-100' :
+              priceColor === 'red' ? 'text-red-700 bg-gradient-to-r from-red-100 to-orange-100' :
+              priceColor === 'purple' ? 'text-purple-700 bg-gradient-to-r from-purple-100 to-pink-100' :
+              'text-emerald-700 bg-gradient-to-r from-emerald-100 to-teal-100'
             }`}>
-              {priceData ? `${Math.round(priceData.price)} ₽` : 'N/A'}
+              {Math.round(priceData.price)} ₽
             </div>
           )}
           {isBooked && booking && (
-            <div className="text-xs mt-1 truncate">{booking.guest_name}</div>
+            <div className="text-xs mt-1.5 font-medium text-gray-700 truncate">{booking.guest_name}</div>
           )}
         </div>
       );
@@ -110,9 +108,13 @@ export default function CalendarGrid({
   };
 
   return (
-    <div className="grid grid-cols-7 gap-0">
-      {['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map(day => (
-        <div key={day} className="text-center font-semibold py-2 bg-gray-50 border border-gray-200">
+    <div className="grid grid-cols-7 gap-2">
+      {['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map((day, idx) => (
+        <div key={day} className={`text-center font-bold py-3 bg-gradient-to-br rounded-lg shadow-sm ${
+          idx === 0 || idx === 6 
+            ? 'from-purple-100 to-pink-100 text-purple-700' 
+            : 'from-blue-50 to-cyan-50 text-blue-700'
+        }`}>
           {day}
         </div>
       ))}

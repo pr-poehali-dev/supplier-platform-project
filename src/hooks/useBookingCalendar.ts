@@ -19,6 +19,11 @@ export function useBookingCalendar() {
   const user = getUser();
   const [botLink, setBotLink] = useState('');
   const [showPendingRequests, setShowPendingRequests] = useState(false);
+  const [notificationAudio] = useState(() => {
+    const audio = new Audio('https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/bucket/sound-effect-676.mp3');
+    audio.volume = 0.7;
+    return audio;
+  });
 
   useEffect(() => {
     const isEditorMode = window.location.hostname.includes('poehali.dev') || window.location.hostname === 'localhost';
@@ -80,7 +85,25 @@ export function useBookingCalendar() {
       }
       
       const data = await response.json();
-      setBookings(data.bookings || []);
+      const newBookings = data.bookings || [];
+      
+      if (bookings.length > 0 && newBookings.length > bookings.length) {
+        const hasPendingBooking = newBookings.some(
+          (b: Booking) => b.is_pending_confirmation && 
+            !bookings.find(old => old.id === b.id)
+        );
+        
+        if (hasPendingBooking) {
+          notificationAudio.play().catch(() => {});
+          toast({
+            title: 'Новая заявка!',
+            description: 'Поступила новая заявка на бронирование',
+            duration: 5000,
+          });
+        }
+      }
+      
+      setBookings(newBookings);
     } catch (error) {
       console.error('Error loading bookings:', error);
       toast({

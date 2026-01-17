@@ -1,0 +1,311 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth, getUser } from '@/lib/api';
+import { canAddUnit, getSubscriptionLimits } from '@/utils/subscription';
+import type { Unit } from '@/components/booking/UnitsManagement';
+import type { Booking } from '@/components/booking/CalendarView';
+
+const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
+const CUSTOMER_SYNC_URL = 'https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce';
+
+export function useBookingCalendar() {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+  const user = getUser();
+  const [botLink, setBotLink] = useState('');
+  const [showPendingRequests, setShowPendingRequests] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      toast({
+        title: 'Требуется авторизация',
+        description: 'Войдите в систему для доступа к календарю',
+        variant: 'destructive',
+      });
+      navigate('/');
+      return;
+    }
+    
+    setBotLink(`https://t.me/YOUR_BOT_USERNAME?start=${user.id}`);
+    
+    loadUnits();
+    loadBookings();
+  }, [navigate, toast]);
+
+  const loadUnits = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=units`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      const unitsWithDefaults = (data.units || []).map((unit: Unit) => ({
+        ...unit,
+        dynamic_pricing_enabled: unit.dynamic_pricing_enabled ?? false,
+        pricing_profile_id: unit.pricing_profile_id ?? 1
+      }));
+      
+      setUnits(unitsWithDefaults);
+      if (unitsWithDefaults.length > 0 && !selectedUnit) {
+        setSelectedUnit(unitsWithDefaults[0]);
+      }
+    } catch (error) {
+      console.error('Error loading units:', error);
+      toast({
+        title: 'Ошибка загрузки объектов',
+        description: error instanceof Error ? error.message : 'Проверьте авторизацию',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const loadBookings = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=bookings`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setBookings(data.bookings || []);
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+      toast({
+        title: 'Ошибка загрузки броней',
+        description: error instanceof Error ? error.message : 'Проверьте авторизацию',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const addUnit = async (newUnit: {
+    name: string;
+    type: string;
+    description: string;
+    base_price: string;
+    max_guests: string;
+  }) => {
+    if (!newUnit.name || !newUnit.base_price || !newUnit.max_guests) {
+      alert('Заполните все поля');
+      return;
+    }
+
+    if (!canAddUnit(units.length)) {
+      const limits = getSubscriptionLimits();
+      toast({
+        title: 'Достигнут лимит номеров',
+        description: `Ваш тариф позволяет создать до ${limits.maxUnits} номеров. Обновите подписку для добавления новых.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=create-unit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUnit)
+      });
+      
+      if (response.ok) {
+        await loadUnits();
+      }
+    } catch (error) {
+      // Error adding unit
+    }
+  };
+
+  const updateUnit = async (unitId: number, updatedUnit: {
+    name: string;
+    type: string;
+    description: string;
+    base_price: string;
+    max_guests: string;
+  }) => {
+    if (!updatedUnit.name || !updatedUnit.base_price || !updatedUnit.max_guests) {
+      alert('Заполните все поля');
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=update-unit&unit_id=${unitId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUnit)
+      });
+      
+      if (response.ok) {
+        await loadUnits();
+        toast({
+          title: 'Успешно',
+          description: 'Объект обновлён',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить объект',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteUnit = async (unitId: number) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=delete-unit&unit_id=${unitId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        if (selectedUnit?.id === unitId) {
+          setSelectedUnit(null);
+        }
+        await loadUnits();
+        await loadBookings();
+        toast({
+          title: 'Объект удалён',
+          description: 'Объект успешно удалён из системы',
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: 'Ошибка',
+          description: errorData.error || 'Не удалось удалить объект',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Произошла ошибка при удалении объекта',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const createBooking = async (newBooking: {
+    check_in: string;
+    check_out: string;
+    guest_name: string;
+    guest_phone: string;
+  }) => {
+    if (!selectedUnit || !newBooking.check_in || !newBooking.check_out || !newBooking.guest_name) {
+      alert('Заполните все обязательные поля');
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=create-booking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          unit_id: selectedUnit.id,
+          ...newBooking
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        await loadBookings();
+        
+        try {
+          await fetchWithAuth(CUSTOMER_SYNC_URL, { method: 'POST' });
+        } catch (err) {
+          // Customer sync failed
+        }
+      } else {
+        alert(data.error || 'Ошибка создания бронирования');
+      }
+    } catch (error) {
+      alert('Ошибка создания бронирования');
+    }
+  };
+
+  const updateBookingStatus = async (bookingId: number, newStatus: string) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=update-booking-status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          status: newStatus,
+          payment_status: newStatus === 'confirmed' ? 'paid' : 'pending',
+          is_pending_confirmation: false
+        })
+      });
+
+      if (response.ok) {
+        await loadBookings();
+        toast({
+          title: 'Статус обновлен',
+          description: newStatus === 'confirmed' ? 'Бронь подтверждена' : 'Статус изменен'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить статус',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const scrollToBooking = (bookingDate: string) => {
+    const date = new Date(bookingDate);
+    setCurrentDate(date);
+    setTimeout(() => {
+      const element = document.getElementById('calendar-view');
+      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const deleteBooking = async (bookingId: number) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=delete-booking&booking_id=${bookingId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        await loadBookings();
+      }
+    } catch (error) {
+      // Error deleting booking
+    }
+  };
+
+  const changeMonth = (delta: number) => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1));
+  };
+
+  return {
+    units,
+    bookings,
+    currentDate,
+    selectedUnit,
+    user,
+    botLink,
+    showPendingRequests,
+    setSelectedUnit,
+    setShowPendingRequests,
+    loadUnits,
+    loadBookings,
+    addUnit,
+    updateUnit,
+    deleteUnit,
+    createBooking,
+    updateBookingStatus,
+    scrollToBooking,
+    deleteBooking,
+    changeMonth,
+  };
+}

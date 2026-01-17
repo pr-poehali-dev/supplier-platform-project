@@ -208,7 +208,7 @@ def handler(event: dict, context) -> dict:
             unit_id = body.get('unit_id')
             
             # Verify unit ownership
-            cur.execute(f"SELECT id FROM units WHERE id = {unit_id} AND owner_id = {owner_id}")
+            cur.execute(f"SELECT id FROM {schema}.units WHERE id = {unit_id} AND owner_id = {owner_id}")
             if not cur.fetchone():
                 return {
                     'statusCode': 403,

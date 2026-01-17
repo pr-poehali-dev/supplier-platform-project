@@ -37,20 +37,14 @@ export default function PricingControls({
   hasSelectedUnit
 }: PricingControlsProps) {
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Icon name="Zap" className="text-yellow-500" size={24} />
-            Динамическое ценообразование
-          </div>
-          <Button onClick={onEnableAll} variant="outline" size="sm" disabled={loading}>
-            <Icon name="CheckCircle" size={16} className="mr-2" />
-            Включить для всех
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="text-md font-semibold text-gray-700">Управление ценами</h4>
+        <Button onClick={onEnableAll} variant="outline" size="sm" disabled={loading}>
+          <Icon name="CheckCircle" size={16} className="mr-2" />
+          Включить для всех
+        </Button>
+      </div>
         {hasSelectedUnit ? (
           <>
             <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
@@ -127,7 +121,6 @@ export default function PricingControls({
         ) : (
           <p className="text-gray-500 text-center py-4">Выберите объект для настройки</p>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }

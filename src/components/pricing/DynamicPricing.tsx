@@ -115,7 +115,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
   };
 
   return (
-    <div>
+    <div className="space-y-6">
       <PricingControls
         dynamicEnabled={dynamicEnabled}
         loading={loading}

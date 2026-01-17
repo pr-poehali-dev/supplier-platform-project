@@ -9,7 +9,7 @@ import UnitsManagement from '@/components/booking/UnitsManagement';
 import CalendarView from '@/components/booking/CalendarView';
 import CreateBookingDialog from '@/components/booking/CreateBookingDialog';
 import IntegrationAccordion from '@/components/booking/IntegrationAccordion';
-import DynamicPricing from '@/components/pricing/DynamicPricing';
+import PricingAccordion from '@/components/pricing/PricingAccordion';
 import SBPSettings from '@/components/payment/SBPSettings';
 
 export default function BookingCalendar() {
@@ -65,7 +65,7 @@ export default function BookingCalendar() {
             onDeleteUnit={deleteUnit}
           />
 
-          <DynamicPricing 
+          <PricingAccordion 
             selectedUnit={selectedUnit}
             onUnitUpdate={loadUnits}
           />

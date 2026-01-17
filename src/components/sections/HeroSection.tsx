@@ -32,11 +32,18 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
           </div>
           <div className="relative animate-float">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-3xl"></div>
-            <img
-              src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/files/96e9855f-23d1-41b1-86bd-6f53191ad56d.jpg"
-              alt="Современная база отдыха"
-              className="relative rounded-3xl shadow-2xl w-full"
-            />
+            <div className="relative rounded-3xl shadow-2xl overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent z-10"></div>
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover rounded-3xl"
+              >
+                <source src="https://cdn.poehali.dev/projects/e94f48a9-086e-4e6f-8437-08793577e935/bucket/0_Background_Abstract_1920x1080.mp4" type="video/mp4" />
+              </video>
+            </div>
           </div>
         </div>
 

@@ -221,6 +221,7 @@ def handler(event: dict, context) -> dict:
             cur.close()
             conn.close()
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'ok': True}), 'isBase64Encoded': False}
+        
         cur = conn.cursor()
         print(f'DEBUG: Cursor created. Message text: {text[:50]}')
         
@@ -610,11 +611,14 @@ def handler(event: dict, context) -> dict:
         }
     
     except Exception as e:
-        print(f'Error: {str(e)}')
+        import traceback
+        error_details = traceback.format_exc()
+        print(f'❌ CRITICAL ERROR: {type(e).__name__}: {str(e)}')
+        print(f'Full traceback:\n{error_details}')
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'error': str(e)}),
+            'body': json.dumps({'error': f'{type(e).__name__}: {str(e)}'}),
             'isBase64Encoded': False
         }
 

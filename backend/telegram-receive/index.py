@@ -43,7 +43,16 @@ def handler(event: dict, context) -> dict:
         photo = message.get('photo')
         
         dsn = os.environ.get('DATABASE_URL')
-        schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+        schema = os.environ.get('MAIN_DB_SCHEMA')
+        if not schema:
+            temp_conn = psycopg2.connect(dsn)
+            temp_cur = temp_conn.cursor()
+            temp_cur.execute("SELECT nspname FROM pg_namespace WHERE nspname LIKE 't_%' ORDER BY nspname LIMIT 1")
+            schema_row = temp_cur.fetchone()
+            schema = schema_row[0] if schema_row else 'public'
+            temp_cur.close()
+            temp_conn.close()
+        
         conn = psycopg2.connect(dsn)
         cur = conn.cursor()
         

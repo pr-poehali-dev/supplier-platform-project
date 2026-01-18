@@ -1,6 +1,7 @@
 import json
 import os
 import psycopg2
+from urllib import request
 
 def handler(event: dict, context) -> dict:
     '''Принимает webhook от Telegram и сохраняет в БД'''
@@ -53,6 +54,34 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         cur.close()
         conn.close()
+        
+        try:
+            bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+            reply_text = 'Спасибо за ваше сообщение! Мы получили ваш запрос и скоро свяжемся с вами.'
+            
+            telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+            data = json.dumps({
+                'chat_id': chat_id,
+                'text': reply_text
+            }).encode('utf-8')
+            
+            req = request.Request(telegram_url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
+            with request.urlopen(req) as response:
+                response.read()
+            
+            owner_chat_id = os.environ.get('OWNER_TELEGRAM_ID', '760787428')
+            owner_text = f'📩 Новое сообщение от клиента\n\nChat ID: {chat_id}\nСообщение: {text}'
+            
+            owner_data = json.dumps({
+                'chat_id': owner_chat_id,
+                'text': owner_text
+            }).encode('utf-8')
+            
+            req_owner = request.Request(telegram_url, data=owner_data, headers={'Content-Type': 'application/json'}, method='POST')
+            with request.urlopen(req_owner) as response:
+                response.read()
+        except Exception as telegram_error:
+            pass
         
         return {
             'statusCode': 200,

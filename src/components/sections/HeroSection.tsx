@@ -45,8 +45,8 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
             <h2 className="text-5xl lg:text-6xl font-bold font-heading leading-tight drop-shadow-sm">
               Сдавай жильё легко:
             </h2>
-            <div className="h-24 flex items-center">
-              <span className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-word-change" key={currentWord}>
+            <div className="h-28 flex items-center">
+              <span className="text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-word-change" key={currentWord}>
                 {words[currentWord]}
               </span>
             </div>

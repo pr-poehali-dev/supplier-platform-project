@@ -332,12 +332,14 @@ def handler(event: dict, context) -> dict:
 3. Проверять занятость по календарю бронирований
 4. Предлагать допродажи из списка (завтраки, экскурсии и т.д.)
 5. Собирать данные: даты (check_in, check_out), кол-во гостей, имя, телефон
-6. Когда ВСЕ данные собраны, в конце ответа добавь JSON:
-   {{"intent": "create_booking", "guest_name": "Иван", "guest_phone": "+79001234567", "check_in": "2026-02-01", "check_out": "2026-02-05", "guests_count": 2, "unit_name": "Домик \"Сосновый\""}}
-7. Если данных недостаточно - продолжай диалог, не добавляй JSON
-8. КРИТИЧНО: Указывай ТОЧНОЕ НАЗВАНИЕ объекта (unit_name), как в списке выше!
+6. Когда ВСЕ данные собраны, ПОСЛЕ своего ответа клиенту добавь ОДНУ строку JSON БЕЗ MARKDOWN:
+   {{"intent": "create_booking", "guest_name": "Иван", "guest_phone": "+79001234567", "check_in": "2026-02-05", "check_out": "2026-02-08", "guests_count": 2, "unit_name": "Домик \"Сосновый\""}}
+7. Если данных недостаточно - продолжай диалог, НЕ добавляй JSON
+8. КРИТИЧНО: unit_name должен ТОЧНО совпадать с названием из списка выше!
+9. НЕ используй markdown блоки ```json```, просто напиши JSON строкой!
+10. Для КАЖДОГО объекта создавай ОТДЕЛЬНЫЙ JSON (если клиент бронирует несколько объектов)
 
-ВАЖНО: Используй только реальные объекты и цены из списка!'''
+ВАЖНО: JSON - это КОМАНДА для системы, клиент её НЕ видит!'''
                 
                 messages = [{'role': 'system', 'content': system_prompt}]
                 
@@ -362,17 +364,26 @@ def handler(event: dict, context) -> dict:
                     ai_reply = chatgpt_response['choices'][0]['message']['content']
                     print(f'ChatGPT response: {ai_reply}')
                 
-                intent = None
-                if '{"intent":' in ai_reply or '{"intent" :' in ai_reply:
+                import re
+                intents = []
+                clean_reply = ai_reply
+                
+                clean_reply = re.sub(r'```json\s*', '', clean_reply)
+                clean_reply = re.sub(r'```\s*', '', clean_reply)
+                
+                json_pattern = r'\{[^{}]*"intent"\s*:\s*"create_booking"[^{}]*\}'
+                matches = re.findall(json_pattern, clean_reply)
+                
+                for match in matches:
                     try:
-                        json_start = ai_reply.find('{"intent"')
-                        json_end = ai_reply.find('}', json_start) + 1
-                        json_str = ai_reply[json_start:json_end]
-                        intent = json.loads(json_str)
-                        ai_reply = ai_reply[:json_start].strip()
+                        intent_data = json.loads(match)
+                        intents.append(intent_data)
+                        clean_reply = clean_reply.replace(match, '').strip()
                     except Exception as e:
                         print(f'JSON parse error: {e}')
                         pass
+                
+                ai_reply = clean_reply
                 
                 conn_save = psycopg2.connect(dsn)
                 cur_save = conn_save.cursor()
@@ -395,35 +406,64 @@ def handler(event: dict, context) -> dict:
                     result = response.read()
                     print(f'AI reply sent to client: {result.decode()}')
                 
-                if intent and intent.get('intent') == 'create_booking':
-                    result = validate_and_create_booking(intent, schema, dsn, chat_id, owner_telegram_id, bot_token)
+                if intents:
+                    all_bookings = []
+                    for intent in intents:
+                        if intent.get('intent') == 'create_booking':
+                            result = validate_and_create_booking(intent, schema, dsn, chat_id, owner_telegram_id, bot_token)
+                            all_bookings.append({
+                                'intent': intent,
+                                'result': result
+                            })
                     
-                    if result['success']:
-                        payment_message = f'''✅ Бронирование #{result['pending_id']} создано!
-
-📋 {result['unit_name']}
+                    if all_bookings:
+                        payment_messages = []
+                        total_amount = 0
+                        sbp_link = ''
+                        recipient_name = ''
+                        
+                        for booking in all_bookings:
+                            intent = booking['intent']
+                            result = booking['result']
+                            
+                            if result['success']:
+                                payment_messages.append(f'''✅ {result['unit_name']}
 📅 {intent['check_in']} — {intent['check_out']}
-💰 Сумма: {result['amount']}₽
+💰 {result['amount']}₽''')
+                                total_amount += result['amount']
+                                sbp_link = result['sbp_link']
+                                recipient_name = result['recipient_name']
+                            else:
+                                payment_messages.append(f'''❌ {result['unit_name']}: {result['error']}''')
+                        
+                        if total_amount > 0:
+                            payment_message = f'''🎉 Бронирования созданы!
+
+{chr(10).join(payment_messages)}
+
+💰 Итого: {total_amount}₽
 
 💳 Для завершения:
-1. Оплатите: {result['sbp_link']}
-   Получатель: {result['recipient_name']}
+1. Оплатите: {sbp_link}
+   Получатель: {recipient_name}
 2. Отправьте скриншот оплаты сюда
 
-После подтверждения бронирование активируется! 🎉'''
-                    else:
-                        payment_message = f'''❌ {result['error']}
+После подтверждения все бронирования активируются!'''
+                        else:
+                            payment_message = f'''❌ Не удалось создать бронирования:
 
-Попробуйте выбрать другие даты или объект.'''
-                    
-                    payment_data = json.dumps({
-                        'chat_id': chat_id,
-                        'text': payment_message
-                    }).encode('utf-8')
-                    
-                    req_payment = request.Request(telegram_url, data=payment_data, headers={'Content-Type': 'application/json'}, method='POST')
-                    with request.urlopen(req_payment) as response:
-                        response.read()
+{chr(10).join(payment_messages)}
+
+Попробуйте выбрать другие даты или объекты.'''
+                        
+                        payment_data = json.dumps({
+                            'chat_id': chat_id,
+                            'text': payment_message
+                        }).encode('utf-8')
+                        
+                        req_payment = request.Request(telegram_url, data=payment_data, headers={'Content-Type': 'application/json'}, method='POST')
+                        with request.urlopen(req_payment) as response:
+                            response.read()
                 
                 if False:
                         owner_text = f'''🎉 Новая заявка на бронирование #{pending_id}!

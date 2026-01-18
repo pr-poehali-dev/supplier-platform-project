@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,15 @@ interface HeroSectionProps {
 
 const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
   const navigate = useNavigate();
+  const [currentWord, setCurrentWord] = useState(0);
+  const words = ['автоматизация', 'бронирования', 'доход', 'ai менеджмент'];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentWord((prev) => (prev + 1) % words.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <section id="home" className="pt-32 pb-20 px-4 relative overflow-hidden">
@@ -33,12 +43,13 @@ const HeroSection = ({ scrollToSection }: HeroSectionProps) => {
               🚀 Платформа нового поколения
             </Badge>
             <h2 className="text-5xl lg:text-6xl font-bold font-heading leading-tight drop-shadow-sm">
-              Инструменты для{' '}
-              <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                бизнеса
-              </span>{' '}
-              в туризме
+              Сдавай жильё легко:
             </h2>
+            <div className="h-24 flex items-center">
+              <span className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-word-change" key={currentWord}>
+                {words[currentWord]}
+              </span>
+            </div>
             <p className="text-xl text-gray-700 drop-shadow-sm">
               Помогаем предпринимателям открыть и развить бизнес в сфере туризма России. Инструменты, советы и сообщество единомышленников.
             </p>

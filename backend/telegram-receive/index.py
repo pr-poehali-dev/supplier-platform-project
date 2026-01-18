@@ -294,35 +294,35 @@ def handler(event: dict, context) -> dict:
         
         if bot_token and chatgpt_api_key:
             try:
-                cur.execute(f'''
+                cur.execute('''
                     SELECT id, name, type, base_price, max_guests, description
-                    FROM {schema}.units
+                    FROM units
                     ORDER BY name
                 ''')
                 units = cur.fetchall()
                 
-                cur.execute(f'''
+                cur.execute('''
                     SELECT name, description, price, category
-                    FROM {schema}.additional_services
+                    FROM additional_services
                     WHERE enabled = true
                     ORDER BY category, name
                 ''')
                 services = cur.fetchall()
                 
-                cur.execute(f'''
+                cur.execute('''
                     SELECT check_in, check_out, unit_name FROM (
                         SELECT b.check_in, b.check_out, u.name as unit_name
-                        FROM {schema}.bookings b
-                        LEFT JOIN {schema}.booking_units bu ON b.id = bu.booking_id
-                        LEFT JOIN {schema}.units u ON bu.unit_id = u.id
+                        FROM bookings b
+                        LEFT JOIN booking_units bu ON b.id = bu.booking_id
+                        LEFT JOIN units u ON bu.unit_id = u.id
                         WHERE b.status = 'confirmed'
                         AND b.check_out >= CURRENT_DATE
                         
                         UNION ALL
                         
                         SELECT pb.check_in, pb.check_out, u.name as unit_name
-                        FROM {schema}.pending_bookings pb
-                        LEFT JOIN {schema}.units u ON pb.unit_id = u.id
+                        FROM pending_bookings pb
+                        LEFT JOIN units u ON pb.unit_id = u.id
                         WHERE pb.verification_status = 'pending'
                         AND pb.expires_at > NOW()
                         AND pb.check_out >= CURRENT_DATE

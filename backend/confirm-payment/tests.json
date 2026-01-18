@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "Test confirm payment endpoint structure",
+      "method": "POST",
+      "body": {
+        "pending_id": 999,
+        "action": "confirm"
+      },
+      "expectedStatus": 404,
+      "expectedBody": {
+        "error": "Бронирование не найдено"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -32,7 +32,7 @@ export const PendingBookingsManager = () => {
   const loadPendingBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_pending_bookings');
+      const response = await fetchWithAuth('https://functions.poehali.dev/booking-calendar?action=get_pending_bookings');
       const data = await response.json();
       setBookings(data.bookings || []);
     } catch (error) {
@@ -48,21 +48,21 @@ export const PendingBookingsManager = () => {
 
   const approveBooking = async (bookingId: number) => {
     try {
-      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/aa2efe43-c732-4850-8c2e-06d0db752fef', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          action: 'approve_booking',
-          booking_id: bookingId
+          pending_id: bookingId,
+          action: 'confirm'
         })
       });
 
       if (response.ok) {
         toast({
           title: 'Бронь подтверждена!',
-          description: 'Бронирование добавлено в календарь'
+          description: 'Бронирование добавлено в календарь, клиент уведомлён'
         });
         loadPendingBookings();
       }
@@ -77,21 +77,21 @@ export const PendingBookingsManager = () => {
 
   const rejectBooking = async (bookingId: number) => {
     try {
-      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d', {
+      const response = await fetchWithAuth('https://functions.poehali.dev/aa2efe43-c732-4850-8c2e-06d0db752fef', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          action: 'reject_booking',
-          booking_id: bookingId
+          pending_id: bookingId,
+          action: 'reject'
         })
       });
 
       if (response.ok) {
         toast({
           title: 'Бронь отклонена',
-          description: 'Бронирование отклонено'
+          description: 'Бронирование отклонено, клиент уведомлён'
         });
         loadPendingBookings();
       }

@@ -118,11 +118,12 @@ def handler(event: dict, context) -> dict:
         if method == 'GET' and action == 'get_pending_bookings':
             cur.execute(f"""
                 SELECT pb.id, u.name as unit_name, pb.check_in, pb.check_out,
-                       pb.guest_name, pb.guest_contact, pb.amount, pb.payment_screenshot_url,
-                       pb.verification_status, pb.verification_notes, pb.created_at
+                       pb.guest_name, pb.guest_contact, pb.amount,
+                       pb.payment_screenshot_url, pb.verification_status,
+                       pb.verification_notes, pb.created_at
                 FROM {schema}.pending_bookings pb
-                JOIN {schema}.units u ON pb.unit_id = u.id
-                WHERE u.owner_id = {owner_id}
+                LEFT JOIN {schema}.units u ON pb.unit_id = u.id
+                WHERE u.owner_id = {owner_id} AND pb.verification_status IN ('pending', 'awaiting_verification')
                 ORDER BY pb.created_at DESC
             """)
             

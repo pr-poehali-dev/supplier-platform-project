@@ -1,4 +1,5 @@
 {
+  "confirm-payment": "https://functions.poehali.dev/aa2efe43-c732-4850-8c2e-06d0db752fef",
   "telegram-receive": "https://functions.poehali.dev/c57cc120-80f9-4380-9cdf-6986439d814d",
   "telegram-process": "https://functions.poehali.dev/81395f0d-2cd7-4edf-802c-2c191f4eb18d",
   "telegram-send": "https://functions.poehali.dev/1fa940c1-a913-44e2-bbf9-4d9d9c0e8b0f",

@@ -11,6 +11,8 @@ import SubscriptionManager from '@/components/admin/SubscriptionManager';
 import CalendarSyncManager from '@/components/admin/CalendarSyncManager';
 import UsersTable from '@/components/admin/UsersTable';
 import EmailSender from '@/components/admin/EmailSender';
+import SBPSettings from '@/components/admin/SBPSettings';
+import TelegramBotGuide from '@/components/admin/TelegramBotGuide';
 
 interface User {
   id: number;
@@ -184,7 +186,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="users">
               <Icon name="Users" size={16} className="mr-2" />
               Пользователи
@@ -196,6 +198,10 @@ const Admin = () => {
             <TabsTrigger value="payments">
               <Icon name="CreditCard" size={16} className="mr-2" />
               Платежи
+            </TabsTrigger>
+            <TabsTrigger value="sbp">
+              <Icon name="Wallet" size={16} className="mr-2" />
+              СБП
             </TabsTrigger>
             <TabsTrigger value="bookings">
               <Icon name="Calendar" size={16} className="mr-2" />
@@ -235,8 +241,15 @@ const Admin = () => {
             <PaymentLinksManager />
           </TabsContent>
 
+          <TabsContent value="sbp">
+            <SBPSettings />
+          </TabsContent>
+
           <TabsContent value="bookings">
-            <PendingBookingsManager />
+            <div className="space-y-6">
+              <TelegramBotGuide />
+              <PendingBookingsManager />
+            </div>
           </TabsContent>
 
           <TabsContent value="subscriptions">

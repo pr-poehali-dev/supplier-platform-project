@@ -40,11 +40,97 @@ def handler(event: dict, context) -> dict:
         chat_id = message['chat']['id']
         text = message.get('text', '')
         user_data = message.get('from', {})
+        photo = message.get('photo')
         
         dsn = os.environ.get('DATABASE_URL')
         schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
         conn = psycopg2.connect(dsn)
         cur = conn.cursor()
+        
+        if photo:
+            bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+            file_id = photo[-1]['file_id']
+            
+            file_url_api = f'https://api.telegram.org/bot{bot_token}/getFile?file_id={file_id}'
+            with request.urlopen(file_url_api) as response:
+                file_info = json.loads(response.read().decode())
+                file_path = file_info['result']['file_path']
+                file_url = f'https://api.telegram.org/file/bot{bot_token}/{file_path}'
+            
+            cur.execute(f'''
+                SELECT id FROM {schema}.pending_bookings
+                WHERE telegram_chat_id = %s AND verification_status = 'pending'
+                ORDER BY created_at DESC LIMIT 1
+            ''', (chat_id,))
+            
+            pending = cur.fetchone()
+            
+            if pending:
+                pending_id = pending[0]
+                
+                cur.execute(f'''
+                    UPDATE {schema}.pending_bookings
+                    SET payment_screenshot_url = %s,
+                        verification_status = 'awaiting_verification'
+                    WHERE id = %s
+                ''', (file_url, pending_id))
+                
+                conn.commit()
+                
+                cur.execute(f'''
+                    SELECT telegram_owner_id FROM {schema}.bot_settings LIMIT 1
+                ''')
+                owner_result = cur.fetchone()
+                owner_telegram_id = owner_result[0] if owner_result and owner_result[0] else None
+                
+                cur.execute(f'''
+                    SELECT guest_name, check_in, check_out, guest_contact
+                    FROM {schema}.pending_bookings
+                    WHERE id = %s
+                ''', (pending_id,))
+                
+                booking_info = cur.fetchone()
+                guest_name, check_in, check_out, guest_contact = booking_info
+                
+                if owner_telegram_id:
+                    telegram_url = f'https://api.telegram.org/bot{bot_token}/sendPhoto'
+                    owner_notification = json.dumps({
+                        'chat_id': owner_telegram_id,
+                        'photo': file_id,
+                        'caption': f'''💳 Получен скриншот оплаты!
+
+Заявка #{pending_id}
+👤 {guest_name}
+📞 {guest_contact}
+📅 {check_in} — {check_out}
+
+Проверьте оплату на сайте и подтвердите бронирование.'''
+                    }).encode('utf-8')
+                    
+                    req_owner = request.Request(telegram_url, data=owner_notification, headers={'Content-Type': 'application/json'}, method='POST')
+                    with request.urlopen(req_owner) as response:
+                        response.read()
+                
+                telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+                client_response = json.dumps({
+                    'chat_id': chat_id,
+                    'text': '✅ Скриншот получен! Владелец проверит оплату и подтвердит бронирование.'
+                }).encode('utf-8')
+                
+                req_client = request.Request(telegram_url, data=client_response, headers={'Content-Type': 'application/json'}, method='POST')
+                with request.urlopen(req_client) as response:
+                    response.read()
+                
+                cur.close()
+                conn.close()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json'},
+                    'body': json.dumps({'ok': True})
+                }
+            
+            text = '[Фото отправлено]'
         
         cur.execute(f'''
             INSERT INTO {schema}.telegram_messages (telegram_id, message_text, sender, created_at)
@@ -196,29 +282,73 @@ def handler(event: dict, context) -> dict:
                     cur = conn.cursor()
                     
                     cur.execute(f'''
-                        INSERT INTO {schema}.bookings 
-                        (guest_name, guest_phone, guest_email, check_in, check_out, guests_count, 
-                         total_price, status, source, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, 0, 'pending', 'telegram_bot', NOW())
+                        SELECT sbp_payment_link, sbp_recipient_name 
+                        FROM {schema}.users 
+                        WHERE is_admin = true 
+                        LIMIT 1
+                    ''')
+                    payment_info = cur.fetchone()
+                    sbp_link = payment_info[0] if payment_info and payment_info[0] else None
+                    recipient_name = payment_info[1] if payment_info and payment_info[1] else 'Владелец'
+                    
+                    unit_id = booking_data.get('unit_id', 1)
+                    
+                    cur.execute(f'''
+                        INSERT INTO {schema}.pending_bookings 
+                        (unit_id, check_in, check_out, guest_name, guest_contact, telegram_chat_id, 
+                         amount, payment_link, verification_status, created_at, expires_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, 0, %s, 'pending', NOW(), NOW() + INTERVAL '24 hours')
                         RETURNING id
                     ''', (
-                        booking_data.get('guest_name'),
-                        booking_data.get('guest_phone'),
-                        booking_data.get('guest_email'),
+                        unit_id,
                         booking_data.get('check_in'),
                         booking_data.get('check_out'),
-                        booking_data.get('guests_count', 1)
+                        booking_data.get('guest_name'),
+                        booking_data.get('guest_phone'),
+                        chat_id,
+                        sbp_link or 'Ссылка на оплату не настроена'
                     ))
                     
-                    booking_id = cur.fetchone()[0]
+                    pending_id = cur.fetchone()[0]
                     conn.commit()
                     cur.close()
                     conn.close()
                     
-                    print(f'Booking created: {booking_id}')
+                    print(f'Pending booking created: {pending_id}')
+                    
+                    if sbp_link:
+                        payment_message = f'''✅ Отлично! Ваше бронирование почти готово.
+
+📋 Детали:
+• Даты: {booking_data.get('check_in')} — {booking_data.get('check_out')}
+• Гостей: {booking_data.get('guests_count', 1)}
+
+💳 Для завершения бронирования, пожалуйста:
+1. Оплатите по ссылке: {sbp_link}
+   Получатель: {recipient_name}
+2. Отправьте скриншот оплаты сюда, в чат
+
+После подтверждения владельцем ваше бронирование будет активировано! 🎉'''
+                    else:
+                        payment_message = f'''✅ Отлично! Ваше бронирование почти готово.
+
+📋 Детали:
+• Даты: {booking_data.get('check_in')} — {booking_data.get('check_out')}
+• Гостей: {booking_data.get('guests_count', 1)}
+
+Владелец свяжется с вами для уточнения деталей оплаты.'''
+                    
+                    payment_data = json.dumps({
+                        'chat_id': chat_id,
+                        'text': payment_message
+                    }).encode('utf-8')
+                    
+                    req_payment = request.Request(telegram_url, data=payment_data, headers={'Content-Type': 'application/json'}, method='POST')
+                    with request.urlopen(req_payment) as response:
+                        response.read()
                     
                     if owner_telegram_id:
-                        owner_text = f'''🎉 Новое бронирование #{booking_id}!
+                        owner_text = f'''🎉 Новая заявка на бронирование #{pending_id}!
 
 👤 Клиент: {booking_data.get('guest_name')}
 📞 Телефон: {booking_data.get('guest_phone')}
@@ -227,7 +357,8 @@ def handler(event: dict, context) -> dict:
 📅 Выезд: {booking_data.get('check_out')}
 👥 Гостей: {booking_data.get('guests_count', 1)}
 
-Telegram ID клиента: {chat_id}'''
+💡 Ожидается оплата от клиента.
+Telegram ID: {chat_id}'''
                         
                         owner_data = json.dumps({
                             'chat_id': owner_telegram_id,

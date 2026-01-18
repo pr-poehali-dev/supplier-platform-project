@@ -64,7 +64,8 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"""
                 SELECT id, email, full_name, provider, avatar_url, 
                        created_at, last_login, telegram_invited, is_admin,
-                       subscription_plan, subscription_expires_at
+                       subscription_plan, subscription_expires_at,
+                       sbp_payment_link, sbp_recipient_name
                 FROM users
                 ORDER BY created_at DESC
                 LIMIT {limit} OFFSET {offset}
@@ -83,7 +84,9 @@ def handler(event: dict, context) -> dict:
                     'telegram_invited': row[7],
                     'is_admin': row[8],
                     'subscription_plan': row[9] or 'none',
-                    'subscription_expires_at': row[10].isoformat() if row[10] else None
+                    'subscription_expires_at': row[10].isoformat() if row[10] else None,
+                    'sbp_payment_link': row[11],
+                    'sbp_recipient_name': row[12]
                 })
             
             cur.execute("SELECT COUNT(*) FROM users")
@@ -128,6 +131,39 @@ def handler(event: dict, context) -> dict:
                     'body': json.dumps({'success': True, 'is_admin': new_status}),
                     'isBase64Encoded': False
                 }
+            
+            elif action == 'update_sbp_settings':
+                sbp_link = body.get('sbp_payment_link', '')
+                recipient_name = body.get('sbp_recipient_name', '')
+                
+                cur.execute(f"""
+                    UPDATE users 
+                    SET sbp_payment_link = %s, 
+                        sbp_recipient_name = %s
+                    WHERE id = {payload['user_id']}
+                    RETURNING id
+                """, (sbp_link, recipient_name))
+                
+                updated = cur.fetchone()
+                conn.commit()
+                
+                cur.close()
+                conn.close()
+                
+                if updated:
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'success': True, 'message': 'Настройки СБП обновлены'}),
+                        'isBase64Encoded': False
+                    }
+                else:
+                    return {
+                        'statusCode': 404,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'User not found'}),
+                        'isBase64Encoded': False
+                    }
         
         elif method == 'DELETE':
             # Удаление поста блога

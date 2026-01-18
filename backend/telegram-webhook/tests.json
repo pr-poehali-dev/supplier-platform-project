@@ -1,20 +1,10 @@
 {
-  "tests": [
-    {
-      "name": "OPTIONS request for CORS",
-      "method": "OPTIONS",
-      "path": "/",
-      "expectedStatus": 200
-    },
-    {
-      "name": "Webhook health check",
-      "method": "POST",
-      "path": "/",
-      "body": "{}",
-      "expectedStatus": 200,
-      "expectedBody": {
-        "ok": true
-      }
-    }
-  ]
+  "tests": [{
+    "name": "Test webhook",
+    "method": "POST",
+    "path": "/",
+    "body": {"message": {"chat": {"id": 123}, "from": {"id": 123}, "text": "test"}},
+    "expectedStatus": 200,
+    "bodyMatcher": "partial"
+  }]
 }

@@ -9,7 +9,6 @@
   "telegram-messages": "https://functions.poehali.dev/b08b50dd-ee0f-4534-9865-afdf3582a91b",
   "admin-subscriptions": "https://functions.poehali.dev/a3b103f1-3e4d-4066-9bbe-f303bc55720a",
   "subscription-webhook": "https://functions.poehali.dev/7f8f791c-4136-4495-b27d-3720346aa26d",
-  "robokassa": "https://functions.poehali.dev/6c81ac6e-86fa-4b52-b7fa-f49593ba95f4",
   "contact-form": "https://functions.poehali.dev/d00d6394-685d-4e42-9d5e-b5f3a12b31d1",
   "robokassa-robokassa-webhook": "https://functions.poehali.dev/7c897dbb-c084-420c-a4e9-27e67abb1e57",
   "robokassa-robokassa": "https://functions.poehali.dev/a1a4be1c-d18a-43fc-839d-3f01ba50bfb8",

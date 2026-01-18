@@ -121,6 +121,16 @@ def handler(event: dict, context) -> dict:
                     except:
                         pass
                 
+                conn_save = psycopg2.connect(dsn)
+                cur_save = conn_save.cursor()
+                cur_save.execute(f'''
+                    INSERT INTO {schema}.telegram_messages (telegram_id, message_text, sender, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                ''', (chat_id, ai_reply, 'bot'))
+                conn_save.commit()
+                cur_save.close()
+                conn_save.close()
+                
                 telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
                 data = json.dumps({
                     'chat_id': chat_id,

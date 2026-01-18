@@ -316,22 +316,23 @@ def handler(event: dict, context) -> dict:
                 services = cur_context.fetchall()
                 
                 cur_context.execute(f'''
-                    SELECT b.check_in, b.check_out, u.name as unit_name
-                    FROM {schema}.bookings b
-                    LEFT JOIN {schema}.booking_units bu ON b.id = bu.booking_id
-                    LEFT JOIN {schema}.units u ON bu.unit_id = u.id
-                    WHERE b.status = 'confirmed'
-                    AND b.check_out >= CURRENT_DATE
-                    
-                    UNION ALL
-                    
-                    SELECT pb.check_in, pb.check_out, u.name as unit_name
-                    FROM {schema}.pending_bookings pb
-                    LEFT JOIN {schema}.units u ON pb.unit_id = u.id
-                    WHERE pb.verification_status = 'pending'
-                    AND pb.expires_at > NOW()
-                    AND pb.check_out >= CURRENT_DATE
-                    
+                    SELECT check_in, check_out, unit_name FROM (
+                        SELECT b.check_in, b.check_out, u.name as unit_name
+                        FROM {schema}.bookings b
+                        LEFT JOIN {schema}.booking_units bu ON b.id = bu.booking_id
+                        LEFT JOIN {schema}.units u ON bu.unit_id = u.id
+                        WHERE b.status = 'confirmed'
+                        AND b.check_out >= CURRENT_DATE
+                        
+                        UNION ALL
+                        
+                        SELECT pb.check_in, pb.check_out, u.name as unit_name
+                        FROM {schema}.pending_bookings pb
+                        LEFT JOIN {schema}.units u ON pb.unit_id = u.id
+                        WHERE pb.verification_status = 'pending'
+                        AND pb.expires_at > NOW()
+                        AND pb.check_out >= CURRENT_DATE
+                    ) AS all_bookings
                     ORDER BY check_in
                 ''')
                 existing_bookings = cur_context.fetchall()
@@ -478,16 +479,20 @@ Telegram ID: {chat_id}'''
                     
             except Exception as telegram_error:
                 print(f'AI/Telegram error: {telegram_error}')
+                import traceback
+                traceback.print_exc()
                 try:
-                    telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
-                    fallback_data = json.dumps({
-                        'chat_id': chat_id,
-                        'text': 'Спасибо за ваше сообщение! Мы получили ваш запрос и скоро свяжемся с вами.'
-                    }).encode('utf-8')
-                    
-                    req = request.Request(telegram_url, data=fallback_data, headers={'Content-Type': 'application/json'}, method='POST')
-                    with request.urlopen(req) as response:
-                        response.read()
+                    bot_token_fallback = os.environ.get('TELEGRAM_BOT_TOKEN')
+                    if bot_token_fallback:
+                        telegram_url = f'https://api.telegram.org/bot{bot_token_fallback}/sendMessage'
+                        fallback_data = json.dumps({
+                            'chat_id': chat_id,
+                            'text': 'Спасибо за ваше сообщение! Мы получили ваш запрос и скоро свяжемся с вами.'
+                        }).encode('utf-8')
+                        
+                        req = request.Request(telegram_url, data=fallback_data, headers={'Content-Type': 'application/json'}, method='POST')
+                        with request.urlopen(req) as response:
+                            response.read()
                 except:
                     pass
         

@@ -76,19 +76,66 @@ def handler(event: dict, context) -> dict:
         
         if bot_token and chatgpt_api_key:
             try:
-                messages = [
-                    {'role': 'system', 'content': '''Ты - ассистент по бронированию туров и отелей. Твоя задача:
+                conn_context = psycopg2.connect(dsn)
+                cur_context = conn_context.cursor()
+                
+                cur_context.execute(f'''
+                    SELECT id, name, type, base_price, max_guests, description
+                    FROM {schema}.units
+                    ORDER BY name
+                ''')
+                units = cur_context.fetchall()
+                
+                cur_context.execute(f'''
+                    SELECT name, description, price, category
+                    FROM {schema}.additional_services
+                    WHERE enabled = true
+                    ORDER BY category, name
+                ''')
+                services = cur_context.fetchall()
+                
+                cur_context.execute(f'''
+                    SELECT b.check_in, b.check_out, u.name as unit_name
+                    FROM {schema}.bookings b
+                    LEFT JOIN {schema}.booking_units bu ON b.id = bu.booking_id
+                    LEFT JOIN {schema}.units u ON bu.unit_id = u.id
+                    WHERE b.status IN ('confirmed', 'pending')
+                    AND b.check_out >= CURRENT_DATE
+                    ORDER BY b.check_in
+                ''')
+                existing_bookings = cur_context.fetchall()
+                
+                cur_context.close()
+                conn_context.close()
+                
+                units_text = '\n'.join([f"- {u[1]} ({u[2]}): {u[3]}₽/сутки, до {u[4]} гостей. {u[5] or ''}" for u in units])
+                services_text = '\n'.join([f"- {s[0]} ({s[3]}): {s[2]}₽. {s[1] or ''}" for s in services]) if services else 'Пока не добавлено'
+                bookings_text = '\n'.join([f"- {b[2] or 'Объект'}: {b[0]} - {b[1]}" for b in existing_bookings[:10]]) if existing_bookings else 'Нет активных бронирований'
+                
+                system_prompt = f'''Ты - ассистент по бронированию турбазы. Сегодня: 2026-01-18.
+
+ДОСТУПНЫЕ ОБЪЕКТЫ:
+{units_text}
+
+ДОПРОДАЖИ (предлагай клиентам):
+{services_text}
+
+ТЕКУЩИЕ БРОНИРОВАНИЯ (проверяй занятость):
+{bookings_text}
+
+ТВОЯ ЗАДАЧА:
 1. Вежливо общаться с клиентом
-2. Задавать уточняющие вопросы про:
-   - Даты поездки (check_in, check_out)
-   - Количество гостей (guests_count)
-   - Имя клиента (guest_name)
-   - Телефон клиента (guest_phone)
-   - Email клиента (guest_email, опционально)
-3. Когда все данные собраны, в конце ответа добавь JSON:
-   {"booking_ready": true, "guest_name": "Иван", "guest_phone": "+79001234567", "guest_email": "ivan@mail.ru", "check_in": "2026-02-01", "check_out": "2026-02-05", "guests_count": 2}
-4. Если данных недостаточно - продолжай диалог, не добавляй JSON.'''}
-                ]
+2. Предлагать ТОЛЬКО реальные объекты из списка выше
+3. Проверять занятость по календарю бронирований
+4. Предлагать допродажи из списка (завтраки, экскурсии и т.д.)
+5. Собирать данные: даты (check_in, check_out), кол-во гостей, имя, телефон, email
+6. Когда все данные собраны, в конце ответа добавь JSON:
+   {{"booking_ready": true, "guest_name": "Иван", "guest_phone": "+79001234567", "guest_email": "ivan@mail.ru", "check_in": "2026-02-01", "check_out": "2026-02-05", "guests_count": 2, "unit_id": 1}}
+7. Если данных недостаточно - продолжай диалог, не добавляй JSON
+
+ВАЖНО: Используй только реальные объекты и цены из списка!'''
+                
+                messages = [{'role': 'system', 'content': system_prompt}]
                 
                 for msg_text, sender, created in reversed(history):
                     role = 'assistant' if sender == 'bot' else 'user'

@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "Test send message validation",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "chat_id": 12345
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

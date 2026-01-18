@@ -1,0 +1,21 @@
+{
+  "tests": [
+    {
+      "name": "Test webhook receive",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "message": {
+          "chat": {"id": 12345},
+          "from": {"id": 12345, "first_name": "Test"},
+          "text": "Привет"
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "ok": true
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

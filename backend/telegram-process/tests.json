@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "name": "Test process messages",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "skip"
+    }
+  ]
+}

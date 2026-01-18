@@ -94,7 +94,7 @@ def handler(event: dict, context) -> dict:
                     role = 'assistant' if sender == 'bot' else 'user'
                     messages.append({'role': role, 'content': msg_text})
                 
-                chatgpt_url = 'https://api.polza-ai.ru/v1/chat/completions'
+                chatgpt_url = 'https://api.polza.ai/api/v1/chat/completions'
                 chatgpt_data = json.dumps({
                     'model': 'gpt-4o-mini',
                     'messages': messages,

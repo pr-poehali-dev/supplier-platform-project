@@ -289,33 +289,27 @@ def handler(event: dict, context) -> dict:
         owner_result = cur.fetchone()
         owner_telegram_id = owner_result[0] if owner_result and owner_result[0] else None
         
-        cur.close()
-        conn.close()
-        
         bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
         chatgpt_api_key = os.environ.get('POLZA_AI_API_KEY')
         
         if bot_token and chatgpt_api_key:
             try:
-                conn_context = psycopg2.connect(dsn)
-                cur_context = conn_context.cursor()
-                
-                cur_context.execute(f'''
+                cur.execute(f'''
                     SELECT id, name, type, base_price, max_guests, description
                     FROM {schema}.units
                     ORDER BY name
                 ''')
-                units = cur_context.fetchall()
+                units = cur.fetchall()
                 
-                cur_context.execute(f'''
+                cur.execute(f'''
                     SELECT name, description, price, category
                     FROM {schema}.additional_services
                     WHERE enabled = true
                     ORDER BY category, name
                 ''')
-                services = cur_context.fetchall()
+                services = cur.fetchall()
                 
-                cur_context.execute(f'''
+                cur.execute(f'''
                     SELECT check_in, check_out, unit_name FROM (
                         SELECT b.check_in, b.check_out, u.name as unit_name
                         FROM {schema}.bookings b
@@ -335,10 +329,7 @@ def handler(event: dict, context) -> dict:
                     ) AS all_bookings
                     ORDER BY check_in
                 ''')
-                existing_bookings = cur_context.fetchall()
-                
-                cur_context.close()
-                conn_context.close()
+                existing_bookings = cur.fetchall()
                 
                 units_text = '\n'.join([f"- {u[1]} ({u[2]}): {u[3]}₽/сутки, до {u[4]} гостей. {u[5] or ''}" for u in units])
                 services_text = '\n'.join([f"- {s[0]} ({s[3]}): {s[2]}₽. {s[1] or ''}" for s in services]) if services else 'Пока не добавлено'
@@ -495,6 +486,9 @@ Telegram ID: {chat_id}'''
                             response.read()
                 except:
                     pass
+        
+        cur.close()
+        conn.close()
         
         return {
             'statusCode': 200,

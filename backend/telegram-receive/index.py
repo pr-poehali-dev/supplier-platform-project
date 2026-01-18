@@ -300,6 +300,8 @@ def handler(event: dict, context) -> dict:
                 conn_context = psycopg2.connect(dsn)
                 cur_context = conn_context.cursor()
                 
+                cur_context.execute(f"SET search_path TO {schema}")
+                
                 cur_context.execute(f'''
                     SELECT id, name, type, base_price, max_guests, description
                     FROM {schema}.units

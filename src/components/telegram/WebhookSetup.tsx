@@ -2,10 +2,14 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithAuth } from '@/lib/api';
 
 const WEBHOOK_SETUP_URL = 'https://functions.poehali.dev/61d49d2c-cb8a-4629-ab2e-3f104ffd2a9f';
+const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
 export default function WebhookSetup() {
   const { toast } = useToast();
@@ -15,6 +19,8 @@ export default function WebhookSetup() {
     current_webhook: string;
     expected_webhook: string;
   } | null>(null);
+  const [telegramOwnerId, setTelegramOwnerId] = useState('');
+  const [savingId, setSavingId] = useState(false);
 
   const checkWebhook = async () => {
     setLoading(true);
@@ -63,6 +69,57 @@ export default function WebhookSetup() {
     }
   };
 
+  const getUserId = () => {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    return user?.id;
+  };
+
+  const saveTelegramId = async () => {
+    const userId = getUserId();
+    if (!userId) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось определить пользователя',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setSavingId(true);
+    try {
+      const response = await fetchWithAuth(`${AI_URL}?action=save_telegram_id`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId.toString()
+        },
+        body: JSON.stringify({ telegram_owner_id: telegramOwnerId })
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Успешно!',
+          description: 'Telegram ID сохранен. Вы будете получать уведомления о бронированиях'
+        });
+      } else {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось сохранить Telegram ID',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось сохранить Telegram ID',
+        variant: 'destructive'
+      });
+    } finally {
+      setSavingId(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -103,6 +160,40 @@ export default function WebhookSetup() {
             Проверьте статус бота перед началом работы
           </p>
         )}
+
+        <div className="border-t pt-4 mt-4">
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="telegram-id" className="text-sm font-medium">
+                Ваш Telegram ID (для уведомлений о бронированиях)
+              </Label>
+              <p className="text-xs text-gray-500 mb-2">
+                Чтобы узнать свой ID, напишите боту <a href="https://t.me/userinfobot" target="_blank" className="text-blue-600 underline">@userinfobot</a>
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  id="telegram-id"
+                  type="text"
+                  placeholder="203962937"
+                  value={telegramOwnerId}
+                  onChange={(e) => setTelegramOwnerId(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={saveTelegramId}
+                  disabled={savingId || !telegramOwnerId}
+                  variant="outline"
+                >
+                  {savingId ? (
+                    <Icon name="Loader2" className="animate-spin" size={16} />
+                  ) : (
+                    <Icon name="Save" size={16} />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div className="flex gap-2">
           <Button

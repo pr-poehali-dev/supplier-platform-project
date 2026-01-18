@@ -242,6 +242,29 @@ def handler(event: dict, context) -> dict:
             
             return success_response({'message': 'Settings updated'})
         
+        # POST /save_telegram_id - сохранить Telegram ID владельца
+        if method == 'POST' and action == 'save_telegram_id':
+            body = json.loads(event.get('body', '{}'))
+            telegram_owner_id = body.get('telegram_owner_id', '').strip()
+            
+            if not telegram_owner_id:
+                return error_response('telegram_owner_id is required', 400)
+            
+            user_id = headers.get('X-User-Id') or headers.get('x-user-id')
+            if not user_id:
+                return error_response('User ID required', 401)
+            
+            cur.execute(f"""
+                INSERT INTO bot_settings (owner_id, telegram_owner_id)
+                VALUES ({owner_id}, $${telegram_owner_id}$$)
+                ON CONFLICT (owner_id) DO UPDATE SET
+                    telegram_owner_id = $${telegram_owner_id}$$,
+                    updated_at = CURRENT_TIMESTAMP
+            """)
+            conn.commit()
+            
+            return success_response({'message': 'Telegram ID saved'})
+        
         # GET /services - получить допродажи
         if method == 'GET' and action == 'services':
             cur.execute(f"""

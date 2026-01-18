@@ -39,7 +39,16 @@ def handler(event: dict, context) -> dict:
             }
         
         dsn = os.environ.get('DATABASE_URL')
-        schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+        schema = os.environ.get('MAIN_DB_SCHEMA')
+        if not schema:
+            temp_conn = psycopg2.connect(dsn)
+            temp_cur = temp_conn.cursor()
+            temp_cur.execute("SELECT nspname FROM pg_namespace WHERE nspname LIKE 't_%' ORDER BY nspname LIMIT 1")
+            schema_row = temp_cur.fetchone()
+            schema = schema_row[0] if schema_row else 'public'
+            temp_cur.close()
+            temp_conn.close()
+        
         conn = psycopg2.connect(dsn)
         cur = conn.cursor()
         
@@ -64,6 +73,23 @@ def handler(event: dict, context) -> dict:
         _, unit_id, check_in, check_out, guest_name, guest_contact, chat_id, amount, status = pending
         
         if action == 'confirm':
+            cur.execute(f'''
+                SELECT COUNT(*) FROM {schema}.bookings
+                WHERE unit_id = %s 
+                  AND status = 'confirmed'
+                  AND check_out > %s 
+                  AND check_in < %s
+            ''', (unit_id, check_in, check_out))
+            
+            if cur.fetchone()[0] > 0:
+                cur.close()
+                conn.close()
+                return {
+                    'statusCode': 409,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Даты уже заняты другим подтверждённым бронированием'})
+                }
+            
             cur.execute(f'''
                 INSERT INTO {schema}.bookings 
                 (guest_name, guest_phone, check_in, check_out, guests_count, 

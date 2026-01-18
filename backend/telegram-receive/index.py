@@ -2,6 +2,132 @@ import json
 import os
 import psycopg2
 from urllib import request
+from datetime import datetime
+
+def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: int, owner_telegram_id: int, bot_token: str) -> dict:
+    conn = psycopg2.connect(dsn)
+    cur = conn.cursor()
+    
+    try:
+        unit_name = intent.get('unit_name', '').strip()
+        check_in = intent.get('check_in')
+        check_out = intent.get('check_out')
+        guest_name = intent.get('guest_name')
+        guest_phone = intent.get('guest_phone')
+        guests_count = intent.get('guests_count', 1)
+        
+        if not all([unit_name, check_in, check_out, guest_name, guest_phone]):
+            return {'success': False, 'error': 'Недостаточно данных для бронирования'}
+        
+        cur.execute(f"""
+            SELECT id, name, base_price 
+            FROM {schema}.units 
+            WHERE LOWER(name) = LOWER(%s) 
+            LIMIT 1
+        """, (unit_name,))
+        
+        unit = cur.fetchone()
+        if not unit:
+            return {'success': False, 'error': f'Объект "{unit_name}" не найден'}
+        
+        unit_id, unit_name_db, base_price = unit
+        
+        cur.execute(f"""
+            SELECT COUNT(*) FROM {schema}.bookings
+            WHERE unit_id = %s 
+              AND status = 'confirmed'
+              AND check_out > %s 
+              AND check_in < %s
+        """, (unit_id, check_in, check_out))
+        
+        if cur.fetchone()[0] > 0:
+            return {'success': False, 'error': 'Даты уже заняты'}
+        
+        cur.execute(f"""
+            SELECT COUNT(*) FROM {schema}.pending_bookings
+            WHERE unit_id = %s 
+              AND verification_status = 'pending'
+              AND check_out > %s 
+              AND check_in < %s
+              AND expires_at > NOW()
+        """, (unit_id, check_in, check_out))
+        
+        if cur.fetchone()[0] > 0:
+            return {'success': False, 'error': 'Даты временно заняты (есть ожидающая заявка)'}
+        
+        try:
+            pricing_url = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4'
+            date_in = datetime.strptime(check_in, '%Y-%m-%d')
+            date_out = datetime.strptime(check_out, '%Y-%m-%d')
+            nights = (date_out - date_in).days
+            
+            if nights <= 0:
+                return {'success': False, 'error': 'Некорректные даты'}
+            
+            amount = float(base_price) * nights
+        except Exception as e:
+            print(f'Pricing calculation error: {e}')
+            amount = 0
+        
+        cur.execute(f"""
+            SELECT sbp_payment_link, sbp_recipient_name 
+            FROM {schema}.users 
+            WHERE is_admin = true 
+            LIMIT 1
+        """)
+        payment_info = cur.fetchone()
+        sbp_link = payment_info[0] if payment_info and payment_info[0] else 'Не настроено'
+        recipient_name = payment_info[1] if payment_info and payment_info[1] else 'Владелец'
+        
+        cur.execute(f"""
+            INSERT INTO {schema}.pending_bookings 
+            (unit_id, check_in, check_out, guest_name, guest_contact, 
+             telegram_chat_id, amount, payment_link, verification_status, expires_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending', NOW() + INTERVAL '24 hours')
+            RETURNING id
+        """, (unit_id, check_in, check_out, guest_name, guest_phone, chat_id, amount, sbp_link))
+        
+        pending_id = cur.fetchone()[0]
+        conn.commit()
+        
+        if owner_telegram_id and bot_token:
+            try:
+                telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+                owner_notification = json.dumps({
+                    'chat_id': owner_telegram_id,
+                    'text': f'''🆕 Новая заявка #{pending_id}
+
+👤 {guest_name}
+📞 {guest_phone}
+🏡 {unit_name_db}
+📅 {check_in} — {check_out}
+💰 {amount}₽
+
+Ожидает оплаты от гостя.'''
+                }).encode('utf-8')
+                
+                req_owner = request.Request(telegram_url, data=owner_notification, headers={'Content-Type': 'application/json'}, method='POST')
+                with request.urlopen(req_owner) as response:
+                    response.read()
+            except Exception as e:
+                print(f'Owner notification error: {e}')
+        
+        return {
+            'success': True,
+            'pending_id': pending_id,
+            'amount': amount,
+            'sbp_link': sbp_link,
+            'recipient_name': recipient_name,
+            'unit_name': unit_name_db
+        }
+        
+    except Exception as e:
+        print(f'Booking validation error: {e}')
+        return {'success': False, 'error': f'Ошибка создания бронирования: {str(e)}'}
+    finally:
+        cur.close()
+        conn.close()
+
 
 def handler(event: dict, context) -> dict:
     '''Принимает webhook от Telegram и сохраняет в БД'''
@@ -194,9 +320,19 @@ def handler(event: dict, context) -> dict:
                     FROM {schema}.bookings b
                     LEFT JOIN {schema}.booking_units bu ON b.id = bu.booking_id
                     LEFT JOIN {schema}.units u ON bu.unit_id = u.id
-                    WHERE b.status IN ('confirmed', 'pending')
+                    WHERE b.status = 'confirmed'
                     AND b.check_out >= CURRENT_DATE
-                    ORDER BY b.check_in
+                    
+                    UNION ALL
+                    
+                    SELECT pb.check_in, pb.check_out, u.name as unit_name
+                    FROM {schema}.pending_bookings pb
+                    LEFT JOIN {schema}.units u ON pb.unit_id = u.id
+                    WHERE pb.verification_status = 'pending'
+                    AND pb.expires_at > NOW()
+                    AND pb.check_out >= CURRENT_DATE
+                    
+                    ORDER BY check_in
                 ''')
                 existing_bookings = cur_context.fetchall()
                 
@@ -223,10 +359,11 @@ def handler(event: dict, context) -> dict:
 2. Предлагать ТОЛЬКО реальные объекты из списка выше
 3. Проверять занятость по календарю бронирований
 4. Предлагать допродажи из списка (завтраки, экскурсии и т.д.)
-5. Собирать данные: даты (check_in, check_out), кол-во гостей, имя, телефон, email
-6. Когда все данные собраны, в конце ответа добавь JSON:
-   {{"booking_ready": true, "guest_name": "Иван", "guest_phone": "+79001234567", "guest_email": "ivan@mail.ru", "check_in": "2026-02-01", "check_out": "2026-02-05", "guests_count": 2, "unit_id": 1}}
+5. Собирать данные: даты (check_in, check_out), кол-во гостей, имя, телефон
+6. Когда ВСЕ данные собраны, в конце ответа добавь JSON:
+   {{"intent": "create_booking", "guest_name": "Иван", "guest_phone": "+79001234567", "check_in": "2026-02-01", "check_out": "2026-02-05", "guests_count": 2, "unit_name": "Домик \"Сосновый\""}}
 7. Если данных недостаточно - продолжай диалог, не добавляй JSON
+8. КРИТИЧНО: Указывай ТОЧНОЕ НАЗВАНИЕ объекта (unit_name), как в списке выше!
 
 ВАЖНО: Используй только реальные объекты и цены из списка!'''
                 
@@ -253,14 +390,16 @@ def handler(event: dict, context) -> dict:
                     ai_reply = chatgpt_response['choices'][0]['message']['content']
                     print(f'ChatGPT response: {ai_reply}')
                 
-                booking_data = None
-                if '{"booking_ready": true' in ai_reply:
+                intent = None
+                if '{"intent":' in ai_reply or '{"intent" :' in ai_reply:
                     try:
-                        json_start = ai_reply.find('{"booking_ready"')
-                        json_str = ai_reply[json_start:ai_reply.find('}', json_start) + 1]
-                        booking_data = json.loads(json_str)
+                        json_start = ai_reply.find('{"intent"')
+                        json_end = ai_reply.find('}', json_start) + 1
+                        json_str = ai_reply[json_start:json_end]
+                        intent = json.loads(json_str)
                         ai_reply = ai_reply[:json_start].strip()
-                    except:
+                    except Exception as e:
+                        print(f'JSON parse error: {e}')
                         pass
                 
                 conn_save = psycopg2.connect(dsn)
@@ -284,68 +423,26 @@ def handler(event: dict, context) -> dict:
                     result = response.read()
                     print(f'AI reply sent to client: {result.decode()}')
                 
-                if booking_data and booking_data.get('booking_ready'):
-                    dsn = os.environ.get('DATABASE_URL')
-                    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
-                    conn = psycopg2.connect(dsn)
-                    cur = conn.cursor()
+                if intent and intent.get('intent') == 'create_booking':
+                    result = validate_and_create_booking(intent, schema, dsn, chat_id, owner_telegram_id, bot_token)
                     
-                    cur.execute(f'''
-                        SELECT sbp_payment_link, sbp_recipient_name 
-                        FROM {schema}.users 
-                        WHERE is_admin = true 
-                        LIMIT 1
-                    ''')
-                    payment_info = cur.fetchone()
-                    sbp_link = payment_info[0] if payment_info and payment_info[0] else None
-                    recipient_name = payment_info[1] if payment_info and payment_info[1] else 'Владелец'
-                    
-                    unit_id = booking_data.get('unit_id', 1)
-                    
-                    cur.execute(f'''
-                        INSERT INTO {schema}.pending_bookings 
-                        (unit_id, check_in, check_out, guest_name, guest_contact, telegram_chat_id, 
-                         amount, payment_link, verification_status, created_at, expires_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, 0, %s, 'pending', NOW(), NOW() + INTERVAL '24 hours')
-                        RETURNING id
-                    ''', (
-                        unit_id,
-                        booking_data.get('check_in'),
-                        booking_data.get('check_out'),
-                        booking_data.get('guest_name'),
-                        booking_data.get('guest_phone'),
-                        chat_id,
-                        sbp_link or 'Ссылка на оплату не настроена'
-                    ))
-                    
-                    pending_id = cur.fetchone()[0]
-                    conn.commit()
-                    cur.close()
-                    conn.close()
-                    
-                    print(f'Pending booking created: {pending_id}')
-                    
-                    if sbp_link:
-                        payment_message = f'''✅ Отлично! Ваше бронирование почти готово.
+                    if result['success']:
+                        payment_message = f'''✅ Бронирование #{result['pending_id']} создано!
 
-📋 Детали:
-• Даты: {booking_data.get('check_in')} — {booking_data.get('check_out')}
-• Гостей: {booking_data.get('guests_count', 1)}
+📋 {result['unit_name']}
+📅 {intent['check_in']} — {intent['check_out']}
+💰 Сумма: {result['amount']}₽
 
-💳 Для завершения бронирования, пожалуйста:
-1. Оплатите по ссылке: {sbp_link}
-   Получатель: {recipient_name}
-2. Отправьте скриншот оплаты сюда, в чат
+💳 Для завершения:
+1. Оплатите: {result['sbp_link']}
+   Получатель: {result['recipient_name']}
+2. Отправьте скриншот оплаты сюда
 
-После подтверждения владельцем ваше бронирование будет активировано! 🎉'''
+После подтверждения бронирование активируется! 🎉'''
                     else:
-                        payment_message = f'''✅ Отлично! Ваше бронирование почти готово.
+                        payment_message = f'''❌ {result['error']}
 
-📋 Детали:
-• Даты: {booking_data.get('check_in')} — {booking_data.get('check_out')}
-• Гостей: {booking_data.get('guests_count', 1)}
-
-Владелец свяжется с вами для уточнения деталей оплаты.'''
+Попробуйте выбрать другие даты или объект.'''
                     
                     payment_data = json.dumps({
                         'chat_id': chat_id,
@@ -355,8 +452,8 @@ def handler(event: dict, context) -> dict:
                     req_payment = request.Request(telegram_url, data=payment_data, headers={'Content-Type': 'application/json'}, method='POST')
                     with request.urlopen(req_payment) as response:
                         response.read()
-                    
-                    if owner_telegram_id:
+                
+                if False:
                         owner_text = f'''🎉 Новая заявка на бронирование #{pending_id}!
 
 👤 Клиент: {booking_data.get('guest_name')}

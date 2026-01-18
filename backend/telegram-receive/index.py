@@ -56,35 +56,55 @@ def handler(event: dict, context) -> dict:
         conn.close()
         
         bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-        if bot_token:
+        chatgpt_api_key = os.environ.get('POLZA_AI_API_KEY')
+        
+        if bot_token and chatgpt_api_key:
             try:
-                reply_text = 'Спасибо за ваше сообщение! Мы получили ваш запрос и скоро свяжемся с вами.'
+                chatgpt_url = 'https://api.polza-ai.ru/v1/chat/completions'
+                chatgpt_data = json.dumps({
+                    'model': 'gpt-4o-mini',
+                    'messages': [
+                        {'role': 'system', 'content': 'Ты - ассистент туристического агентства. Помогаешь клиентам с бронированием туров, отвечаешь на вопросы о турах, ценах, доступности. Будь вежливым и профессиональным.'},
+                        {'role': 'user', 'content': text}
+                    ],
+                    'temperature': 0.7
+                }).encode('utf-8')
+                
+                chatgpt_req = request.Request(chatgpt_url, data=chatgpt_data, headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {chatgpt_api_key}'
+                }, method='POST')
+                
+                with request.urlopen(chatgpt_req) as response:
+                    chatgpt_response = json.loads(response.read().decode())
+                    ai_reply = chatgpt_response['choices'][0]['message']['content']
+                    print(f'ChatGPT response: {ai_reply}')
                 
                 telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
                 data = json.dumps({
                     'chat_id': chat_id,
-                    'text': reply_text
+                    'text': ai_reply
                 }).encode('utf-8')
                 
                 req = request.Request(telegram_url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
                 with request.urlopen(req) as response:
                     result = response.read()
-                    print(f'Client reply sent: {result.decode()}')
-                
-                owner_chat_id = os.environ.get('OWNER_TELEGRAM_ID', '760787428')
-                owner_text = f'📩 Новое сообщение от клиента\n\nChat ID: {chat_id}\nСообщение: {text}'
-                
-                owner_data = json.dumps({
-                    'chat_id': owner_chat_id,
-                    'text': owner_text
-                }).encode('utf-8')
-                
-                req_owner = request.Request(telegram_url, data=owner_data, headers={'Content-Type': 'application/json'}, method='POST')
-                with request.urlopen(req_owner) as response:
-                    result = response.read()
-                    print(f'Owner notification sent: {result.decode()}')
+                    print(f'AI reply sent to client: {result.decode()}')
+                    
             except Exception as telegram_error:
-                print(f'Telegram send error: {telegram_error}')
+                print(f'AI/Telegram error: {telegram_error}')
+                try:
+                    telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+                    fallback_data = json.dumps({
+                        'chat_id': chat_id,
+                        'text': 'Спасибо за ваше сообщение! Мы получили ваш запрос и скоро свяжемся с вами.'
+                    }).encode('utf-8')
+                    
+                    req = request.Request(telegram_url, data=fallback_data, headers={'Content-Type': 'application/json'}, method='POST')
+                    with request.urlopen(req) as response:
+                        response.read()
+                except:
+                    pass
         
         return {
             'statusCode': 200,

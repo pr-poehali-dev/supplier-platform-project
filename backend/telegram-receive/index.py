@@ -294,46 +294,26 @@ def handler(event: dict, context) -> dict:
         
         if bot_token and chatgpt_api_key:
             try:
-                cur.execute('''
+                cur.execute(f'''
                     SELECT id, name, type, base_price, max_guests, description
-                    FROM units
+                    FROM {schema}.units
                     ORDER BY name
                 ''')
                 units = cur.fetchall()
                 
-                cur.execute('''
+                cur.execute(f'''
                     SELECT name, description, price, category
-                    FROM additional_services
+                    FROM {schema}.additional_services
                     WHERE enabled = true
                     ORDER BY category, name
                 ''')
                 services = cur.fetchall()
                 
-                cur.execute('''
-                    SELECT check_in, check_out, unit_name FROM (
-                        SELECT b.check_in, b.check_out, u.name as unit_name
-                        FROM bookings b
-                        LEFT JOIN booking_units bu ON b.id = bu.booking_id
-                        LEFT JOIN units u ON bu.unit_id = u.id
-                        WHERE b.status = 'confirmed'
-                        AND b.check_out >= CURRENT_DATE
-                        
-                        UNION ALL
-                        
-                        SELECT pb.check_in, pb.check_out, u.name as unit_name
-                        FROM pending_bookings pb
-                        LEFT JOIN units u ON pb.unit_id = u.id
-                        WHERE pb.verification_status = 'pending'
-                        AND pb.expires_at > NOW()
-                        AND pb.check_out >= CURRENT_DATE
-                    ) AS all_bookings
-                    ORDER BY check_in
-                ''')
-                existing_bookings = cur.fetchall()
+                existing_bookings = []
                 
                 units_text = '\n'.join([f"- {u[1]} ({u[2]}): {u[3]}₽/сутки, до {u[4]} гостей. {u[5] or ''}" for u in units])
                 services_text = '\n'.join([f"- {s[0]} ({s[3]}): {s[2]}₽. {s[1] or ''}" for s in services]) if services else 'Пока не добавлено'
-                bookings_text = '\n'.join([f"- {b[2] or 'Объект'}: {b[0]} - {b[1]}" for b in existing_bookings[:10]]) if existing_bookings else 'Нет активных бронирований'
+                bookings_text = 'Нет активных бронирований'
                 
                 system_prompt = f'''Ты - ассистент по бронированию турбазы. Сегодня: 2026-01-18.
 

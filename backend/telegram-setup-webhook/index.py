@@ -31,7 +31,7 @@ def handler(event: dict, context) -> dict:
             'isBase64Encoded': False
         }
     
-    webhook_url = 'https://functions.poehali.dev/c2a7d78f-5e5c-4130-8e7e-2b513f841761'
+    webhook_url = 'https://functions.poehali.dev/c57cc120-80f9-4380-9cdf-6986439d814d'
     
     if method == 'POST':
         try:

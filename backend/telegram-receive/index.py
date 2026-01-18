@@ -96,7 +96,7 @@ def handler(event: dict, context) -> dict:
                 
                 chatgpt_url = 'https://api.polza.ai/api/v1/chat/completions'
                 chatgpt_data = json.dumps({
-                    'model': 'gpt-4o-mini',
+                    'model': 'openai/gpt-4o',
                     'messages': messages,
                     'temperature': 0.7
                 }).encode('utf-8')

@@ -9,6 +9,7 @@ import JsonLd from '@/components/seo/JsonLd';
 import { softwareApplicationSchema, breadcrumbSchema } from '@/utils/seo';
 import PricingCard from '@/components/pages/PricingCard';
 import CurrentSubscription from '@/components/pages/CurrentSubscription';
+import UserProfile from '@/components/navigation/UserProfile';
 
 const Pricing = () => {
   usePageMeta({
@@ -120,6 +121,10 @@ const Pricing = () => {
         <Icon name="Home" size={20} />
         На главную
       </Button>
+
+      <div className="fixed top-4 right-4 z-50">
+        <UserProfile user={user} />
+      </div>
 
       <div className="container mx-auto px-4 py-20">
         {currentPlan !== 'none' && user && (

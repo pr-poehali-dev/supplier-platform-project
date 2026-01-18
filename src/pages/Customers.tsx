@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { fetchWithAuth } from '@/lib/api';
 import CustomerStats from '@/components/customers/CustomerStats';
 import CustomerTable from '@/components/customers/CustomerTable';
+import UserProfile from '@/components/navigation/UserProfile';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 const CUSTOMER_SYNC_URL = 'https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce';
@@ -31,8 +32,13 @@ export default function Customers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPendingOnly, setShowPendingOnly] = useState(false);
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
     loadCustomers();
     loadPendingBookings();
   }, []);
@@ -161,6 +167,10 @@ export default function Customers() {
         <Icon name="ArrowLeft" size={20} />
         Назад
       </Button>
+
+      <div className="fixed top-4 right-4 z-50">
+        <UserProfile user={user} />
+      </div>
 
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 text-center">

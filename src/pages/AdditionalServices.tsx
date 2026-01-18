@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { fetchWithAuth } from '@/lib/api';
+import UserProfile from '@/components/navigation/UserProfile';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
@@ -30,8 +31,13 @@ export default function AdditionalServices() {
   const [loading, setLoading] = useState(false);
   const [editingService, setEditingService] = useState<Partial<Service> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
     loadServices();
   }, []);
 
@@ -166,6 +172,10 @@ export default function AdditionalServices() {
         <Icon name="ArrowLeft" size={20} />
         Назад
       </Button>
+      
+      <div className="fixed top-4 right-4 z-50">
+        <UserProfile user={user} />
+      </div>
 
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 text-center">

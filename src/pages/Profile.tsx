@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { fetchWithAuth } from '@/lib/api';
 import UserInfoCard from '@/components/profile/UserInfoCard';
 import DiagnosticsHistory from '@/components/profile/DiagnosticsHistory';
+import UserProfile from '@/components/navigation/UserProfile';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -104,6 +105,10 @@ const Profile = () => {
         <Icon name="Home" size={20} />
         На главную
       </Button>
+      
+      <div className="fixed top-4 right-4 z-50">
+        <UserProfile user={user} />
+      </div>
 
       <div className="container mx-auto px-4 py-20">
         <div className="max-w-4xl mx-auto">

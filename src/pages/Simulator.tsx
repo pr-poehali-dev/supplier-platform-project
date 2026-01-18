@@ -8,6 +8,7 @@ import { fetchWithAuth } from '@/lib/api';
 import SimulatorInputs from '@/components/simulator/SimulatorInputs';
 import SimulatorResults from '@/components/simulator/SimulatorResults';
 import ExpertComments from '@/components/simulator/ExpertComments';
+import UserProfile from '@/components/navigation/UserProfile';
 
 interface BlogPost {
   id: number;
@@ -20,11 +21,14 @@ interface BlogPost {
 
 const Simulator = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
   
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (!userStr) {
       navigate('/auth');
+    } else {
+      setUser(JSON.parse(userStr));
     }
   }, [navigate]);
   
@@ -172,9 +176,12 @@ const Simulator = () => {
               TourConnect
             </h1>
           </button>
-          <Button onClick={() => navigate('/club')} className="bg-gradient-to-r from-primary to-secondary">
-            Клуб партнёров
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button onClick={() => navigate('/club')} className="bg-gradient-to-r from-primary to-secondary">
+              Клуб партнёров
+            </Button>
+            <UserProfile user={user} />
+          </div>
         </div>
       </nav>
 

@@ -7,6 +7,7 @@ import { fetchWithAuth } from '@/lib/api';
 import BotSettingsForm from '@/components/bot/BotSettingsForm';
 import HolidaysList from '@/components/bot/HolidaysList';
 import WebhookSetup from '@/components/telegram/WebhookSetup';
+import UserProfile from '@/components/navigation/UserProfile';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
@@ -32,8 +33,13 @@ export default function BotSettings() {
   });
   const [loading, setLoading] = useState(false);
   const [holidays, setHolidays] = useState<Array<{ date: string; name: string }>>([]);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
     loadSettings();
     loadHolidays();
   }, []);
@@ -127,6 +133,10 @@ export default function BotSettings() {
         <Icon name="ArrowLeft" size={20} />
         Назад
       </Button>
+
+      <div className="fixed top-4 right-4 z-50">
+        <UserProfile user={user} />
+      </div>
 
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 text-center">

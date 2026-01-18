@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import UserProfile from './UserProfile';
 
 interface MainNavProps {
   activeSection: string;
@@ -74,21 +75,7 @@ export default function MainNav({ activeSection, user, onScrollToSection, onNavi
           </button>
         </div>
         <div className="flex gap-2">
-          {user ? (
-            <>
-              <Button variant="outline" onClick={() => onNavigate('/profile')}>
-                <Icon name="User" size={16} className="mr-2" />
-                Профиль
-              </Button>
-              <Button onClick={() => onNavigate('/booking-calendar')}>
-                Войти в систему
-              </Button>
-            </>
-          ) : (
-            <Button onClick={() => onNavigate('/auth')}>
-              Войти
-            </Button>
-          )}
+          <UserProfile user={user} />
         </div>
       </div>
     </nav>

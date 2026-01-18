@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import DiagnosticsQuestion from '@/components/diagnostics/DiagnosticsQuestion';
 import { diagnosticsBlocks } from '@/components/diagnostics/diagnosticsData';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import UserProfile from '@/components/navigation/UserProfile';
 
 const Diagnostics = () => {
   usePageMeta({
@@ -20,6 +21,14 @@ const Diagnostics = () => {
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [started, setStarted] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+  }, []);
 
   const currentBlock = diagnosticsBlocks[currentBlockIndex];
   const progress = ((currentBlockIndex + 1) / diagnosticsBlocks.length) * 100;
@@ -69,6 +78,11 @@ const Diagnostics = () => {
         <Icon name="Home" size={20} />
         На главную
       </Button>
+      
+      <div className="fixed top-4 right-4 z-50">
+        <UserProfile user={user} />
+      </div>
+      
       <DiagnosticsNavBar
         answeredQuestions={answeredQuestions}
         totalQuestions={totalQuestions}

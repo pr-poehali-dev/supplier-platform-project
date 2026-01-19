@@ -136,9 +136,13 @@ export function useBookingCalendar() {
 
   const loadPendingBookings = async () => {
     try {
+      console.log('🔍 Loading pending bookings...');
       const response = await fetchWithAuth(`${API_URL}?action=get_pending_bookings`);
+      console.log('🔍 Response status:', response.status);
       const data = await response.json();
+      console.log('🔍 Pending bookings data:', data);
       const newPending = data.bookings || [];
+      console.log('🔍 New pending count:', newPending.length);
       
       // Проверяем новые заявки
       if (pendingBookings.length > 0 && newPending.length > pendingBookings.length) {

@@ -57,9 +57,13 @@ export default function PendingRequestsDialog({
   const loadPendingBookings = async () => {
     try {
       setLoading(true);
+      console.log('🔍 [Dialog] Loading pending bookings...');
       const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_pending_bookings');
+      console.log('🔍 [Dialog] Response status:', response.status);
       const data = await response.json();
+      console.log('🔍 [Dialog] Data:', data);
       setPendingBookings(data.bookings || []);
+      console.log('🔍 [Dialog] Set bookings count:', data.bookings?.length || 0);
     } catch (error) {
       console.error('Failed to load pending bookings:', error);
     } finally {
@@ -69,6 +73,7 @@ export default function PendingRequestsDialog({
 
   const approveBooking = async (bookingId: number) => {
     try {
+      console.log('🔍 [Dialog] Approving booking:', bookingId);
       const response = await fetchWithAuth('https://functions.poehali.dev/aa2efe43-c732-4850-8c2e-06d0db752fef', {
         method: 'POST',
         headers: {
@@ -80,6 +85,10 @@ export default function PendingRequestsDialog({
         })
       });
 
+      console.log('🔍 [Dialog] Approve response status:', response.status);
+      const data = await response.json();
+      console.log('🔍 [Dialog] Approve response data:', data);
+
       if (response.ok) {
         toast({
           title: 'Бронь подтверждена!',
@@ -88,8 +97,15 @@ export default function PendingRequestsDialog({
         loadPendingBookings();
         // Обновляем основной календарь
         window.location.reload();
+      } else {
+        toast({
+          title: 'Ошибка',
+          description: data.error || 'Не удалось подтвердить бронирование',
+          variant: 'destructive'
+        });
       }
     } catch (error) {
+      console.error('🔍 [Dialog] Approve error:', error);
       toast({
         title: 'Ошибка',
         description: 'Не удалось подтвердить бронирование',

@@ -427,6 +427,10 @@ def handler(event: dict, context) -> dict:
                 
                 ai_reply = clean_reply
                 
+                # Если после удаления JSON остался пустой текст, отправляем дефолтное сообщение
+                if not ai_reply or ai_reply.strip() == '':
+                    ai_reply = '✅ Понял вас!'
+                
                 conn_save = psycopg2.connect(dsn)
                 cur_save = conn_save.cursor()
                 cur_save.execute(f'''

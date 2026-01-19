@@ -116,6 +116,7 @@ def handler(event: dict, context) -> dict:
         
         # GET /get_pending_bookings - получить ожидающие подтверждения брони
         if method == 'GET' and action == 'get_pending_bookings':
+            print(f'🔍 DEBUG get_pending_bookings: owner_id={owner_id}')
             cur.execute(f"""
                 SELECT pb.id, u.name as unit_name, pb.check_in, pb.check_out,
                        pb.guest_name, pb.guest_contact, pb.amount,
@@ -126,6 +127,7 @@ def handler(event: dict, context) -> dict:
                 WHERE u.owner_id = {owner_id} AND pb.verification_status IN ('pending', 'awaiting_verification')
                 ORDER BY pb.created_at DESC
             """)
+            print(f'🔍 DEBUG query result count: {cur.rowcount}')
             
             pending_bookings = []
             for row in cur.fetchall():

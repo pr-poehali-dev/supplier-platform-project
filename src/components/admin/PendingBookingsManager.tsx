@@ -32,7 +32,7 @@ export const PendingBookingsManager = () => {
   const loadPendingBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetchWithAuth('https://functions.poehali.dev/booking-calendar?action=get_pending_bookings');
+      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_pending_bookings');
       const data = await response.json();
       setBookings(data.bookings || []);
     } catch (error) {

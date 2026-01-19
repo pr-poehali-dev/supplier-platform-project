@@ -49,11 +49,11 @@ export default function BookingCalendar() {
   return (
     <SubscriptionGuard feature="hasCalendar" featureName="календаря бронирования">
       <JsonLd data={breadcrumbs} />
+      <CalendarHeader
+        user={user}
+        onShowPendingRequests={() => setShowPendingRequests(true)}
+      />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <CalendarHeader
-          user={user}
-          onShowPendingRequests={() => setShowPendingRequests(true)}
-        />
         
         <div className="max-w-7xl mx-auto">
           <UnitsManagement

@@ -425,32 +425,38 @@ def handler(event: dict, context) -> dict:
                 print(f"🔍 DEBUG: INTENTS COUNT: {len(intents)}")
                 print("=" * 80)
                 
-                ai_reply = clean_reply
-                
-                # Если после удаления JSON остался пустой текст, отправляем дефолтное сообщение
-                if not ai_reply or ai_reply.strip() == '':
-                    ai_reply = '✅ Понял вас!'
-                
-                conn_save = psycopg2.connect(dsn)
-                cur_save = conn_save.cursor()
-                cur_save.execute(f'''
-                    INSERT INTO {schema}.telegram_messages (telegram_id, message_text, sender, created_at)
-                    VALUES (%s, %s, %s, NOW())
-                ''', (chat_id, ai_reply, 'bot'))
-                conn_save.commit()
-                cur_save.close()
-                conn_save.close()
+                # Проверяем, есть ли confirm_booking в intents
+                has_confirm_booking = any(i.get('intent') == 'confirm_booking' for i in intents)
                 
                 telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
-                data = json.dumps({
-                    'chat_id': chat_id,
-                    'text': ai_reply
-                }).encode('utf-8')
                 
-                req = request.Request(telegram_url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
-                with request.urlopen(req) as response:
-                    result = response.read()
-                    print(f'AI reply sent to client: {result.decode()}')
+                # Для confirm_booking НЕ отправляем ai_reply (только payment_message)
+                if not has_confirm_booking:
+                    ai_reply = clean_reply
+                    
+                    # Если после удаления JSON остался пустой текст, отправляем дефолтное сообщение
+                    if not ai_reply or ai_reply.strip() == '':
+                        ai_reply = '✅ Понял вас!'
+                    
+                    conn_save = psycopg2.connect(dsn)
+                    cur_save = conn_save.cursor()
+                    cur_save.execute(f'''
+                        INSERT INTO {schema}.telegram_messages (telegram_id, message_text, sender, created_at)
+                        VALUES (%s, %s, %s, NOW())
+                    ''', (chat_id, ai_reply, 'bot'))
+                    conn_save.commit()
+                    cur_save.close()
+                    conn_save.close()
+                    
+                    data = json.dumps({
+                        'chat_id': chat_id,
+                        'text': ai_reply
+                    }).encode('utf-8')
+                    
+                    req = request.Request(telegram_url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
+                    with request.urlopen(req) as response:
+                        result = response.read()
+                        print(f'AI reply sent to client: {result.decode()}')
                 
                 if intents:
                     all_bookings = []
@@ -501,6 +507,17 @@ def handler(event: dict, context) -> dict:
 
 Попробуйте выбрать другие даты или объекты.'''
                         
+                        # Сохраняем payment_message в БД
+                        conn_payment_save = psycopg2.connect(dsn)
+                        cur_payment_save = conn_payment_save.cursor()
+                        cur_payment_save.execute(f'''
+                            INSERT INTO {schema}.telegram_messages (telegram_id, message_text, sender, created_at)
+                            VALUES (%s, %s, %s, NOW())
+                        ''', (chat_id, payment_message, 'bot'))
+                        conn_payment_save.commit()
+                        cur_payment_save.close()
+                        conn_payment_save.close()
+                        
                         payment_data = json.dumps({
                             'chat_id': chat_id,
                             'text': payment_message
@@ -509,6 +526,14 @@ def handler(event: dict, context) -> dict:
                         req_payment = request.Request(telegram_url, data=payment_data, headers={'Content-Type': 'application/json'}, method='POST')
                         with request.urlopen(req_payment) as response:
                             response.read()
+                            print(f'✅ Payment message sent to client')
+                        
+                        # TERMINAL EVENT: confirm_booking завершён, выходим
+                        if has_confirm_booking:
+                            return {
+                                'statusCode': 200,
+                                'body': json.dumps({'ok': True})
+                            }
                 
                 if False:
                         owner_text = f'''🎉 Новая заявка на бронирование #{pending_id}!

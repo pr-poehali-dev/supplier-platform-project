@@ -354,9 +354,12 @@ def handler(event: dict, context) -> dict:
 
 ЭТАП 2: ПОДТВЕРЖДЕНИЕ И СОЗДАНИЕ БРОНИ
 7. Когда клиент пишет "подтверждаю", "да", "бронирую", "оплачиваю" - верни ТОЛЬКО JSON, БЕЗ ТЕКСТА:
-   {{"intent": "create_booking", "guest_name": "Иван", "guest_phone": "+79001234567", "check_in": "2026-02-05", "check_out": "2026-02-08", "guests_count": 2, "unit_name": "Домик \"Сосновый\""}}
+   {{"intent": "confirm_booking", "guest_name": "Иван", "guest_phone": "+79001234567", "check_in": "2026-02-05", "check_out": "2026-02-08", "guests_count": 2, "unit_name": "Домик \"Сосновый\""}}
 
-⚠️ КРИТИЧНО: НЕ ПИШИ ТЕКСТ вроде "Отлично! Информация отправлена" - система САМА отправит инструкции по оплате!
+⚠️ КРИТИЧНО:
+- НЕ ПИШИ ТЕКСТ вроде "Отлично! Информация отправлена"
+- intent СТРОГО "confirm_booking" (НЕ "create_booking"!)
+- Система САМА отправит инструкции по оплате!
 
 8. КРИТИЧНО: unit_name должен ТОЧНО совпадать с названием из списка!
 9. НЕ используй markdown блоки ```json```, просто JSON строкой!
@@ -393,7 +396,7 @@ def handler(event: dict, context) -> dict:
                 clean_reply = re.sub(r'```json\s*', '', clean_reply)
                 clean_reply = re.sub(r'```\s*', '', clean_reply)
                 
-                json_pattern = r'\{[^{}]*"intent"\s*:\s*"(?:create_booking|confirm_payment)"[^{}]*\}'
+                json_pattern = r'\{[^{}]*"intent"\s*:\s*"(?:create_booking|confirm_booking|confirm_payment)"[^{}]*\}'
                 matches = re.findall(json_pattern, clean_reply)
                 
                 for match in matches:
@@ -431,7 +434,7 @@ def handler(event: dict, context) -> dict:
                 if intents:
                     all_bookings = []
                     for intent in intents:
-                        if intent.get('intent') == 'create_booking':
+                        if intent.get('intent') in ['create_booking', 'confirm_booking']:
                             result = validate_and_create_booking(intent, schema, dsn, chat_id, owner_telegram_id, bot_token)
                             all_bookings.append({
                                 'intent': intent,

@@ -1,9 +1,22 @@
 import { Booking } from './CalendarView';
 
+interface PendingBooking {
+  id: number;
+  unit_name: string;
+  check_in: string;
+  check_out: string;
+  guest_name: string;
+  guest_contact: string;
+  amount: number;
+  verification_status: string;
+}
+
 interface CalendarGridProps {
   currentDate: Date;
   bookings: Booking[];
+  pendingBookings?: PendingBooking[];
   selectedUnitId: number;
+  selectedUnitName: string;
   dynamicPrices: Record<string, { price: number; appliedRules: any[] }>;
   showPrices: boolean;
   loadingPrices: boolean;
@@ -13,7 +26,9 @@ interface CalendarGridProps {
 export default function CalendarGrid({
   currentDate,
   bookings,
+  pendingBookings = [],
   selectedUnitId,
+  selectedUnitName,
   dynamicPrices,
   showPrices,
   loadingPrices,
@@ -38,6 +53,15 @@ export default function CalendarGrid({
     }) || null;
   };
 
+  const getPendingForDate = (day: number) => {
+    const { year, month } = getDaysInMonth(currentDate);
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return pendingBookings.find(pending => {
+      if (pending.unit_name !== selectedUnitName) return false;
+      return dateStr >= pending.check_in && dateStr < pending.check_out;
+    }) || null;
+  };
+
   const getPriceColor = (priceData: any) => {
     if (!priceData?.appliedRules || priceData.appliedRules.length === 0) return 'emerald';
     const ruleNames = priceData.appliedRules.map((r: any) => r.rule_name?.toLowerCase() || '');
@@ -57,18 +81,21 @@ export default function CalendarGrid({
     
     for (let day = 1; day <= daysInMonth; day++) {
       const booking = getBookingForDate(day);
+      const pendingBooking = getPendingForDate(day);
       const isBooked = booking !== null;
+      const isPending = pendingBooking !== null;
       const isToday = new Date().getDate() === day && 
                       new Date().getMonth() === currentDate.getMonth() &&
                       new Date().getFullYear() === currentDate.getFullYear();
       
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const priceData = dynamicPrices[dateStr];
-      const showPrice = showPrices && !isBooked;
-      const showPriceLoading = showPrices && loadingPrices && !isBooked;
+      const showPrice = showPrices && !isBooked && !isPending;
+      const showPriceLoading = showPrices && loadingPrices && !isBooked && !isPending;
       const priceColor = getPriceColor(priceData);
 
       const getCellColor = () => {
+        if (isPending) return 'bg-gradient-to-br from-yellow-100 to-amber-100 cursor-pointer hover:from-yellow-200 hover:to-amber-200 shadow-lg animate-pulse border-2 border-yellow-300';
         if (!isBooked) return 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 cursor-default';
         if (booking?.is_pending_confirmation) return 'bg-gradient-to-br from-yellow-100 to-amber-100 cursor-pointer hover:from-yellow-200 hover:to-amber-200 shadow-lg animate-pulse';
         if (booking?.payment_status === 'pending' && !booking?.is_pending_confirmation) return 'bg-gradient-to-br from-orange-100 to-red-100 cursor-pointer hover:from-orange-200 hover:to-red-200 shadow-md';
@@ -78,10 +105,17 @@ export default function CalendarGrid({
       days.push(
         <div
           key={day}
-          onClick={() => booking && onBookingClick(booking)}
+          onClick={() => {
+            if (booking) onBookingClick(booking);
+          }}
           className={`h-20 border border-gray-200 p-2.5 transition-all duration-200 relative group rounded-lg ${getCellColor()} ${isToday ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
         >
           <div className={`text-sm font-bold ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>{day}</div>
+          {isPending && (
+            <div className="text-xs font-bold text-yellow-700 mt-0.5 truncate">
+              📋 {pendingBooking.guest_name}
+            </div>
+          )}
           {showPrice && loadingPrices && (
             <div className="text-xs mt-1 px-2 py-1 rounded-md bg-gray-200 animate-pulse inline-block">
               <div className="h-3 w-14 bg-gray-300 rounded"></div>

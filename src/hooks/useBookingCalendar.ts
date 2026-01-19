@@ -9,11 +9,23 @@ import type { Booking } from '@/components/booking/CalendarView';
 const API_URL = 'https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d';
 const CUSTOMER_SYNC_URL = 'https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce';
 
+interface PendingBooking {
+  id: number;
+  unit_name: string;
+  check_in: string;
+  check_out: string;
+  guest_name: string;
+  guest_contact: string;
+  amount: number;
+  verification_status: string;
+}
+
 export function useBookingCalendar() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [units, setUnits] = useState<Unit[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const user = getUser();
@@ -44,9 +56,11 @@ export function useBookingCalendar() {
     
     loadUnits();
     loadBookings();
+    loadPendingBookings();
 
     const interval = setInterval(() => {
       loadBookings();
+      loadPendingBookings();
     }, 30000);
 
     return () => clearInterval(interval);
@@ -117,6 +131,28 @@ export function useBookingCalendar() {
         description: error instanceof Error ? error.message : 'Проверьте авторизацию',
         variant: 'destructive',
       });
+    }
+  };
+
+  const loadPendingBookings = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}?action=get_pending_bookings`);
+      const data = await response.json();
+      const newPending = data.bookings || [];
+      
+      // Проверяем новые заявки
+      if (pendingBookings.length > 0 && newPending.length > pendingBookings.length) {
+        notificationAudio.play().catch(() => {});
+        toast({
+          title: 'Новая заявка!',
+          description: 'Поступила заявка на бронирование через бота',
+          duration: 5000,
+        });
+      }
+      
+      setPendingBookings(newPending);
+    } catch (error) {
+      console.error('Error loading pending bookings:', error);
     }
   };
 
@@ -323,6 +359,7 @@ export function useBookingCalendar() {
   return {
     units,
     bookings,
+    pendingBookings,
     currentDate,
     selectedUnit,
     user,

@@ -34,10 +34,22 @@ export interface Booking {
   is_pending_confirmation?: boolean;
 }
 
+interface PendingBooking {
+  id: number;
+  unit_name: string;
+  check_in: string;
+  check_out: string;
+  guest_name: string;
+  guest_contact: string;
+  amount: number;
+  verification_status: string;
+}
+
 interface CalendarViewProps {
   selectedUnit: Unit | null;
   currentDate: Date;
   bookings: Booking[];
+  pendingBookings?: PendingBooking[];
   onChangeMonth: (delta: number) => void;
   onDeleteBooking?: (bookingId: number) => Promise<void>;
   renderBookingButton?: React.ReactNode;
@@ -47,6 +59,7 @@ export default function CalendarView({
   selectedUnit,
   currentDate,
   bookings,
+  pendingBookings = [],
   onChangeMonth,
   onDeleteBooking,
   renderBookingButton
@@ -207,7 +220,9 @@ export default function CalendarView({
           <CalendarGrid
             currentDate={currentDate}
             bookings={bookings}
+            pendingBookings={pendingBookings}
             selectedUnitId={selectedUnit.id}
+            selectedUnitName={selectedUnit.name}
             dynamicPrices={dynamicPrices}
             showPrices={showPrices}
             loadingPrices={loadingPrices}

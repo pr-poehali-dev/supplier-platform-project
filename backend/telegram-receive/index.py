@@ -15,6 +15,7 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
         guest_name = intent.get('guest_name')
         guest_phone = intent.get('guest_phone')
         guests_count = intent.get('guests_count', 1)
+        additional_services_amount = float(intent.get('additional_services_amount', 0))
         
         if not all([unit_name, check_in, check_out, guest_name, guest_phone]):
             return {'success': False, 'error': 'Недостаточно данных для бронирования', 'unit_name': unit_name or 'Неизвестно'}
@@ -64,7 +65,8 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
             if nights <= 0:
                 return {'success': False, 'error': 'Некорректные даты', 'unit_name': unit_name}
             
-            amount = float(base_price) * nights
+            base_amount = float(base_price) * nights
+            amount = base_amount + additional_services_amount
         except Exception as e:
             print(f'Pricing calculation error: {e}')
             amount = 0
@@ -357,13 +359,14 @@ def handler(event: dict, context) -> dict:
 
 ЭТАП 2: ПОДТВЕРЖДЕНИЕ И СОЗДАНИЕ БРОНИ
 7. Когда клиент пишет "подтверждаю", "да", "бронирую", "оплачиваю" - верни ТОЛЬКО JSON С ДАННЫМИ ИЗ ДИАЛОГА, БЕЗ ТЕКСТА:
-   {{"intent": "confirm_booking", "guest_name": "Иван", "guest_phone": "+79001234567", "check_in": "2026-02-05", "check_out": "2026-02-08", "guests_count": 2, "unit_name": "Домик \"Сосновый\""}}
+   {{"intent": "confirm_booking", "guest_name": "Иван", "guest_phone": "+79001234567", "check_in": "2026-02-05", "check_out": "2026-02-08", "guests_count": 2, "unit_name": "Домик \"Сосновый\"", "additional_services_amount": 1500}}
 
 ⚠️ КРИТИЧНО:
 - НЕ ПИШИ НИКАКОГО ТЕКСТА! Только JSON!
 - intent СТРОГО "confirm_booking"
 - ОБЯЗАТЕЛЬНО укажи ВСЕ поля: guest_name, guest_phone, check_in, check_out, guests_count, unit_name
-- Используй данные из предыдущих сообщений диалога
+- additional_services_amount: сумма допродаж в рублях (0 если нет допродаж)
+- Используй данные из предыдущих сообщений диалога (особенно ИТОГО из предпросмотра!)
 - Система САМА отправит инструкции по оплате!
 
 8. КРИТИЧНО: unit_name должен ТОЧНО совпадать с названием из списка!

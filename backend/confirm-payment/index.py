@@ -92,18 +92,13 @@ def handler(event: dict, context) -> dict:
             
             cur.execute(f'''
                 INSERT INTO {schema}.bookings 
-                (guest_name, guest_phone, check_in, check_out, guests_count, 
+                (unit_id, guest_name, guest_phone, check_in, check_out, guests_count, 
                  total_price, status, source, created_at)
-                VALUES (%s, %s, %s, %s, 1, %s, 'confirmed', 'telegram_bot', NOW())
+                VALUES (%s, %s, %s, %s, %s, 1, %s, 'confirmed', 'telegram_bot', NOW())
                 RETURNING id
-            ''', (guest_name, guest_contact, check_in, check_out, amount))
+            ''', (unit_id, guest_name, guest_contact, check_in, check_out, amount))
             
             booking_id = cur.fetchone()[0]
-            
-            cur.execute(f'''
-                INSERT INTO {schema}.booking_units (booking_id, unit_id)
-                VALUES (%s, %s)
-            ''', (booking_id, unit_id))
             
             cur.execute(f'''
                 UPDATE {schema}.pending_bookings

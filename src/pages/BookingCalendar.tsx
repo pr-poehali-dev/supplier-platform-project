@@ -22,6 +22,7 @@ export default function BookingCalendar() {
   const {
     units,
     bookings,
+    pendingBookings,
     currentDate,
     selectedUnit,
     user,
@@ -74,6 +75,7 @@ export default function BookingCalendar() {
               selectedUnit={selectedUnit}
               currentDate={currentDate}
               bookings={bookings}
+              pendingBookings={pendingBookings}
               onChangeMonth={changeMonth}
               onDeleteBooking={deleteBooking}
               renderBookingButton={

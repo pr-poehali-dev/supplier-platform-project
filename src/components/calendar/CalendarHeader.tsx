@@ -37,16 +37,7 @@ export default function CalendarHeader({ user, onShowPendingRequests }: Calendar
 
   return (
     <>
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/')}
-        className="fixed top-4 left-4 gap-2 z-50"
-      >
-        <Icon name="Home" size={20} />
-        На главную
-      </Button>
-      
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed top-4 right-4 z-[9999]">
         <UserProfile user={user} />
       </div>
       

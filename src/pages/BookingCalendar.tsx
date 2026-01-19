@@ -51,7 +51,6 @@ export default function BookingCalendar() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <CalendarHeader
           user={user}
-          bookings={bookings}
           onShowPendingRequests={() => setShowPendingRequests(true)}
         />
         
@@ -99,7 +98,6 @@ export default function BookingCalendar() {
         <PendingRequestsDialog
           open={showPendingRequests}
           onOpenChange={setShowPendingRequests}
-          bookings={bookings}
           units={units}
           onScrollToBooking={scrollToBooking}
           onUpdateBookingStatus={updateBookingStatus}

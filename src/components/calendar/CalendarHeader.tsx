@@ -1,19 +1,39 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import UserProfile from '@/components/navigation/UserProfile';
-import type { Booking } from '@/components/booking/CalendarView';
+import { fetchWithAuth } from '@/lib/api';
 
 interface CalendarHeaderProps {
   user: any;
-  bookings: Booking[];
   onShowPendingRequests: () => void;
 }
 
-export default function CalendarHeader({ user, bookings, onShowPendingRequests }: CalendarHeaderProps) {
+export default function CalendarHeader({ user, onShowPendingRequests }: CalendarHeaderProps) {
   const navigate = useNavigate();
+  const [pendingCount, setPendingCount] = useState(0);
 
-  const pendingCount = bookings.filter(b => b.is_pending_confirmation || b.payment_status === 'pending').length;
+  useEffect(() => {
+    loadPendingCount();
+    
+    // Автообновление каждые 30 секунд
+    const interval = setInterval(() => {
+      loadPendingCount();
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadPendingCount = async () => {
+    try {
+      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_pending_bookings');
+      const data = await response.json();
+      setPendingCount(data.bookings?.length || 0);
+    } catch (error) {
+      console.error('Failed to load pending count:', error);
+    }
+  };
 
   return (
     <>

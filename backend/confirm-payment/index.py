@@ -118,12 +118,11 @@ def handler(event: dict, context) -> dict:
                 telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
                 message_data = json.dumps({
                     'chat_id': chat_id,
-                    'text': f'''🎉 Отлично! Ваша оплата подтверждена!
+                    'text': f'''🎉 Оплата подтверждена! Бронирование завершено.
 
-Бронирование #{booking_id} активировано.
 📅 Даты: {check_in} — {check_out}
 
-Ждём вас! До встречи! 🏡'''
+Ждём вас! ❤️'''
                 }).encode('utf-8')
                 
                 req = request.Request(telegram_url, data=message_data, headers={'Content-Type': 'application/json'}, method='POST')

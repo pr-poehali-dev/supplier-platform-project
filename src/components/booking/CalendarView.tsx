@@ -106,32 +106,35 @@ export default function CalendarView({
     const { year, month, daysInMonth } = getDaysInMonth(currentDate);
 
     try {
-      const promises = [];
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        promises.push(
-          fetchWithAuth(`${PRICING_ENGINE_URL}?action=calculate_price&unit_id=${selectedUnit.id}&date=${dateStr}`)
-            .then(res => res.json())
-            .then(data => ({ dateStr, data }))
-            .catch(() => null)
-        );
+      // Используем get_price_calendar для получения всех цен месяца одним запросом
+      const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+      
+      const response = await fetchWithAuth(
+        `${PRICING_ENGINE_URL}?action=get_price_calendar&unit_id=${selectedUnit.id}&start_date=${startDate}&end_date=${endDate}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to load prices');
       }
-
-      const results = await Promise.all(promises);
+      
+      const data = await response.json();
       
       const prices: Record<string, { price: number; appliedRules: any[] }> = {};
-      results.forEach(result => {
-        if (result && result.data.price) {
-          prices[result.dateStr] = {
-            price: result.data.price,
-            appliedRules: result.data.applied_rules || []
-          };
-        }
-      });
+      if (data.calendar && Array.isArray(data.calendar)) {
+        data.calendar.forEach((item: any) => {
+          if (item.date && item.price !== undefined) {
+            prices[item.date] = {
+              price: item.price,
+              appliedRules: item.applied_rules || []
+            };
+          }
+        });
+      }
       
       setDynamicPrices(prices);
     } catch (error) {
-      // Failed to load dynamic prices
+      console.error('Failed to load dynamic prices:', error);
     } finally {
       setLoadingPrices(false);
     }

@@ -27,6 +27,13 @@ export const PendingBookingsManager = () => {
 
   useEffect(() => {
     loadPendingBookings();
+    
+    // Автообновление каждые 30 секунд
+    const interval = setInterval(() => {
+      loadPendingBookings();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const loadPendingBookings = async () => {

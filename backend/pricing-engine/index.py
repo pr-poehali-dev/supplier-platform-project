@@ -76,7 +76,11 @@ def handler(event: dict, context) -> dict:
             return error_response('Unknown action', 400)
             
     except Exception as e:
-        return error_response(str(e), 500)
+        import traceback
+        error_details = traceback.format_exc()
+        print(f'ERROR in pricing-engine: {str(e)}')
+        print(f'Traceback: {error_details}')
+        return error_response(f'{str(e)} | {error_details[:200]}', 500)
     finally:
         conn.close()
 
@@ -187,6 +191,20 @@ def calculate_dynamic_price(conn, unit_id: str, date_str: str, owner_id: int = N
             })
         
         base_price = unit['base_price']
+        
+        # Если нет профиля динамического ценообразования - возвращаем базовую цену
+        if not unit['profile_id']:
+            return success_response({
+                'unit_id': int(unit_id),
+                'date': date_str,
+                'price': float(base_price),
+                'original_price': float(base_price),
+                'applied_rules': [],
+                'source': 'manual',
+                'dynamic_enabled': unit['dynamic_pricing_enabled'],
+                'note': 'No pricing profile assigned'
+            })
+        
         min_price = unit['profile_min_price'] or base_price * Decimal('0.5')
         max_price = unit['profile_max_price'] or base_price * Decimal('2.0')
         

@@ -53,7 +53,7 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
         """, (unit_id, check_in, check_out))
         
         if cur.fetchone()[0] > 0:
-            return {'success': False, 'error': 'Даты временно заняты (есть ожидающая заявка)'}
+            return {'success': False, 'error': 'Даты временно заняты (есть ожидающая заявка)', 'unit_name': unit_name}
         
         try:
             pricing_url = 'https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4'
@@ -62,7 +62,7 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
             nights = (date_out - date_in).days
             
             if nights <= 0:
-                return {'success': False, 'error': 'Некорректные даты'}
+                return {'success': False, 'error': 'Некорректные даты', 'unit_name': unit_name}
             
             amount = float(base_price) * nights
         except Exception as e:
@@ -123,7 +123,9 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
         
     except Exception as e:
         print(f'Booking validation error: {e}')
-        return {'success': False, 'error': f'Ошибка создания бронирования: {str(e)}'}
+        import traceback
+        traceback.print_exc()
+        return {'success': False, 'error': f'Ошибка создания бронирования: {str(e)}', 'unit_name': intent.get('unit_name', 'Неизвестно')}
     finally:
         cur.close()
         conn.close()
@@ -425,13 +427,25 @@ def handler(event: dict, context) -> dict:
                 print(f"🔍 DEBUG: INTENTS COUNT: {len(intents)}")
                 print("=" * 80)
                 
-                # Проверяем, есть ли confirm_booking в intents
-                has_confirm_booking = any(i.get('intent') == 'confirm_booking' for i in intents)
+                # Проверяем, есть ли confirm_booking с ЗАПОЛНЕННЫМИ данными
+                valid_confirm_booking = False
+                for intent in intents:
+                    if intent.get('intent') == 'confirm_booking':
+                        # Проверяем, что ВСЕ обязательные поля заполнены
+                        if all([
+                            intent.get('guest_name', '').strip(),
+                            intent.get('guest_phone', '').strip(),
+                            intent.get('check_in', '').strip(),
+                            intent.get('check_out', '').strip(),
+                            intent.get('unit_name', '').strip()
+                        ]):
+                            valid_confirm_booking = True
+                            break
                 
                 telegram_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
                 
-                # Для confirm_booking НЕ отправляем ai_reply (только payment_message)
-                if not has_confirm_booking:
+                # Для ВАЛИДНОГО confirm_booking НЕ отправляем ai_reply (только payment_message)
+                if not valid_confirm_booking:
                     ai_reply = clean_reply
                     
                     # Если после удаления JSON остался пустой текст, отправляем дефолтное сообщение
@@ -529,7 +543,7 @@ def handler(event: dict, context) -> dict:
                             print(f'✅ Payment message sent to client')
                         
                         # TERMINAL EVENT: confirm_booking завершён, выходим
-                        if has_confirm_booking:
+                        if valid_confirm_booking:
                             return {
                                 'statusCode': 200,
                                 'body': json.dumps({'ok': True})

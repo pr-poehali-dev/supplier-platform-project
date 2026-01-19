@@ -85,6 +85,8 @@ export default function SBPSettings() {
     }
   };
 
+  const isConfigured = settings.phone && settings.recipient_name;
+
   return (
     <Card>
       <CardHeader>
@@ -97,6 +99,19 @@ export default function SBPSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!isConfigured && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex gap-2">
+              <Icon name="AlertTriangle" size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-red-800">
+                <p className="font-medium">⚠️ СБП не настроено!</p>
+                <p className="mt-1">
+                  Клиенты не смогут оплачивать бронирования, пока вы не заполните данные для СБП.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <div>
           <Label htmlFor="phone">Номер телефона для СБП *</Label>
           <Input
@@ -140,7 +155,11 @@ export default function SBPSettings() {
           </div>
         </div>
 
-        <Button onClick={saveSettings} disabled={loading} className="w-full">
+        <Button 
+          onClick={saveSettings} 
+          disabled={loading || !settings.phone || !settings.recipient_name} 
+          className="w-full"
+        >
           {loading ? (
             <>
               <Icon name="Loader2" size={16} className="animate-spin mr-2" />
@@ -153,6 +172,15 @@ export default function SBPSettings() {
             </>
           )}
         </Button>
+        
+        {isConfigured && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-sm text-green-800">
+              <Icon name="CheckCircle2" size={16} className="text-green-600" />
+              <span className="font-medium">СБП настроено и работает</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

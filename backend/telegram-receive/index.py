@@ -391,6 +391,12 @@ def handler(event: dict, context) -> dict:
                     ai_reply = chatgpt_response['choices'][0]['message']['content']
                     print(f'ChatGPT response: {ai_reply}')
                 
+                # === DEBUG: ПОЛНОЕ ЛОГИРОВАНИЕ ОТВЕТА AI ===
+                print("=" * 80)
+                print("🔍 DEBUG: AI REPLY RAW (ПОЛНОСТЬЮ):")
+                print(repr(ai_reply))
+                print("=" * 80)
+                
                 import re
                 intents = []
                 clean_reply = ai_reply
@@ -401,14 +407,23 @@ def handler(event: dict, context) -> dict:
                 json_pattern = r'\{[^{}]*"intent"\s*:\s*"(?:create_booking|confirm_booking|confirm_payment)"[^{}]*\}'
                 matches = re.findall(json_pattern, clean_reply)
                 
+                print(f"🔍 DEBUG: REGEX MATCHES: {matches}")
+                print(f"🔍 DEBUG: MATCHES COUNT: {len(matches)}")
+                
                 for match in matches:
                     try:
                         intent_data = json.loads(match)
                         intents.append(intent_data)
                         clean_reply = clean_reply.replace(match, '').strip()
+                        print(f"🔍 DEBUG: PARSED INTENT: {json.dumps(intent_data, ensure_ascii=False)}")
                     except Exception as e:
-                        print(f'JSON parse error: {e}')
+                        print(f'❌ JSON parse error: {e}')
+                        print(f'❌ Failed match: {match}')
                         pass
+                
+                print(f"🔍 DEBUG: FINAL INTENTS ARRAY: {json.dumps(intents, ensure_ascii=False)}")
+                print(f"🔍 DEBUG: INTENTS COUNT: {len(intents)}")
+                print("=" * 80)
                 
                 ai_reply = clean_reply
                 

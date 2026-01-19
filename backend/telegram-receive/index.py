@@ -17,7 +17,7 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
         guests_count = intent.get('guests_count', 1)
         
         if not all([unit_name, check_in, check_out, guest_name, guest_phone]):
-            return {'success': False, 'error': 'Недостаточно данных для бронирования'}
+            return {'success': False, 'error': 'Недостаточно данных для бронирования', 'unit_name': unit_name or 'Неизвестно'}
         
         cur.execute(f"""
             SELECT id, name, base_price 
@@ -28,7 +28,7 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
         
         unit = cur.fetchone()
         if not unit:
-            return {'success': False, 'error': f'Объект "{unit_name}" не найден'}
+            return {'success': False, 'error': f'Объект "{unit_name}" не найден', 'unit_name': unit_name}
         
         unit_id, unit_name_db, base_price = unit
         
@@ -41,7 +41,7 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
         """, (unit_id, check_in, check_out))
         
         if cur.fetchone()[0] > 0:
-            return {'success': False, 'error': 'Даты уже заняты'}
+            return {'success': False, 'error': 'Даты уже заняты', 'unit_name': unit_name}
         
         cur.execute(f"""
             SELECT COUNT(*) FROM {schema}.pending_bookings

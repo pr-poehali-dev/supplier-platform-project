@@ -69,10 +69,11 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
             print(f'Pricing calculation error: {e}')
             amount = 0
         
+        # Получаем настройки СБП из bot_settings
         cur.execute(f"""
-            SELECT sbp_payment_link, sbp_recipient_name 
-            FROM {schema}.users 
-            WHERE is_admin = true 
+            SELECT sbp_phone, sbp_recipient_name 
+            FROM {schema}.bot_settings 
+            WHERE owner_id = (SELECT id FROM {schema}.users WHERE is_admin = true LIMIT 1)
             LIMIT 1
         """)
         payment_info = cur.fetchone()

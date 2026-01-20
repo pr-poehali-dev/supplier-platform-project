@@ -155,6 +155,126 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
+        # GET /modification_requests - получить заявки на изменение
+        if method == 'GET' and action == 'modification_requests':
+            cur.execute(f"""
+                SELECT mr.id, mr.booking_id, mr.client_name, mr.client_phone,
+                       mr.message_from_client, mr.requested_changes, mr.status,
+                       mr.created_at, mr.resolved_at
+                FROM {schema}.modification_requests mr
+                WHERE mr.status = 'new'
+                ORDER BY mr.created_at DESC
+            """)
+            
+            requests = []
+            for row in cur.fetchall():
+                requests.append({
+                    'id': row[0],
+                    'booking_id': row[1],
+                    'client_name': row[2],
+                    'client_phone': row[3],
+                    'message_from_client': row[4],
+                    'requested_changes': row[5],
+                    'status': row[6],
+                    'created_at': row[7].isoformat() if row[7] else None,
+                    'resolved_at': row[8].isoformat() if row[8] else None
+                })
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'requests': requests}),
+                'isBase64Encoded': False
+            }
+        
+        # PUT /resolve_modification_request - закрыть заявку
+        if method == 'PUT' and action == 'resolve_modification_request':
+            body = json.loads(event.get('body', '{}'))
+            request_id = body.get('request_id')
+            
+            cur.execute(f"""
+                UPDATE {schema}.modification_requests
+                SET status = 'resolved',
+                    resolved_at = NOW(),
+                    resolved_by = {owner_id}
+                WHERE id = {request_id}
+            """)
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Request resolved'}),
+                'isBase64Encoded': False
+            }
+        
+        # GET /bot_settings - получить настройки бота
+        if method == 'GET' and action == 'bot_settings':
+            cur.execute(f"""
+                SELECT base_name, admin_phone, admin_name, work_hours, extra_notes
+                FROM {schema}.bot_settings
+                WHERE owner_id = {owner_id}
+                LIMIT 1
+            """)
+            
+            settings = cur.fetchone()
+            if settings:
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({
+                        'base_name': settings[0] or '',
+                        'admin_phone': settings[1] or '',
+                        'admin_name': settings[2] or '',
+                        'work_hours': settings[3] or '',
+                        'extra_notes': settings[4] or ''
+                    }),
+                    'isBase64Encoded': False
+                }
+            
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Settings not found'}),
+                'isBase64Encoded': False
+            }
+        
+        # PUT /bot_settings - обновить настройки бота
+        if method == 'PUT' and action == 'bot_settings':
+            body = json.loads(event.get('body', '{}'))
+            base_name = body.get('base_name', '')
+            admin_phone = body.get('admin_phone', '')
+            admin_name = body.get('admin_name', '')
+            work_hours = body.get('work_hours', '')
+            extra_notes = body.get('extra_notes', '')
+            
+            cur.execute(f"""
+                UPDATE {schema}.bot_settings
+                SET base_name = '{base_name.replace("'", "''")}',
+                    admin_phone = '{admin_phone}',
+                    admin_name = '{admin_name.replace("'", "''")}',
+                    work_hours = '{work_hours.replace("'", "''")}',
+                    extra_notes = '{extra_notes.replace("'", "''")}'
+                WHERE owner_id = {owner_id}
+            """)
+            
+            if cur.rowcount == 0:
+                cur.execute(f"""
+                    INSERT INTO {schema}.bot_settings (owner_id, base_name, admin_phone, admin_name, work_hours, extra_notes)
+                    VALUES ({owner_id}, '{base_name.replace("'", "''")}', '{admin_phone}', 
+                            '{admin_name.replace("'", "''")}', '{work_hours.replace("'", "''")}', 
+                            '{extra_notes.replace("'", "''")}')
+                """)
+            
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Settings updated'}),
+                'isBase64Encoded': False
+            }
+        
         # POST /create-unit - добавить объект
         if method == 'POST' and action == 'create-unit':
             body = json.loads(event.get('body', '{}'))

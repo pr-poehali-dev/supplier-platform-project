@@ -11,6 +11,8 @@ import CreateBookingDialog from '@/components/booking/CreateBookingDialog';
 import IntegrationAccordion from '@/components/booking/IntegrationAccordion';
 import PricingAccordion from '@/components/pricing/PricingAccordion';
 import SBPSettings from '@/components/payment/SBPSettings';
+import BaseInfoSettings from '@/components/booking/BaseInfoSettings';
+import ModificationRequests from '@/components/booking/ModificationRequests';
 
 export default function BookingCalendar() {
   usePageMeta({
@@ -101,6 +103,14 @@ export default function BookingCalendar() {
 
           <div className="mt-6">
             <SBPSettings />
+          </div>
+
+          <div className="mt-6">
+            <BaseInfoSettings />
+          </div>
+
+          <div className="mt-6">
+            <ModificationRequests />
           </div>
 
           <IntegrationAccordion 

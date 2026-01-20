@@ -218,10 +218,16 @@ def handler(event: dict, context) -> dict:
                 conn.commit()
                 
                 cur.execute(f'''
-                    SELECT telegram_owner_id FROM {schema}.bot_settings LIMIT 1
+                    SELECT telegram_owner_id, base_name, admin_phone, admin_name, work_hours, extra_notes 
+                    FROM {schema}.bot_settings LIMIT 1
                 ''')
-                owner_result = cur.fetchone()
-                owner_telegram_id = owner_result[0] if owner_result and owner_result[0] else None
+                bot_settings = cur.fetchone()
+                owner_telegram_id = bot_settings[0] if bot_settings and bot_settings[0] else None
+                base_name = bot_settings[1] if bot_settings and bot_settings[1] else 'Турбаза'
+                admin_phone = bot_settings[2] if bot_settings and bot_settings[2] else 'не указан'
+                admin_name = bot_settings[3] if bot_settings and bot_settings[3] else 'Администратор'
+                work_hours = bot_settings[4] if bot_settings and bot_settings[4] else ''
+                extra_notes = bot_settings[5] if bot_settings and bot_settings[5] else ''
                 
                 cur.execute(f'''
                     SELECT guest_name, check_in, check_out, guest_contact
@@ -289,10 +295,16 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         
         cur.execute(f'''
-            SELECT telegram_owner_id FROM {schema}.bot_settings LIMIT 1
+            SELECT telegram_owner_id, base_name, admin_phone, admin_name, work_hours, extra_notes 
+            FROM {schema}.bot_settings LIMIT 1
         ''')
-        owner_result = cur.fetchone()
-        owner_telegram_id = owner_result[0] if owner_result and owner_result[0] else None
+        bot_settings = cur.fetchone()
+        owner_telegram_id = bot_settings[0] if bot_settings and bot_settings[0] else None
+        base_name = bot_settings[1] if bot_settings and bot_settings[1] else 'Турбаза'
+        admin_phone = bot_settings[2] if bot_settings and bot_settings[2] else 'не указан'
+        admin_name = bot_settings[3] if bot_settings and bot_settings[3] else 'Администратор'
+        work_hours = bot_settings[4] if bot_settings and bot_settings[4] else ''
+        extra_notes = bot_settings[5] if bot_settings and bot_settings[5] else ''
         
         bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
         chatgpt_api_key = os.environ.get('POLZA_AI_API_KEY')
@@ -320,7 +332,14 @@ def handler(event: dict, context) -> dict:
                 services_text = '\n'.join([f"- {s[0]} ({s[3]}): {s[2]}₽. {s[1] or ''}" for s in services]) if services else 'Пока не добавлено'
                 bookings_text = 'Нет активных бронирований'
                 
-                system_prompt = f'''Ты - ассистент по бронированию турбазы. Сегодня: 2026-01-18.
+                system_prompt = f'''Ты - ассистент по бронированию турбазы "{base_name}". Сегодня: 2026-01-18.
+
+ИНФОРМАЦИЯ О БАЗЕ:
+- Название: {base_name}
+- Администратор: {admin_name}
+- Телефон администратора: {admin_phone}
+{("- Время работы: " + work_hours) if work_hours else ""}
+{extra_notes if extra_notes else ""}
 
 ДОСТУПНЫЕ ОБЪЕКТЫ:
 {units_text}
@@ -340,6 +359,27 @@ def handler(event: dict, context) -> dict:
 Когда клиент спрашивает "как добраться", "где вы находитесь", "адрес", "навигация", верни ТОЛЬКО JSON:
 {{"intent": "show_map"}}
 Система сама отправит ссылку на карты. НЕ пиши текст, только JSON!
+
+ИЗМЕНЕНИЕ УЖЕ ОПЛАЧЕННОЙ БРОНИ:
+Если клиент хочет внести изменения в УЖЕ ОПЛАЧЕННУЮ бронь (убрать доп. услуги, перенести даты, вернуть деньги):
+1. Верни JSON: {{"intent": "modify_booking", "booking_id": ID_брони_если_известен, "requested_changes": "описание что хочет изменить"}}
+2. Система САМА создаст заявку администратору
+3. После отправки JSON - ответь клиенту:
+
+"Понял вас, вы хотите внести изменения в оплаченную бронь.
+
+Такие изменения обрабатывает администратор базы.
+Я передал вашу просьбу администратору.
+
+Для ускорения можете связаться напрямую:
+📞 {admin_phone}
+🏕 {base_name}"
+
+⚠️ КРИТИЧНО:
+- НЕ обещай возврат денег
+- НЕ меняй бронь самостоятельно
+- НЕ говори "мы не можем"
+- ВСЕГДА передавай запрос администратору
 
 ДВУХЭТАПНЫЙ ПРОЦЕСС БРОНИРОВАНИЯ:
 
@@ -420,7 +460,7 @@ def handler(event: dict, context) -> dict:
                 clean_reply = re.sub(r'```json\s*', '', clean_reply)
                 clean_reply = re.sub(r'```\s*', '', clean_reply)
                 
-                json_pattern = r'\{[^{}]*"intent"\s*:\s*"(?:create_booking|confirm_booking|confirm_payment|show_unit|show_map)"[^{}]*\}'
+                json_pattern = r'\{[^{}]*"intent"\s*:\s*"(?:create_booking|confirm_booking|confirm_payment|show_unit|show_map|modify_booking)"[^{}]*\}'
                 matches = re.findall(json_pattern, clean_reply)
                 
                 print(f"🔍 DEBUG: REGEX MATCHES: {matches}")
@@ -489,6 +529,60 @@ def handler(event: dict, context) -> dict:
                 if intents:
                     all_bookings = []
                     for intent in intents:
+                        # Обработка modify_booking - изменение оплаченной брони
+                        if intent.get('intent') == 'modify_booking':
+                            requested_changes = intent.get('requested_changes', text)
+                            booking_id = intent.get('booking_id')
+                            
+                            # Получаем данные клиента из истории или текущего чата
+                            cur.execute(f'''
+                                SELECT guest_name, guest_contact FROM {schema}.pending_bookings
+                                WHERE telegram_chat_id = %s
+                                ORDER BY created_at DESC LIMIT 1
+                            ''', (chat_id,))
+                            client_data = cur.fetchone()
+                            client_name = client_data[0] if client_data else user_data.get('first_name', 'Неизвестно')
+                            client_phone = client_data[1] if client_data else 'Неизвестно'
+                            
+                            # Создаём заявку на изменение
+                            cur.execute(f'''
+                                INSERT INTO {schema}.modification_requests 
+                                (booking_id, client_name, client_phone, telegram_chat_id, 
+                                 message_from_client, requested_changes, status, created_at)
+                                VALUES (%s, %s, %s, %s, %s, %s, 'new', NOW())
+                                RETURNING id
+                            ''', (booking_id, client_name, client_phone, chat_id, text, 
+                                  json.dumps({'description': requested_changes}, ensure_ascii=False)))
+                            
+                            request_id = cur.fetchone()[0]
+                            conn.commit()
+                            
+                            # Уведомляем владельца
+                            if owner_telegram_id:
+                                owner_notification = json.dumps({
+                                    'chat_id': owner_telegram_id,
+                                    'text': f'''🔄 Запрос на изменение брони #{request_id}
+
+👤 {client_name}
+📞 {client_phone}
+
+💬 Запрос клиента:
+{text}
+
+Проверьте заявку в системе.'''
+                                }).encode('utf-8')
+                                
+                                telegram_url_notify = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+                                req_owner = request.Request(telegram_url_notify, data=owner_notification, 
+                                                          headers={'Content-Type': 'application/json'}, method='POST')
+                                try:
+                                    with request.urlopen(req_owner) as response:
+                                        response.read()
+                                except:
+                                    pass
+                            
+                            continue
+                        
                         # Обработка show_unit - показ объекта с фото и описанием
                         if intent.get('intent') == 'show_unit':
                             unit_name = intent.get('unit_name', '').strip()

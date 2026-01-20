@@ -69,34 +69,37 @@ export default function UnitDialog({ open, onOpenChange, unit, onUnitChange, onS
           <div>
             <Label>Фото объекта (до 3 штук)</Label>
             <p className="text-xs text-gray-500 mb-2">Вставьте URL фотографий</p>
-            <div className="space-y-2">
-              <Input
-                placeholder="https://example.com/photo1.jpg"
-                value={(unit.photo_urls || [])[0] || ''}
-                onChange={(e) => {
-                  const urls = [...(unit.photo_urls || [])];
-                  urls[0] = e.target.value;
-                  onUnitChange({ ...unit, photo_urls: urls.filter(url => url.trim()) });
-                }}
-              />
-              <Input
-                placeholder="https://example.com/photo2.jpg"
-                value={(unit.photo_urls || [])[1] || ''}
-                onChange={(e) => {
-                  const urls = [...(unit.photo_urls || [])];
-                  urls[1] = e.target.value;
-                  onUnitChange({ ...unit, photo_urls: urls.filter(url => url.trim()) });
-                }}
-              />
-              <Input
-                placeholder="https://example.com/photo3.jpg"
-                value={(unit.photo_urls || [])[2] || ''}
-                onChange={(e) => {
-                  const urls = [...(unit.photo_urls || [])];
-                  urls[2] = e.target.value;
-                  onUnitChange({ ...unit, photo_urls: urls.filter(url => url.trim()) });
-                }}
-              />
+            <div className="space-y-3">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="space-y-1">
+                  <Input
+                    placeholder={`https://example.com/photo${index + 1}.jpg`}
+                    value={(unit.photo_urls || [])[index] || ''}
+                    onChange={(e) => {
+                      const urls = [...(unit.photo_urls || [])];
+                      urls[index] = e.target.value;
+                      onUnitChange({ ...unit, photo_urls: urls.filter(url => url.trim()) });
+                    }}
+                  />
+                  {(unit.photo_urls || [])[index] && (unit.photo_urls || [])[index].trim() && (
+                    <div className="relative w-full h-32 rounded-md overflow-hidden border border-gray-200">
+                      <img
+                        src={(unit.photo_urls || [])[index]}
+                        alt={`Фото ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="flex items-center justify-center h-full bg-gray-100 text-gray-500 text-sm">Ошибка загрузки изображения</div>';
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
           <div>

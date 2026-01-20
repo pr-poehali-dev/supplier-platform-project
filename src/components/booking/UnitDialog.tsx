@@ -67,19 +67,37 @@ export default function UnitDialog({ open, onOpenChange, unit, onUnitChange, onS
             />
           </div>
           <div>
-            <Label htmlFor="unitPhotos">Фото объекта (до 3 штук)</Label>
-            <p className="text-xs text-gray-500 mb-2">Вставьте URL фотографий, по одной на строку</p>
-            <Textarea
-              id="unitPhotos"
-              placeholder="https://example.com/photo1.jpg
-https://example.com/photo2.jpg"
-              value={(unit.photo_urls || []).join('\n')}
-              onChange={(e) => {
-                const urls = e.target.value.split('\n').filter(url => url.trim()).slice(0, 3);
-                onUnitChange({ ...unit, photo_urls: urls });
-              }}
-              rows={3}
-            />
+            <Label>Фото объекта (до 3 штук)</Label>
+            <p className="text-xs text-gray-500 mb-2">Вставьте URL фотографий</p>
+            <div className="space-y-2">
+              <Input
+                placeholder="https://example.com/photo1.jpg"
+                value={(unit.photo_urls || [])[0] || ''}
+                onChange={(e) => {
+                  const urls = [...(unit.photo_urls || [])];
+                  urls[0] = e.target.value;
+                  onUnitChange({ ...unit, photo_urls: urls.filter(url => url.trim()) });
+                }}
+              />
+              <Input
+                placeholder="https://example.com/photo2.jpg"
+                value={(unit.photo_urls || [])[1] || ''}
+                onChange={(e) => {
+                  const urls = [...(unit.photo_urls || [])];
+                  urls[1] = e.target.value;
+                  onUnitChange({ ...unit, photo_urls: urls.filter(url => url.trim()) });
+                }}
+              />
+              <Input
+                placeholder="https://example.com/photo3.jpg"
+                value={(unit.photo_urls || [])[2] || ''}
+                onChange={(e) => {
+                  const urls = [...(unit.photo_urls || [])];
+                  urls[2] = e.target.value;
+                  onUnitChange({ ...unit, photo_urls: urls.filter(url => url.trim()) });
+                }}
+              />
+            </div>
           </div>
           <div>
             <Label htmlFor="unitMapLink">Ссылка на карты</Label>

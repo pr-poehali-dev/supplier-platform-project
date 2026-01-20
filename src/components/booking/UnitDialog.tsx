@@ -1,7 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import Icon from '@/components/ui/icon';
 
 interface UnitFormData {
   name: string;
@@ -9,6 +11,8 @@ interface UnitFormData {
   description: string;
   base_price: string;
   max_guests: string;
+  photo_urls?: string[];
+  map_link?: string;
 }
 
 interface UnitDialogProps {
@@ -53,13 +57,48 @@ export default function UnitDialog({ open, onOpenChange, unit, onUnitChange, onS
             </select>
           </div>
           <div>
-            <Label htmlFor="unitDescription">Описание</Label>
-            <Input
+            <Label htmlFor="unitDescription">Описание для клиентов</Label>
+            <Textarea
               id="unitDescription"
-              placeholder="2 спальни, кухня, терраса"
+              placeholder="Уютный домик с видом на лес. 2 спальни, кухня, терраса с мангалом."
               value={unit.description}
               onChange={(e) => onUnitChange({ ...unit, description: e.target.value })}
+              rows={3}
             />
+          </div>
+          <div>
+            <Label htmlFor="unitPhotos">Фото объекта (до 3 штук)</Label>
+            <p className="text-xs text-gray-500 mb-2">Вставьте URL фотографий, по одной на строку</p>
+            <Textarea
+              id="unitPhotos"
+              placeholder="https://example.com/photo1.jpg
+https://example.com/photo2.jpg"
+              value={(unit.photo_urls || []).join('\n')}
+              onChange={(e) => {
+                const urls = e.target.value.split('\n').filter(url => url.trim()).slice(0, 3);
+                onUnitChange({ ...unit, photo_urls: urls });
+              }}
+              rows={3}
+            />
+          </div>
+          <div>
+            <Label htmlFor="unitMapLink">Ссылка на карты</Label>
+            <div className="flex gap-2 items-start">
+              <div className="flex-1">
+                <Input
+                  id="unitMapLink"
+                  placeholder="https://yandex.ru/maps/..."
+                  value={unit.map_link || ''}
+                  onChange={(e) => onUnitChange({ ...unit, map_link: e.target.value })}
+                />
+                <p className="text-xs text-gray-500 mt-1">Яндекс.Карты, Google Maps или 2GIS</p>
+              </div>
+              {unit.map_link && (
+                <a href={unit.map_link} target="_blank" rel="noopener noreferrer" className="mt-1">
+                  <Icon name="ExternalLink" size={20} className="text-blue-600" />
+                </a>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

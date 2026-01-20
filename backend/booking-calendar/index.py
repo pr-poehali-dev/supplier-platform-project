@@ -49,7 +49,8 @@ def handler(event: dict, context) -> dict:
         if method == 'GET' and action == 'units':
             cur.execute(f"""
                 SELECT id, name, description, max_guests, base_price, type, 
-                       created_at, dynamic_pricing_enabled, pricing_profile_id
+                       created_at, dynamic_pricing_enabled, pricing_profile_id,
+                       photo_urls, map_link
                 FROM {schema}.units 
                 WHERE owner_id = {owner_id}
                 ORDER BY id
@@ -66,7 +67,9 @@ def handler(event: dict, context) -> dict:
                     'type': row[5] or 'room',
                     'created_at': row[6].isoformat() if row[6] else None,
                     'dynamic_pricing_enabled': row[7] if row[7] is not None else False,
-                    'pricing_profile_id': row[8]
+                    'pricing_profile_id': row[8],
+                    'photo_urls': row[9] if row[9] else [],
+                    'map_link': row[10] or ''
                 })
             
             return {
@@ -160,11 +163,17 @@ def handler(event: dict, context) -> dict:
             description = body.get('description', '')
             base_price = float(body.get('base_price', 0))
             max_guests = int(body.get('max_guests', 1))
+            photo_urls = body.get('photo_urls', [])
+            map_link = body.get('map_link', '')
             
+            photo_array_sql = "ARRAY[" + ','.join(["'" + url.replace("'", "''") + "'" for url in photo_urls]) + "]::TEXT[]" if photo_urls else "'{}'"
             cur.execute(f"""
-                INSERT INTO {schema}.units (name, description, max_guests, base_price, type, owner_id, created_at)
+                INSERT INTO {schema}.units (name, description, max_guests, base_price, type, owner_id, created_at, photo_urls, map_link)
                 VALUES ('{name.replace("'", "''")}', '{description.replace("'", "''")}', 
-                        {max_guests}, {base_price}, '{unit_type}', {owner_id}, NOW())
+                        {max_guests}, {base_price}, '{unit_type}', {owner_id}, NOW(), 
+                        {photo_array_sql},
+                        '{map_link.replace("'", "''")}'
+                )
                 RETURNING id
             """)
             unit_id = cur.fetchone()[0]
@@ -197,14 +206,19 @@ def handler(event: dict, context) -> dict:
             description = body.get('description', '')
             base_price = float(body.get('base_price', 0))
             max_guests = int(body.get('max_guests', 1))
+            photo_urls = body.get('photo_urls', [])
+            map_link = body.get('map_link', '')
             
+            photo_array_sql = "ARRAY[" + ','.join(["'" + url.replace("'", "''") + "'" for url in photo_urls]) + "]::TEXT[]" if photo_urls else "'{}'"
             cur.execute(f"""
                 UPDATE {schema}.units 
                 SET name = '{name.replace("'", "''")}', 
                     description = '{description.replace("'", "''")}',
                     max_guests = {max_guests},
                     base_price = {base_price},
-                    type = '{unit_type}'
+                    type = '{unit_type}',
+                    photo_urls = {photo_array_sql},
+                    map_link = '{map_link.replace("'", "''")}'
                 WHERE id = {unit_id}
             """)
             conn.commit()

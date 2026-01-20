@@ -19,14 +19,16 @@ export interface Unit {
   total_slots?: number;
   dynamic_pricing_enabled?: boolean;
   pricing_profile_id?: number;
+  photo_urls?: string[];
+  map_link?: string;
 }
 
 interface UnitsManagementProps {
   units: Unit[];
   selectedUnit: Unit | null;
   onSelectUnit: (unit: Unit) => void;
-  onAddUnit: (unit: { name: string; type: string; description: string; base_price: string; max_guests: string }) => Promise<void>;
-  onUpdateUnit: (unitId: number, unit: { name: string; type: string; description: string; base_price: string; max_guests: string }) => Promise<void>;
+  onAddUnit: (unit: { name: string; type: string; description: string; base_price: string; max_guests: string; photo_urls?: string[]; map_link?: string }) => Promise<void>;
+  onUpdateUnit: (unitId: number, unit: { name: string; type: string; description: string; base_price: string; max_guests: string; photo_urls?: string[]; map_link?: string }) => Promise<void>;
   onDeleteUnit: (unitId: number) => Promise<void>;
 }
 
@@ -46,7 +48,9 @@ export default function UnitsManagement({
     type: 'house',
     description: '',
     base_price: '',
-    max_guests: ''
+    max_guests: '',
+    photo_urls: [] as string[],
+    map_link: ''
   });
 
   const currentPlan = getUserSubscription();
@@ -61,7 +65,7 @@ export default function UnitsManagement({
     
     await onAddUnit(newUnit);
     setShowAddUnit(false);
-    setNewUnit({ name: '', type: 'house', description: '', base_price: '', max_guests: '' });
+    setNewUnit({ name: '', type: 'house', description: '', base_price: '', max_guests: '', photo_urls: [], map_link: '' });
   };
 
   const handleAddButtonClick = () => {
@@ -86,7 +90,9 @@ export default function UnitsManagement({
       type: editingUnit.type,
       description: editingUnit.description,
       base_price: editingUnit.base_price.toString(),
-      max_guests: editingUnit.max_guests.toString()
+      max_guests: editingUnit.max_guests.toString(),
+      photo_urls: editingUnit.photo_urls,
+      map_link: editingUnit.map_link
     });
     setEditingUnit(null);
   };
@@ -153,7 +159,9 @@ export default function UnitsManagement({
             type: editingUnit.type,
             description: editingUnit.description,
             base_price: editingUnit.base_price.toString(),
-            max_guests: editingUnit.max_guests.toString()
+            max_guests: editingUnit.max_guests.toString(),
+            photo_urls: editingUnit.photo_urls,
+            map_link: editingUnit.map_link
           }}
           onUnitChange={(data) => setEditingUnit({ ...editingUnit, ...data, base_price: parseFloat(data.base_price) || 0, max_guests: parseInt(data.max_guests) || 0 })}
           onSave={handleUpdateUnit}

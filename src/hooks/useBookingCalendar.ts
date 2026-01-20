@@ -166,6 +166,8 @@ export function useBookingCalendar() {
     description: string;
     base_price: string;
     max_guests: string;
+    photo_urls?: string[];
+    map_link?: string;
   }) => {
     if (!newUnit.name || !newUnit.base_price || !newUnit.max_guests) {
       alert('Заполните все поля');
@@ -203,6 +205,8 @@ export function useBookingCalendar() {
     description: string;
     base_price: string;
     max_guests: string;
+    photo_urls?: string[];
+    map_link?: string;
   }) => {
     if (!updatedUnit.name || !updatedUnit.base_price || !updatedUnit.max_guests) {
       alert('Заполните все поля');

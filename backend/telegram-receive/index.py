@@ -331,6 +331,16 @@ def handler(event: dict, context) -> dict:
 ТЕКУЩИЕ БРОНИРОВАНИЯ (проверяй занятость):
 {bookings_text}
 
+ПОКАЗ ИНФОРМАЦИИ ОБ ОБЪЕКТЕ:
+Когда клиент спрашивает про конкретный объект ("расскажи про...", "покажи...", "что такое..."), верни JSON:
+{{"intent": "show_unit", "unit_name": "Домик Сосновый"}}
+Система сама отправит фото и описание объекта. НЕ пиши текст, только JSON!
+
+ПОКАЗ КАРТЫ / АДРЕСА:
+Когда клиент спрашивает "как добраться", "где вы находитесь", "адрес", "навигация", верни ТОЛЬКО JSON:
+{{"intent": "show_map"}}
+Система сама отправит ссылку на карты. НЕ пиши текст, только JSON!
+
 ДВУХЭТАПНЫЙ ПРОЦЕСС БРОНИРОВАНИЯ:
 
 ЭТАП 1: СБОР ДАННЫХ И ПОКАЗ ИТОГОВОЙ СУММЫ
@@ -410,7 +420,7 @@ def handler(event: dict, context) -> dict:
                 clean_reply = re.sub(r'```json\s*', '', clean_reply)
                 clean_reply = re.sub(r'```\s*', '', clean_reply)
                 
-                json_pattern = r'\{[^{}]*"intent"\s*:\s*"(?:create_booking|confirm_booking|confirm_payment)"[^{}]*\}'
+                json_pattern = r'\{[^{}]*"intent"\s*:\s*"(?:create_booking|confirm_booking|confirm_payment|show_unit|show_map)"[^{}]*\}'
                 matches = re.findall(json_pattern, clean_reply)
                 
                 print(f"🔍 DEBUG: REGEX MATCHES: {matches}")
@@ -479,6 +489,80 @@ def handler(event: dict, context) -> dict:
                 if intents:
                     all_bookings = []
                     for intent in intents:
+                        # Обработка show_unit - показ объекта с фото и описанием
+                        if intent.get('intent') == 'show_unit':
+                            unit_name = intent.get('unit_name', '').strip()
+                            cur.execute(f"""
+                                SELECT name, description, photo_urls, base_price, max_guests, type
+                                FROM {schema}.units
+                                WHERE LOWER(name) = LOWER(%s)
+                                LIMIT 1
+                            """, (unit_name,))
+                            unit_data = cur.fetchone()
+                            
+                            if unit_data:
+                                name, desc, photos, price, guests, utype = unit_data
+                                
+                                # Отправляем фото через sendMediaGroup (если есть)
+                                if photos and len(photos) > 0:
+                                    media_group = []
+                                    for idx, photo_url in enumerate(photos[:3]):
+                                        media_item = {
+                                            'type': 'photo',
+                                            'media': photo_url
+                                        }
+                                        # Подпись только к первому фото
+                                        if idx == 0:
+                                            caption_text = f"🏡 {name}\n\n{desc or 'Описание отсутствует'}\n\n👥 До {guests} гостей\n💰 От {price}₽/сутки"
+                                            media_item['caption'] = caption_text
+                                        media_group.append(media_item)
+                                    
+                                    media_url = f'https://api.telegram.org/bot{bot_token}/sendMediaGroup'
+                                    media_data = json.dumps({
+                                        'chat_id': chat_id,
+                                        'media': media_group
+                                    }).encode('utf-8')
+                                    
+                                    req_media = request.Request(media_url, data=media_data, headers={'Content-Type': 'application/json'}, method='POST')
+                                    with request.urlopen(req_media) as response:
+                                        response.read()
+                                else:
+                                    # Если фото нет - отправляем только текст
+                                    text_only = f"🏡 {name}\n\n{desc or 'Описание отсутствует'}\n\n👥 До {guests} гостей\n💰 От {price}₽/сутки"
+                                    text_data = json.dumps({
+                                        'chat_id': chat_id,
+                                        'text': text_only
+                                    }).encode('utf-8')
+                                    req_text = request.Request(telegram_url, data=text_data, headers={'Content-Type': 'application/json'}, method='POST')
+                                    with request.urlopen(req_text) as response:
+                                        response.read()
+                            continue
+                        
+                        # Обработка show_map - показ карты
+                        if intent.get('intent') == 'show_map':
+                            # Берём первый объект с картой (можно улучшить логику)
+                            cur.execute(f"""
+                                SELECT map_link FROM {schema}.units
+                                WHERE map_link IS NOT NULL AND map_link != ''
+                                LIMIT 1
+                            """)
+                            map_data = cur.fetchone()
+                            
+                            if map_data and map_data[0]:
+                                map_text = f"📍 Как добраться:\n{map_data[0]}"
+                            else:
+                                map_text = "📍 Адрес будет отправлен владельцем после подтверждения бронирования"
+                            
+                            map_msg_data = json.dumps({
+                                'chat_id': chat_id,
+                                'text': map_text
+                            }).encode('utf-8')
+                            req_map = request.Request(telegram_url, data=map_msg_data, headers={'Content-Type': 'application/json'}, method='POST')
+                            with request.urlopen(req_map) as response:
+                                response.read()
+                            continue
+                        
+                        # Обработка бронирования
                         if intent.get('intent') in ['create_booking', 'confirm_booking']:
                             result = validate_and_create_booking(intent, schema, dsn, chat_id, owner_telegram_id, bot_token)
                             all_bookings.append({

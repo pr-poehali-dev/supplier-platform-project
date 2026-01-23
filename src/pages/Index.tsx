@@ -50,7 +50,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-blue-50/30">
       <JsonLd data={organizationSchema} />
       <JsonLd data={websiteSchema} />
       <JsonLd data={serviceSchema} />

@@ -173,8 +173,8 @@ export default function CalendarView({
   if (!selectedUnit) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          <Icon name="Calendar" size={48} className="mx-auto mb-4 text-muted-foreground/50" />
+        <CardContent className="py-12 text-center text-gray-500">
+          <Icon name="Calendar" size={48} className="mx-auto mb-4 text-gray-300" />
           <p>Выберите номер для просмотра календаря</p>
         </CardContent>
       </Card>
@@ -234,16 +234,16 @@ export default function CalendarView({
 
           <div className="flex flex-wrap gap-4 mt-6 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-destructive/20 border-2 border-destructive/40 rounded shadow-sm"></div>
-              <span className="font-medium text-foreground">Забронировано</span>
+              <div className="w-5 h-5 bg-gradient-to-br from-red-100 to-pink-100 border-2 border-red-200 rounded shadow-sm"></div>
+              <span className="font-medium text-gray-700">Забронировано</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-warning/20 border-2 border-warning/40 rounded shadow-sm animate-pulse"></div>
-              <span className="font-medium text-foreground">Ожидает подтверждения</span>
+              <div className="w-5 h-5 bg-gradient-to-br from-yellow-100 to-amber-100 border-2 border-yellow-300 rounded shadow-sm animate-pulse"></div>
+              <span className="font-medium text-gray-700">Ожидает подтверждения</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-warning/30 border-2 border-warning/50 rounded shadow-sm"></div>
-              <span className="font-medium text-foreground">Ожидает оплаты</span>
+              <div className="w-5 h-5 bg-gradient-to-br from-orange-100 to-red-100 border-2 border-orange-200 rounded shadow-sm"></div>
+              <span className="font-medium text-gray-700">Ожидает оплаты</span>
             </div>
           </div>
         </CardContent>

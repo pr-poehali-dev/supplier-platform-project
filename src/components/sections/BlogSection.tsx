@@ -89,10 +89,7 @@ const BlogSection = () => {
             <p className="mt-4 text-gray-600">Загрузка статей...</p>
           </div>
         ) : filteredPosts.length === 0 ? (
-          <div className="text-center py-12">
-            <Icon name="FileText" className="mx-auto text-gray-400 mb-4" size={48} />
-            <p className="text-gray-600">Пока нет опубликованных статей</p>
-          </div>
+          <></>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredPosts.map((post, index) => (

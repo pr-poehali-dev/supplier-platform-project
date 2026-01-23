@@ -26,6 +26,7 @@ import Payment from "./pages/Payment";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFail from "./pages/PaymentFail";
 import Oferta from "./pages/Oferta";
+import Roadmap from "./pages/Roadmap";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const AppContent = () => {
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/fail" element={<PaymentFail />} />
         <Route path="/oferta" element={<Oferta />} />
+        <Route path="/roadmap" element={<Roadmap />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

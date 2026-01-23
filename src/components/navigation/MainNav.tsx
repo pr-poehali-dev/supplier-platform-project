@@ -66,6 +66,12 @@ export default function MainNav({ activeSection, user, onScrollToSection, onNavi
             О платформе
           </button>
           <button
+            onClick={() => onNavigate('/roadmap')}
+            className="font-medium text-gray-600 hover:text-primary transition-colors"
+          >
+            Roadmap
+          </button>
+          <button
             onClick={() => onScrollToSection('contact')}
             className={`font-medium transition-colors hover:text-primary ${
               activeSection === 'contact' ? 'text-primary' : 'text-gray-600'

@@ -175,6 +175,18 @@ const Pricing = () => {
             </Button>
           </div>
         )}
+
+        {/* Roadmap Link */}
+        <div className="max-w-2xl mx-auto text-center mt-12 pt-12 border-t border-gray-200">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/roadmap')}
+            className="gap-2"
+          >
+            <Icon name="Map" size={18} />
+            Узнайте, как развивается сервис
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -50,14 +50,6 @@ export default function MainNav({ activeSection, user, onScrollToSection, onNavi
           </div>
 
           <button
-            onClick={() => onScrollToSection('features')}
-            className={`font-medium transition-colors hover:text-primary ${
-              activeSection === 'features' ? 'text-primary' : 'text-gray-600'
-            }`}
-          >
-            Возможности
-          </button>
-          <button
             onClick={() => onScrollToSection('about')}
             className={`font-medium transition-colors hover:text-primary ${
               activeSection === 'about' ? 'text-primary' : 'text-gray-600'

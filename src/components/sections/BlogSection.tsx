@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
-import { fetchWithAuth } from '@/lib/api';
 
 interface BlogPost {
   id: number;
@@ -39,7 +38,7 @@ const BlogSection = () => {
       const category = selectedCategory === 'all' ? '' : selectedCategory;
       const url = `https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=20&channel_type=free${category ? `&category=${category}` : ''}`;
       
-      const response = await fetchWithAuth(url);
+      const response = await fetch(url);
       const data = await response.json();
       
       if (data.posts) {

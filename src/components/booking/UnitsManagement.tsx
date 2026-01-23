@@ -98,14 +98,14 @@ export default function UnitsManagement({
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 backdrop-blur-sm border-border transition-all duration-300 hover:shadow-lg">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <span>Объекты для бронирования</span>
             <Badge 
-              variant="outline" 
-              className={`${!canAdd ? 'bg-red-50 text-red-700 border-red-300' : 'bg-green-50 text-green-700 border-green-300'}`}
+              variant={!canAdd ? 'destructive' : 'outline'} 
+              className={`backdrop-blur-sm transition-all duration-200 ${!canAdd ? 'bg-destructive/10 text-destructive border-destructive/30' : 'bg-primary/10 text-primary border-primary/30'}`}
             >
               {units.length} / {limits.maxUnits === 999 ? '∞' : limits.maxUnits}
             </Badge>
@@ -114,7 +114,7 @@ export default function UnitsManagement({
             size="sm" 
             onClick={handleAddButtonClick}
             variant={!canAdd ? 'outline' : 'default'}
-            className={!canAdd ? 'opacity-60' : ''}
+            className={`transition-all duration-200 ${!canAdd ? 'opacity-60 hover:opacity-80' : 'shadow-md hover:shadow-lg'}`}
           >
             <Icon name="Plus" className="mr-2" size={16} />
             Добавить объект

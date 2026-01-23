@@ -43,17 +43,18 @@ export default function CalendarHeader({ user, onShowPendingRequests }: Calendar
       
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            <Icon name="Calendar" className="inline-block mr-2" size={36} />
+          <h1 className="text-4xl font-bold text-foreground mb-2">
+            <Icon name="Calendar" className="inline-block mr-2 text-primary" size={36} />
             Календарь бронирования
           </h1>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Управляйте бронированиями для турбаз и гостевых домов
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
             <Button
               onClick={onShowPendingRequests}
-              className={`gap-2 ${pendingCount > 0 ? 'bg-yellow-500 hover:bg-yellow-600 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+              variant={pendingCount > 0 ? 'default' : 'outline'}
+              className={`gap-2 ${pendingCount > 0 ? 'bg-warning hover:bg-warning/90 text-warning-foreground animate-pulse' : ''}`}
             >
               <Icon name="AlertCircle" size={16} />
               Заявки {pendingCount > 0 && `(${pendingCount})`}

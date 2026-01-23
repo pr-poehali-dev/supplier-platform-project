@@ -14,10 +14,10 @@ export default function UnitCard({ unit, isSelected, onSelect, onEdit, onDelete 
   return (
     <div
       onClick={onSelect}
-      className={`p-5 border-2 rounded-xl relative transition-all shadow-sm hover:shadow-md cursor-pointer ${
+      className={`p-5 border-2 rounded-xl relative transition-all cursor-pointer backdrop-blur-sm ${
         isSelected
-          ? 'border-blue-500 bg-blue-50 shadow-lg'
-          : 'border-gray-200 hover:border-blue-300 bg-white'
+          ? 'border-primary bg-primary/5 shadow-xl shadow-primary/10'
+          : 'border-border hover:border-primary/50 bg-card/50 shadow-md hover:shadow-lg'
       }`}
     >
       <div className="absolute top-3 right-3 flex gap-1">
@@ -26,7 +26,7 @@ export default function UnitCard({ unit, isSelected, onSelect, onEdit, onDelete 
             e.stopPropagation();
             onEdit();
           }}
-          className="p-1.5 rounded-full hover:bg-blue-100 text-blue-600 transition-colors"
+          className="p-1.5 rounded-full hover:bg-primary/20 text-primary transition-all hover:scale-110"
           title="Редактировать объект"
         >
           <Icon name="Pencil" size={16} />
@@ -36,7 +36,7 @@ export default function UnitCard({ unit, isSelected, onSelect, onEdit, onDelete 
             e.stopPropagation();
             onDelete();
           }}
-          className="p-1.5 rounded-full hover:bg-red-100 text-red-600 transition-colors"
+          className="p-1.5 rounded-full hover:bg-destructive/20 text-destructive transition-all hover:scale-110"
           title="Удалить объект"
         >
           <Icon name="Trash2" size={16} />
@@ -49,16 +49,16 @@ export default function UnitCard({ unit, isSelected, onSelect, onEdit, onDelete 
         </Badge>
       </div>
       {unit.description && (
-        <p className="text-sm text-gray-600 mb-3">{unit.description}</p>
+        <p className="text-sm text-muted-foreground mb-3">{unit.description}</p>
       )}
       <div className="space-y-2 text-sm">
-        <div className="flex items-center gap-2 text-gray-700">
-          <Icon name="Banknote" size={16} />
+        <div className="flex items-center gap-2 text-foreground">
+          <Icon name="Banknote" size={16} className="text-primary" />
           <span className="font-semibold">{unit.base_price.toLocaleString('ru-RU')} ₽</span>
-          <span className="text-gray-500">/ ночь</span>
+          <span className="text-muted-foreground">/ ночь</span>
         </div>
-        <div className="flex items-center gap-2 text-gray-700">
-          <Icon name="Users" size={16} />
+        <div className="flex items-center gap-2 text-foreground">
+          <Icon name="Users" size={16} className="text-primary" />
           <span>До {unit.max_guests} гостей</span>
         </div>
       </div>

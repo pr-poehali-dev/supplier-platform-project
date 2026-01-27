@@ -17,7 +17,7 @@ def generate_code() -> str:
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: str) -> bool:
-    """Send email via SMTP (Gmail by default)."""
+    """Send email via SMTP with SSL or STARTTLS support."""
     smtp_host = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
     smtp_port = int(os.environ.get('SMTP_PORT', '587'))
     smtp_user = os.environ.get('SMTP_USER', '')
@@ -36,10 +36,15 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str) -> b
     msg.attach(MIMEText(html_body, 'html', 'utf-8'))
 
     try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.sendmail(smtp_from, to_email, msg.as_string())
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10) as server:
+                server.login(smtp_user, smtp_password)
+                server.sendmail(smtp_from, to_email, msg.as_string())
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.sendmail(smtp_from, to_email, msg.as_string())
         return True
     except (smtplib.SMTPException, OSError):
         return False

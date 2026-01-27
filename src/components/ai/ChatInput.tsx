@@ -1,19 +1,17 @@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
-import QuickQuestions from './QuickQuestions';
 import { useRef, useEffect } from 'react';
 
 interface ChatInputProps {
   input: string;
   loading: boolean;
-  messagesCount: number;
   onInputChange: (value: string) => void;
   onSend: (text?: string) => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
 }
 
-export default function ChatInput({ input, loading, messagesCount, onInputChange, onSend, onKeyPress }: ChatInputProps) {
+export default function ChatInput({ input, loading, onInputChange, onSend, onKeyPress }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -23,16 +21,8 @@ export default function ChatInput({ input, loading, messagesCount, onInputChange
     }
   }, [input]);
 
-  const handleQuestionClick = (question: string) => {
-    onInputChange(question);
-    onSend(question);
-  };
-
   return (
-    <>
-      {messagesCount <= 1 && <QuickQuestions onQuestionClick={handleQuestionClick} />}
-      
-      <div className="px-5 py-4 border-t border-gray-100 bg-white">
+    <div className="px-5 py-4 border-t border-gray-100 bg-white">
         <div className="flex gap-2 items-end">
           <Textarea
             ref={textareaRef}
@@ -61,7 +51,6 @@ export default function ChatInput({ input, loading, messagesCount, onInputChange
         <p className="text-xs text-gray-400 mt-2">
           <kbd className="px-1.5 py-0.5 text-xs bg-gray-100 border border-gray-200 rounded">Enter</kbd> — отправить, <kbd className="px-1.5 py-0.5 text-xs bg-gray-100 border border-gray-200 rounded">Shift + Enter</kbd> — новая строка
         </p>
-      </div>
-    </>
+    </div>
   );
 }

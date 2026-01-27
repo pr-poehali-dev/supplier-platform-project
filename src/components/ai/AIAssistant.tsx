@@ -5,6 +5,7 @@ import Icon from '@/components/ui/icon';
 import { fetchWithAuth } from '@/lib/api';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
+import QuickQuestions from './QuickQuestions';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
@@ -137,7 +138,10 @@ export default function AIAssistant() {
       )}
 
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-[420px] h-[680px] shadow-2xl z-50 flex flex-col border border-gray-200/80 bg-white">
+        <div className="fixed bottom-6 right-6 flex gap-3 z-50">
+          <QuickQuestions onQuestionClick={(q) => sendMessage(q)} />
+          
+          <Card className="w-[420px] h-[680px] shadow-2xl flex flex-col border border-gray-200/80 bg-white">
           <CardHeader className="pb-3 px-5 pt-4 border-b border-gray-100 bg-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -203,13 +207,13 @@ export default function AIAssistant() {
             <ChatInput
               input={input}
               loading={loading}
-              messagesCount={messages.length}
               onInputChange={setInput}
               onSend={sendMessage}
               onKeyPress={handleKeyPress}
             />
           </CardContent>
         </Card>
+        </div>
       )}
     </>
   );

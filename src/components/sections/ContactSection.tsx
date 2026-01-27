@@ -156,13 +156,16 @@ const ContactSection = () => {
           </Card>
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center space-y-2">
           <a 
             href="/oferta" 
-            className="text-sm text-gray-500 hover:text-primary transition-colors underline"
+            className="text-sm text-gray-500 hover:text-primary transition-colors underline block"
           >
             Публичная оферта
           </a>
+          <p className="text-xs text-gray-400">
+            ИП Романцов М.С. ИНН 682971175787
+          </p>
         </div>
       </div>
     </section>

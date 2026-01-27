@@ -1,6 +1,7 @@
 import json
 import os
 import psycopg2
+import calendar
 from datetime import datetime, timedelta
 
 try:
@@ -397,144 +398,192 @@ def handler(event: dict, context) -> dict:
 
 
 def get_owner_context(cur, owner_id: int) -> dict:
-    '''Получает полный контекст владельца для AI'''
+    '''Получает полный контекст владельца для AI. Всегда возвращает валидный dict, даже если данных нет.'''
     
-    # Объекты размещения
-    cur.execute(f"""
-        SELECT id, name, type, base_price, max_guests, dynamic_pricing_enabled
-        FROM units
-        WHERE owner_id = {owner_id}
-        LIMIT 20
-    """)
-    
+    # Инициализация дефолтных значений
     units = []
-    for row in cur.fetchall():
-        units.append({
-            'id': row[0],
-            'name': row[1],
-            'type': row[2],
-            'price': float(row[3]),
-            'max_guests': row[4],
-            'dynamic_pricing': row[5]
-        })
-    
-    # Допродажи
-    cur.execute(f"""
-        SELECT name, price, category, enabled
-        FROM additional_services
-        WHERE owner_id = {owner_id} AND enabled = true
-    """)
-    
     services = []
-    for row in cur.fetchall():
-        services.append({
-            'name': row[0],
-            'price': float(row[1]) if row[1] else 0,
-            'category': row[2]
-        })
-    
-    # КРИТИЧНО: Актуальный календарь бронирований (±30 дней)
-    cur.execute(f"""
-        SELECT 
-            b.check_in,
-            b.check_out,
-            b.status,
-            b.total_price,
-            b.guest_name,
-            b.guest_phone,
-            u.name as unit_name,
-            b.payment_deadline
-        FROM bookings b
-        JOIN units u ON b.unit_id = u.id
-        WHERE u.owner_id = {owner_id}
-        AND b.check_in >= CURRENT_DATE - INTERVAL '7 days'
-        AND b.check_in <= CURRENT_DATE + INTERVAL '30 days'
-        AND b.status IN ('confirmed', 'pending')
-        ORDER BY b.check_in
-    """)
-    
     bookings = []
-    for row in cur.fetchall():
-        booking = {
-            'check_in': row[0].isoformat(),
-            'check_out': row[1].isoformat(),
-            'status': row[2],
-            'price': float(row[3]),
-            'guest_name': row[4],
-            'guest_phone': row[5],
-            'unit_name': row[6]
-        }
-        
-        # Для pending добавляем дедлайн оплаты
-        if row[2] == 'pending' and row[7]:
-            booking['payment_deadline'] = row[7].isoformat()
-        
-        bookings.append(booking)
-    
-    # Статистика текущего месяца
-    cur.execute(f"""
-        SELECT COUNT(*), AVG(total_price), SUM(total_price)
-        FROM bookings b
-        JOIN units u ON b.unit_id = u.id
-        WHERE u.owner_id = {owner_id}
-        AND b.check_in >= DATE_TRUNC('month', CURRENT_DATE)
-        AND b.check_in < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
-        AND b.status = 'confirmed'
-    """)
-    
-    stats_row = cur.fetchone()
-    confirmed_count = stats_row[0] or 0
-    
-    # Процент загрузки текущего месяца (приблизительно)
-    cur.execute(f"""
-        SELECT COUNT(DISTINCT b.check_in)
-        FROM bookings b
-        JOIN units u ON b.unit_id = u.id
-        WHERE u.owner_id = {owner_id}
-        AND b.check_in >= DATE_TRUNC('month', CURRENT_DATE)
-        AND b.check_in < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
-        AND b.status = 'confirmed'
-    """)
-    
-    occupied_days = cur.fetchone()[0] or 0
-    days_in_month = (datetime.now().replace(day=28) + timedelta(days=4)).day
-    occupancy_rate = (occupied_days / days_in_month * 100) if days_in_month > 0 else 0
-    
     stats = {
-        'bookings_this_month': confirmed_count,
-        'avg_price': float(stats_row[1]) if stats_row[1] else 0,
-        'revenue_this_month': float(stats_row[2]) if stats_row[2] else 0,
-        'occupancy_rate': round(occupancy_rate, 1)
+        'bookings_this_month': 0,
+        'avg_price': 0,
+        'revenue_this_month': 0,
+        'occupancy_rate': 0
     }
+    bot_settings = {'name': 'Ассистент', 'style': 'Дружелюбный'}
+    holidays = []
     
-    # Настройки бота
-    cur.execute(f"""
-        SELECT bot_name, communication_style, reminder_enabled, reminder_days
-        FROM bot_settings
-        WHERE owner_id = {owner_id}
-    """)
+    try:
+        # Объекты размещения
+        cur.execute(f"""
+            SELECT id, name, type, base_price, max_guests, dynamic_pricing_enabled
+            FROM units
+            WHERE owner_id = {owner_id}
+            LIMIT 20
+        """)
+        
+        for row in cur.fetchall():
+            try:
+                units.append({
+                    'id': row[0],
+                    'name': row[1] or 'Без названия',
+                    'type': row[2] or 'Объект',
+                    'price': float(row[3]) if row[3] else 0,
+                    'max_guests': row[4] or 1,
+                    'dynamic_pricing': row[5] or False
+                })
+            except:
+                continue
+    except:
+        pass
     
-    settings_row = cur.fetchone()
-    if settings_row:
-        bot_settings = {
-            'name': settings_row[0],
-            'style': settings_row[1],
-            'reminders': settings_row[2],
-            'reminder_days': settings_row[3]
-        }
-    else:
-        bot_settings = {'name': 'Ассистент', 'style': 'Дружелюбный'}
+    try:
+        # Допродажи
+        cur.execute(f"""
+            SELECT name, price, category, enabled
+            FROM additional_services
+            WHERE owner_id = {owner_id} AND enabled = true
+        """)
+        
+        for row in cur.fetchall():
+            try:
+                services.append({
+                    'name': row[0] or 'Услуга',
+                    'price': float(row[1]) if row[1] else 0,
+                    'category': row[2] or 'Прочее'
+                })
+            except:
+                continue
+    except:
+        pass
     
-    # Ближайшие праздники
-    cur.execute(f"""
-        SELECT date, holiday_name
-        FROM production_calendar
-        WHERE date >= CURRENT_DATE AND is_holiday = true
-        ORDER BY date
-        LIMIT 5
-    """)
+    try:
+        # КРИТИЧНО: Актуальный календарь бронирований (±30 дней)
+        cur.execute(f"""
+            SELECT 
+                b.check_in,
+                b.check_out,
+                b.status,
+                b.total_price,
+                b.guest_name,
+                b.guest_phone,
+                u.name as unit_name,
+                b.payment_deadline
+            FROM bookings b
+            JOIN units u ON b.unit_id = u.id
+            WHERE u.owner_id = {owner_id}
+            AND b.check_in >= CURRENT_DATE - INTERVAL '7 days'
+            AND b.check_in <= CURRENT_DATE + INTERVAL '30 days'
+            AND b.status IN ('confirmed', 'pending')
+            ORDER BY b.check_in
+        """)
+        
+        for row in cur.fetchall():
+            try:
+                booking = {
+                    'check_in': row[0].isoformat() if row[0] else 'н/д',
+                    'check_out': row[1].isoformat() if row[1] else 'н/д',
+                    'status': row[2] or 'unknown',
+                    'price': float(row[3]) if row[3] else 0,
+                    'guest_name': row[4] or 'не указано',
+                    'guest_phone': row[5] or '',
+                    'unit_name': row[6] or 'объект не найден'
+                }
+                
+                # Для pending добавляем дедлайн оплаты
+                if row[2] == 'pending' and row[7]:
+                    try:
+                        booking['payment_deadline'] = row[7].isoformat()
+                    except:
+                        pass
+                
+                bookings.append(booking)
+            except:
+                continue
+    except:
+        pass
     
-    holidays = [{'date': row[0].isoformat(), 'name': row[1]} for row in cur.fetchall()]
+    try:
+        # Статистика текущего месяца
+        cur.execute(f"""
+            SELECT COUNT(*), AVG(total_price), SUM(total_price)
+            FROM bookings b
+            JOIN units u ON b.unit_id = u.id
+            WHERE u.owner_id = {owner_id}
+            AND b.check_in >= DATE_TRUNC('month', CURRENT_DATE)
+            AND b.check_in < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+            AND b.status = 'confirmed'
+        """)
+        
+        stats_row = cur.fetchone()
+        if stats_row:
+            confirmed_count = stats_row[0] or 0
+            
+            # Процент загрузки текущего месяца
+            try:
+                cur.execute(f"""
+                    SELECT COUNT(DISTINCT b.check_in)
+                    FROM bookings b
+                    JOIN units u ON b.unit_id = u.id
+                    WHERE u.owner_id = {owner_id}
+                    AND b.check_in >= DATE_TRUNC('month', CURRENT_DATE)
+                    AND b.check_in < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+                    AND b.status = 'confirmed'
+                """)
+                
+                occupied_days = cur.fetchone()[0] or 0
+                now = datetime.now()
+                days_in_month = calendar.monthrange(now.year, now.month)[1]
+                occupancy_rate = (occupied_days / days_in_month * 100) if days_in_month > 0 else 0
+            except:
+                occupancy_rate = 0
+            
+            stats = {
+                'bookings_this_month': confirmed_count,
+                'avg_price': float(stats_row[1]) if stats_row[1] else 0,
+                'revenue_this_month': float(stats_row[2]) if stats_row[2] else 0,
+                'occupancy_rate': round(occupancy_rate, 1)
+            }
+    except:
+        pass
+    
+    try:
+        # Настройки бота
+        cur.execute(f"""
+            SELECT bot_name, communication_style, reminder_enabled, reminder_days
+            FROM bot_settings
+            WHERE owner_id = {owner_id}
+        """)
+        
+        settings_row = cur.fetchone()
+        if settings_row:
+            bot_settings = {
+                'name': settings_row[0] or 'Ассистент',
+                'style': settings_row[1] or 'Дружелюбный',
+                'reminders': settings_row[2] if settings_row[2] is not None else True,
+                'reminder_days': settings_row[3] or 30
+            }
+    except:
+        pass
+    
+    try:
+        # Ближайшие праздники
+        cur.execute(f"""
+            SELECT date, holiday_name
+            FROM production_calendar
+            WHERE date >= CURRENT_DATE AND is_holiday = true
+            ORDER BY date
+            LIMIT 5
+        """)
+        
+        for row in cur.fetchall():
+            try:
+                if row[0] and row[1]:
+                    holidays.append({'date': row[0].isoformat(), 'name': row[1]})
+            except:
+                continue
+    except:
+        pass
     
     return {
         'units': units,
@@ -548,49 +597,79 @@ def get_owner_context(cur, owner_id: int) -> dict:
 
 
 def build_system_prompt(context: dict) -> str:
-    '''Строит системный промпт с контекстом владельца'''
+    '''Строит системный промпт с контекстом владельца. Безопасно обрабатывает пустые данные.'''
     
-    units_text = '\n'.join([
-        f"- {u['name']} ({u['type']}): {u['price']}₽/ночь, до {u['max_guests']} гостей"
-        for u in context['units']
-    ]) if context['units'] else 'Объекты пока не добавлены'
+    try:
+        units_text = '\n'.join([
+            f"- {u.get('name', 'Без названия')} ({u.get('type', 'Объект')}): {u.get('price', 0)}₽/ночь, до {u.get('max_guests', 1)} гостей"
+            for u in context.get('units', [])
+        ]) if context.get('units') else 'Объекты пока не добавлены'
+    except:
+        units_text = 'Объекты пока не добавлены'
     
-    services_text = '\n'.join([
-        f"- {s['name']} ({s['category']}): {s['price']}₽"
-        for s in context['services']
-    ]) if context['services'] else 'Допродажи пока не добавлены'
+    try:
+        services_text = '\n'.join([
+            f"- {s.get('name', 'Услуга')} ({s.get('category', 'Прочее')}): {s.get('price', 0)}₽"
+            for s in context.get('services', [])
+        ]) if context.get('services') else 'Допродажи пока не добавлены'
+    except:
+        services_text = 'Допродажи пока не добавлены'
     
-    # КРИТИЧНО: Календарь бронирований
-    bookings_text = ''
-    if context['bookings']:
-        confirmed = [b for b in context['bookings'] if b['status'] == 'confirmed']
-        pending = [b for b in context['bookings'] if b['status'] == 'pending']
-        
-        if confirmed:
-            bookings_text += 'ПОДТВЕРЖДЁННЫЕ БРОНИРОВАНИЯ:\n'
-            for b in confirmed:
-                bookings_text += f"- {b['check_in']} → {b['check_out']}: {b['unit_name']}, {b['guest_name']}, {b['price']:.0f}₽\n"
-        
-        if pending:
-            bookings_text += '\nОЖИДАЮТ ОПЛАТЫ:\n'
-            for b in pending:
-                deadline = b.get('payment_deadline', 'не указан')
-                bookings_text += f"- {b['check_in']} → {b['check_out']}: {b['unit_name']}, {b['guest_name']}, до {deadline}\n"
-    else:
-        bookings_text = 'Ближайших бронирований нет'
+    # КРИТИЧНО: Календарь бронирований с защитой от ошибок
+    bookings_text = 'Ближайших бронирований нет'
+    try:
+        if context.get('bookings'):
+            confirmed = [b for b in context['bookings'] if b.get('status') == 'confirmed']
+            pending = [b for b in context['bookings'] if b.get('status') == 'pending']
+            
+            parts = []
+            
+            if confirmed:
+                parts.append('ПОДТВЕРЖДЁННЫЕ БРОНИРОВАНИЯ:')
+                for b in confirmed:
+                    try:
+                        line = f"- {b.get('check_in', 'н/д')} → {b.get('check_out', 'н/д')}: {b.get('unit_name', 'объект')}, {b.get('guest_name', 'не указано')}, {b.get('price', 0):.0f}₽"
+                        parts.append(line)
+                    except:
+                        continue
+            
+            if pending:
+                parts.append('\nОЖИДАЮТ ОПЛАТЫ:')
+                for b in pending:
+                    try:
+                        deadline = b.get('payment_deadline', 'не указан')
+                        line = f"- {b.get('check_in', 'н/д')} → {b.get('check_out', 'н/д')}: {b.get('unit_name', 'объект')}, {b.get('guest_name', 'не указано')}, до {deadline}"
+                        parts.append(line)
+                    except:
+                        continue
+            
+            if parts:
+                bookings_text = '\n'.join(parts)
+    except:
+        pass
     
-    holidays_text = '\n'.join([
-        f"- {h['date']}: {h['name']}"
-        for h in context['holidays']
-    ]) if context['holidays'] else 'Праздников в ближайшее время нет'
+    try:
+        holidays_text = '\n'.join([
+            f"- {h.get('date', 'н/д')}: {h.get('name', 'Праздник')}"
+            for h in context.get('holidays', [])
+        ]) if context.get('holidays') else 'Праздников в ближайшее время нет'
+    except:
+        holidays_text = 'Праздников в ближайшее время нет'
     
-    bot_name = context['bot_settings']['name']
-    style = context['bot_settings']['style']
+    bot_name = context.get('bot_settings', {}).get('name', 'Ассистент')
+    style = context.get('bot_settings', {}).get('style', 'Дружелюбный')
+    today = context.get('today', datetime.now().strftime('%Y-%m-%d'))
+    
+    stats = context.get('stats', {})
+    bookings_count = stats.get('bookings_this_month', 0)
+    occupancy = stats.get('occupancy_rate', 0)
+    avg_price = stats.get('avg_price', 0)
+    revenue = stats.get('revenue_this_month', 0)
     
     return f"""Ты — {bot_name}, личный AI-ассистент владельца турбазы.
 
 Стиль общения: {style}
-Сегодня: {context['today']}
+Сегодня: {today}
 
 ТВОИ ОБЪЕКТЫ:
 {units_text}
@@ -602,10 +681,10 @@ def build_system_prompt(context: dict) -> str:
 {bookings_text}
 
 СТАТИСТИКА ТЕКУЩЕГО МЕСЯЦА:
-- Подтверждённых броней: {context['stats']['bookings_this_month']}
-- Загрузка: {context['stats']['occupancy_rate']}%
-- Средний чек: {context['stats']['avg_price']:.0f}₽
-- Выручка: {context['stats']['revenue_this_month']:.0f}₽
+- Подтверждённых броней: {bookings_count}
+- Загрузка: {occupancy}%
+- Средний чек: {avg_price:.0f}₽
+- Выручка: {revenue:.0f}₽
 
 БЛИЖАЙШИЕ ПРАЗДНИКИ:
 {holidays_text}

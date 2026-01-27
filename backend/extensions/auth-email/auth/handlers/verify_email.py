@@ -47,7 +47,5 @@ def handle(event: dict, origin: str = '*') -> dict:
         WHERE id = {escape(user_id)}
     """)
 
-    # Delete used token
-    execute(f"DELETE FROM {S}email_verification_tokens WHERE user_id = {escape(user_id)}")
-
+    # Token will expire naturally via expires_at
     return response(200, {'message': 'Email подтверждён'}, origin)

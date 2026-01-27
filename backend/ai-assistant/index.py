@@ -114,22 +114,25 @@ def handler(event: dict, context) -> dict:
             system_prompt = build_system_prompt(context)
             
             # Вызываем Polza.ai API (OpenAI-совместимый)
-            client = openai.OpenAI(
-                base_url='https://api.polza.ai/api/v1',
-                api_key=os.environ.get('POLZA_AI_API_KEY')
-            )
-            
-            response = client.chat.completions.create(
-                model='openai/gpt-4o',
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    *messages
-                ],
-                temperature=0.7,
-                max_tokens=800
-            )
-            
-            assistant_message = response.choices[0].message.content
+            try:
+                client = openai.OpenAI(
+                    base_url='https://api.polza.ai/api/v1',
+                    api_key=os.environ.get('POLZA_AI_API_KEY')
+                )
+                
+                response = client.chat.completions.create(
+                    model='gpt-4o-mini',
+                    messages=[
+                        {'role': 'system', 'content': system_prompt},
+                        *messages
+                    ],
+                    temperature=0.7,
+                    max_tokens=800
+                )
+                
+                assistant_message = response.choices[0].message.content
+            except Exception as api_error:
+                return error_response(f'AI API error: {str(api_error)}', 500)
             
             # Сохраняем ответ
             cur.execute(f"""

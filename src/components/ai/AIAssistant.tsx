@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { fetchWithAuth } from '@/lib/api';
 import ChatMessages from './ChatMessages';
@@ -20,6 +20,8 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -58,10 +60,9 @@ export default function AIAssistant() {
     }
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
-
-    const messageText = input;
+  const sendMessage = async (text?: string) => {
+    const messageText = text || input;
+    if (!messageText.trim() || loading) return;
     const userMessage: Message = {
       role: 'user',
       content: messageText,
@@ -136,14 +137,19 @@ export default function AIAssistant() {
       )}
 
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col border-2 border-blue-500">
-          <CardHeader className="pb-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+        <Card className="fixed bottom-6 right-6 w-[420px] h-[680px] shadow-2xl z-50 flex flex-col border border-gray-200/80 bg-white">
+          <CardHeader className="pb-3 px-5 pt-4 border-b border-gray-100 bg-white">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Icon name="Bot" size={20} />
-                AI-Ассистент
-              </CardTitle>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <Icon name="Bot" size={16} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">AI Ассистент</h3>
+                  <p className="text-xs text-gray-500">Онлайн</p>
+                </div>
+              </div>
+              <div className="flex gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -152,24 +158,48 @@ export default function AIAssistant() {
                     setConversationId(null);
                     loadSettings();
                   }}
-                  className="h-8 w-8 p-0 hover:bg-white/20 text-white"
+                  className="h-8 w-8 p-0 hover:bg-gray-100 text-gray-600 rounded-lg transition-colors"
+                  title="Начать новый чат"
                 >
-                  <Icon name="RefreshCw" size={16} />
+                  <Icon name="RefreshCw" size={15} />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsOpen(false)}
-                  className="h-8 w-8 p-0 hover:bg-white/20 text-white"
+                  className="h-8 w-8 p-0 hover:bg-gray-100 text-gray-600 rounded-lg transition-colors"
                 >
-                  <Icon name="X" size={16} />
+                  <Icon name="X" size={15} />
                 </Button>
               </div>
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
-            <ChatMessages messages={messages} loading={loading} />
+          <CardContent className="flex-1 p-0 flex flex-col overflow-hidden relative">
+            <ChatMessages 
+              messages={messages} 
+              loading={loading}
+              scrollContainerRef={scrollContainerRef}
+              onScrollChange={setShowScrollButton}
+            />
+            
+            {showScrollButton && (
+              <Button
+                onClick={() => {
+                  if (scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTo({
+                      top: scrollContainerRef.current.scrollHeight,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
+                className="absolute bottom-24 right-4 h-10 w-10 rounded-full shadow-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 z-10 transition-all"
+                size="icon"
+              >
+                <Icon name="ArrowDown" size={18} />
+              </Button>
+            )}
+            
             <ChatInput
               input={input}
               loading={loading}

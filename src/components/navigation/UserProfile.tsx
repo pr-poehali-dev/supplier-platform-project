@@ -52,7 +52,7 @@ export default function UserProfile({ user }: UserProfileProps) {
     );
   }
 
-  const subscriptionPlan = user.subscription_plan || 'none';
+  const subscriptionPlan = (user.subscription_plan || 'none').toLowerCase();
   const color = getSubscriptionColor(subscriptionPlan);
   const planName = getSubscriptionName(subscriptionPlan);
 

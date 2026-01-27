@@ -404,6 +404,7 @@ def get_owner_context(cur, owner_id: int) -> dict:
     units = []
     services = []
     bookings = []
+    past_bookings = []
     stats = {
         'bookings_this_month': 0,
         'avg_price': 0,
@@ -585,10 +586,46 @@ def get_owner_context(cur, owner_id: int) -> dict:
     except:
         pass
     
+    try:
+        # ИСТОРИЯ БРОНИРОВАНИЙ (последние 60 дней)
+        cur.execute(f"""
+            SELECT 
+                b.check_in,
+                b.check_out,
+                u.name as unit_name,
+                b.guest_name,
+                b.status,
+                b.total_price
+            FROM bookings b
+            JOIN units u ON b.unit_id = u.id
+            WHERE u.owner_id = {owner_id}
+            AND b.check_in >= CURRENT_DATE - INTERVAL '60 days'
+            AND b.check_in < CURRENT_DATE
+            AND b.status IN ('confirmed', 'completed', 'cancelled')
+            ORDER BY b.check_in DESC
+            LIMIT 50
+        """)
+        
+        for row in cur.fetchall():
+            try:
+                past_bookings.append({
+                    'check_in': row[0].isoformat() if row[0] else 'н/д',
+                    'check_out': row[1].isoformat() if row[1] else 'н/д',
+                    'unit_name': row[2] or 'объект не найден',
+                    'guest_name': row[3] or 'не указано',
+                    'status': row[4] or 'unknown',
+                    'price': float(row[5]) if row[5] else 0
+                })
+            except:
+                continue
+    except:
+        pass
+    
     return {
         'units': units,
         'services': services,
         'bookings': bookings,
+        'past_bookings': past_bookings,
         'stats': stats,
         'bot_settings': bot_settings,
         'holidays': holidays,
@@ -648,6 +685,29 @@ def build_system_prompt(context: dict) -> str:
     except:
         pass
     
+    # История бронирований
+    past_bookings_text = 'История за последние 60 дней пуста'
+    try:
+        if context.get('past_bookings'):
+            past_lines = []
+            for b in context['past_bookings'][:20]:  # Ограничим вывод 20 записями
+                try:
+                    status_emoji = {
+                        'confirmed': '✓',
+                        'completed': '✓',
+                        'cancelled': '✗'
+                    }.get(b.get('status'), '?')
+                    
+                    line = f"{status_emoji} {b.get('check_in', 'н/д')} → {b.get('check_out', 'н/д')}: {b.get('unit_name', 'объект')}, {b.get('guest_name', 'не указано')}, {b.get('price', 0):.0f}₽"
+                    past_lines.append(line)
+                except:
+                    continue
+            
+            if past_lines:
+                past_bookings_text = '\n'.join(past_lines)
+    except:
+        pass
+    
     try:
         holidays_text = '\n'.join([
             f"- {h.get('date', 'н/д')}: {h.get('name', 'Праздник')}"
@@ -684,6 +744,9 @@ def build_system_prompt(context: dict) -> str:
 КАЛЕНДАРЬ БУДУЩИХ БРОНИРОВАНИЙ (от {today}):
 {bookings_text}
 
+ИСТОРИЯ БРОНИРОВАНИЙ (последние 60 дней до {today}):
+{past_bookings_text}
+
 СТАТИСТИКА ТЕКУЩЕГО МЕСЯЦА:
 - Подтверждённых броней: {bookings_count}
 - Загрузка: {occupancy}%
@@ -698,14 +761,19 @@ def build_system_prompt(context: dict) -> str:
 ═══════════════════════════════════
 
 1. ВРЕМЕННЫЕ РАМКИ:
-   - Ты видишь ТОЛЬКО будущие бронирования (от {today})
-   - Ты НЕ знаешь историю прошлых бронирований
-   - Статистика месяца считается по подтверждённым броням, но НЕ даёт информации о конкретных прошлых датах
+   - Ты видишь будущие бронирования (от {today})
+   - Ты видишь историю бронирований за последние 60 дней (до {today})
+   - История используется ТОЛЬКО для ответов владельцу
 
-2. ВОПРОСЫ О ПРОШЛЫХ ДАТАХ (дата < {today}):
-   - НЕ используй функции
-   - НЕ обращайся к календарю
-   - Ответ ВСЕГДА: "Эта дата уже прошла. Сейчас я показываю только текущую загрузку и будущие бронирования. История бронирований будет добавлена позже."
+2. ВОПРОСЫ О ПРОШЛЫХ ДАТАХ:
+   
+   ЕСЛИ дата входит в последние 60 дней:
+   → Ищи в разделе "ИСТОРИЯ БРОНИРОВАНИЙ"
+   → Если найдено — отвечай конкретно: «{today}: {unit_name}, гость {guest_name}, статус {status}»
+   → Если не найдено — «В эту дату бронирований не было»
+   
+   ЕСЛИ дата старше 60 дней:
+   → «Эта бронь вне доступной истории. Можно посмотреть в разделе "Заявки".»
 
 3. ВОПРОСЫ О БУДУЩИХ ДАТАХ (дата >= {today}):
    - Используй ТОЛЬКО данные из раздела "КАЛЕНДАРЬ БУДУЩИХ БРОНИРОВАНИЙ"
@@ -718,18 +786,20 @@ def build_system_prompt(context: dict) -> str:
    ❌ "данные могут быть неточными"
    ❌ "проверьте в системе"
    
-   ✅ Если данных нет — говори прямо: "Бронирований нет", "Объекты не добавлены"
+   ✅ Если данных нет — говори прямо: "Бронирований не было", "Объекты не добавлены"
 
 5. ДОСТОВЕРНОСТЬ:
    - Ты ВСЕГДА видишь актуальный календарь будущих бронирований
+   - Ты ВСЕГДА видишь историю за последние 60 дней
    - НЕ выдумывай цифры, даты, имена гостей
-   - НЕ делай предположений о прошлом на основе статистики
-   - Называй КОНКРЕТНЫЕ даты, суммы, имена из календаря
+   - НЕ используй процент загрузки для ответов о конкретных датах
+   - Называй КОНКРЕТНЫЕ даты, суммы, имена из календаря или истории
 
 6. СТАТИСТИКА:
    - Процент загрузки — это агрегат, НЕ список конкретных дат
    - НЕ упоминай "загрузка включает прошлые брони"
    - НЕ связывай процент с конкретными прошедшими датами
+   - Для ответов о конкретных датах используй ТОЛЬКО историю бронирований
 
 ═══════════════════════════════════
 ТВОИ ЗАДАЧИ

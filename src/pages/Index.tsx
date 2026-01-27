@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HeroSection from '@/components/sections/HeroSection';
-import BlogSection from '@/components/sections/BlogSection';
+
 
 import AboutSection from '@/components/sections/AboutSection';
 import ContactSection from '@/components/sections/ContactSection';
@@ -65,10 +65,6 @@ const Index = () => {
 
       <div id="home">
         <HeroSection />
-      </div>
-
-      <div id="blog">
-        <BlogSection />
       </div>
 
       <div id="about">

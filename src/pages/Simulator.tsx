@@ -1,23 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { useNavigate } from 'react-router-dom';
-import { fetchWithAuth } from '@/lib/api';
 import SimulatorInputs from '@/components/simulator/SimulatorInputs';
 import SimulatorResults from '@/components/simulator/SimulatorResults';
 import ExpertComments from '@/components/simulator/ExpertComments';
 import UserProfile from '@/components/navigation/UserProfile';
-
-interface BlogPost {
-  id: number;
-  title: string;
-  category: string;
-  published_at: string;
-  excerpt: string;
-  image_url: string;
-}
 
 const Simulator = () => {
   const navigate = useNavigate();
@@ -40,36 +29,7 @@ const Simulator = () => {
   const [staffExpenses, setStaffExpenses] = useState(400000);
   const [marketingExpenses, setMarketingExpenses] = useState(0);
   const [otherExpenses, setOtherExpenses] = useState(0);
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
-  const [loadingBlog, setLoadingBlog] = useState(true);
 
-  const categoryMap: Record<string, string> = {
-    'новость': 'Новости',
-    'статья': 'Статьи',
-    'блог': 'Блог',
-    'тренды': 'Тренды туризма',
-    'интервью': 'Интервью'
-  };
-
-  useEffect(() => {
-    fetchBlogPosts();
-  }, []);
-
-  const fetchBlogPosts = async () => {
-    try {
-      setLoadingBlog(true);
-      const response = await fetchWithAuth('https://functions.poehali.dev/88f9e6df-cb97-4ca2-a475-012b4633202c?limit=3&channel_type=free');
-      const data = await response.json();
-      
-      if (data.posts) {
-        setBlogPosts(data.posts);
-      }
-    } catch (error) {
-      // Error loading posts
-    } finally {
-      setLoadingBlog(false);
-    }
-  };
 
   const seasonCoeff = { low: 0.6, medium: 1.0, high: 1.3 };
 
@@ -232,60 +192,6 @@ const Simulator = () => {
           </div>
 
           <ExpertComments comments={expertComments} />
-
-          <div className="mt-12">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold font-heading">Полезные материалы</h2>
-              <Button variant="outline" onClick={() => navigate('/club')}>
-                Все материалы
-              </Button>
-            </div>
-
-            {loadingBlog ? (
-              <div className="grid md:grid-cols-3 gap-6">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="border-none shadow-lg animate-pulse">
-                    <div className="h-48 bg-gray-200 rounded-t-lg"></div>
-                    <CardContent className="pt-4">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-3 gap-6">
-                {blogPosts.map((post) => (
-                  <Card key={post.id} className="border-none shadow-lg hover:shadow-xl transition-shadow cursor-pointer group">
-                    <div className="relative overflow-hidden rounded-t-lg h-48">
-                      <img
-                        src={post.image_url}
-                        alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <Badge className="absolute top-3 left-3 bg-white/90 text-gray-800">
-                        {categoryMap[post.category] || post.category}
-                      </Badge>
-                    </div>
-                    <CardHeader>
-                      <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                        {post.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-600 line-clamp-3">{post.excerpt}</p>
-                      <div className="mt-4 flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                          {new Date(post.published_at).toLocaleDateString('ru-RU')}
-                        </span>
-                        <Icon name="ArrowRight" size={16} className="text-primary group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

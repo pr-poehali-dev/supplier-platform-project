@@ -9,7 +9,7 @@ import AIAssistant from "./components/ai/AIAssistant";
 import Index from "./pages/Index";
 import Simulator from "./pages/Simulator";
 import Club from "./pages/Club";
-import BlogPost from "./pages/BlogPost";
+
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Admin from "./pages/Admin";
@@ -45,7 +45,7 @@ const AppContent = () => {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/simulator" element={<Simulator />} />
         <Route path="/club" element={<Club />} />
-        <Route path="/blog/:id" element={<BlogPost />} />
+
         <Route path="/admin" element={<Admin />} />
         <Route path="/diagnostics" element={<Diagnostics />} />
         <Route path="/diagnostics/results" element={<DiagnosticsResults />} />

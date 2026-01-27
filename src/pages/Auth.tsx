@@ -35,7 +35,7 @@ const Auth = () => {
   };
 
   const handleSuccess = () => {
-    navigate('/profile');
+    navigate('/');
   };
 
   return (

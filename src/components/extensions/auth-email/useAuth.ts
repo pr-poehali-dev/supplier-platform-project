@@ -126,6 +126,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
     setAccessToken(null);
     setUser(null);
     clearStoredRefreshToken();
+    localStorage.removeItem('user');
   }, []);
 
   const scheduleRefresh = useCallback(
@@ -169,6 +170,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
       const data = await response.json();
       setAccessToken(data.access_token);
       setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
       scheduleRefresh(data.expires_in, refreshTokenFn);
       return true;
     } catch {
@@ -224,6 +226,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
         setAccessToken(data.access_token);
         setUser(data.user);
         setStoredRefreshToken(data.refresh_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
         scheduleRefresh(data.expires_in, refreshTokenFn);
         return true;
       } catch (err) {

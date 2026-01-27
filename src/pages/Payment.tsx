@@ -203,7 +203,7 @@ const Payment = () => {
                     <div className="text-sm text-blue-900">
                       <p className="font-semibold mb-1">Безопасная оплата</p>
                       <p className="text-xs">
-                        Оплата проходит через Robokassa — сертифицированный платёжный сервис
+                        Оплата проходит через защищённый платёжный шлюз
                       </p>
                     </div>
                   </div>

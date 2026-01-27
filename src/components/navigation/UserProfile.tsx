@@ -17,13 +17,13 @@ interface UserProfileProps {
 const getSubscriptionColor = (plan: string) => {
   switch (plan) {
     case 'start':
-      return 'bg-green-500';
+      return '#10b981';
     case 'pro':
-      return 'bg-blue-500';
+      return '#3b82f6';
     case 'business':
-      return 'bg-purple-500';
+      return '#a855f7';
     default:
-      return 'bg-gray-400';
+      return '#9ca3af';
   }
 };
 
@@ -53,7 +53,7 @@ export default function UserProfile({ user }: UserProfileProps) {
   }
 
   const subscriptionPlan = user.subscription_plan || 'none';
-  const colorClass = getSubscriptionColor(subscriptionPlan);
+  const color = getSubscriptionColor(subscriptionPlan);
   const planName = getSubscriptionName(subscriptionPlan);
 
   return (
@@ -63,7 +63,7 @@ export default function UserProfile({ user }: UserProfileProps) {
           variant="ghost"
           className="gap-2 bg-white hover:bg-gray-50 shadow-md"
         >
-          <div className={`w-3 h-3 rounded-full ${colorClass}`} />
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
           <Icon name="User" size={16} className="text-indigo-600" />
           <span className="text-sm font-medium text-gray-700">
             {user.full_name || user.email}
@@ -76,7 +76,7 @@ export default function UserProfile({ user }: UserProfileProps) {
           <div>
             <div className="text-sm font-medium">{user.full_name || user.email}</div>
             <div className="flex items-center gap-2 mt-1">
-              <div className={`w-2 h-2 rounded-full ${colorClass}`} />
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
               <span className="text-xs text-gray-500">{planName}</span>
             </div>
           </div>

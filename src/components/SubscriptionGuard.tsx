@@ -17,6 +17,7 @@ const SubscriptionGuard = ({ feature, children, featureName = 'этой функ
   const isEditorMode = window.location.hostname.includes('poehali.dev') || window.location.hostname === 'localhost';
   const hasAccess = canAccessFeature(feature);
   
+  // В режиме разработки и preview всегда даем доступ
   if (hasAccess || isDevelopment || isEditorMode) {
     return <>{children}</>;
   }

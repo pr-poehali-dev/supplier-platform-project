@@ -403,6 +403,7 @@ def get_owner_context(cur, owner_id: int) -> dict:
     cur.execute(f"""
         SELECT id, name, type, base_price, max_guests, dynamic_pricing_enabled
         FROM units
+        WHERE owner_id = {owner_id}
         LIMIT 20
     """)
     
@@ -432,18 +433,78 @@ def get_owner_context(cur, owner_id: int) -> dict:
             'category': row[2]
         })
     
-    # Статистика бронирований за месяц
+    # КРИТИЧНО: Актуальный календарь бронирований (±30 дней)
+    cur.execute(f"""
+        SELECT 
+            b.check_in,
+            b.check_out,
+            b.status,
+            b.total_price,
+            b.guest_name,
+            b.guest_phone,
+            u.name as unit_name,
+            b.payment_deadline
+        FROM bookings b
+        JOIN units u ON b.unit_id = u.id
+        WHERE u.owner_id = {owner_id}
+        AND b.check_in >= CURRENT_DATE - INTERVAL '7 days'
+        AND b.check_in <= CURRENT_DATE + INTERVAL '30 days'
+        AND b.status IN ('confirmed', 'pending')
+        ORDER BY b.check_in
+    """)
+    
+    bookings = []
+    for row in cur.fetchall():
+        booking = {
+            'check_in': row[0].isoformat(),
+            'check_out': row[1].isoformat(),
+            'status': row[2],
+            'price': float(row[3]),
+            'guest_name': row[4],
+            'guest_phone': row[5],
+            'unit_name': row[6]
+        }
+        
+        # Для pending добавляем дедлайн оплаты
+        if row[2] == 'pending' and row[7]:
+            booking['payment_deadline'] = row[7].isoformat()
+        
+        bookings.append(booking)
+    
+    # Статистика текущего месяца
     cur.execute(f"""
         SELECT COUNT(*), AVG(total_price), SUM(total_price)
-        FROM bookings
-        WHERE check_in >= CURRENT_DATE - INTERVAL '30 days'
+        FROM bookings b
+        JOIN units u ON b.unit_id = u.id
+        WHERE u.owner_id = {owner_id}
+        AND b.check_in >= DATE_TRUNC('month', CURRENT_DATE)
+        AND b.check_in < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+        AND b.status = 'confirmed'
     """)
     
     stats_row = cur.fetchone()
+    confirmed_count = stats_row[0] or 0
+    
+    # Процент загрузки текущего месяца (приблизительно)
+    cur.execute(f"""
+        SELECT COUNT(DISTINCT b.check_in)
+        FROM bookings b
+        JOIN units u ON b.unit_id = u.id
+        WHERE u.owner_id = {owner_id}
+        AND b.check_in >= DATE_TRUNC('month', CURRENT_DATE)
+        AND b.check_in < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+        AND b.status = 'confirmed'
+    """)
+    
+    occupied_days = cur.fetchone()[0] or 0
+    days_in_month = (datetime.now().replace(day=28) + timedelta(days=4)).day
+    occupancy_rate = (occupied_days / days_in_month * 100) if days_in_month > 0 else 0
+    
     stats = {
-        'bookings_last_month': stats_row[0] or 0,
+        'bookings_this_month': confirmed_count,
         'avg_price': float(stats_row[1]) if stats_row[1] else 0,
-        'revenue_last_month': float(stats_row[2]) if stats_row[2] else 0
+        'revenue_this_month': float(stats_row[2]) if stats_row[2] else 0,
+        'occupancy_rate': round(occupancy_rate, 1)
     }
     
     # Настройки бота
@@ -478,6 +539,7 @@ def get_owner_context(cur, owner_id: int) -> dict:
     return {
         'units': units,
         'services': services,
+        'bookings': bookings,
         'stats': stats,
         'bot_settings': bot_settings,
         'holidays': holidays,
@@ -491,17 +553,36 @@ def build_system_prompt(context: dict) -> str:
     units_text = '\n'.join([
         f"- {u['name']} ({u['type']}): {u['price']}₽/ночь, до {u['max_guests']} гостей"
         for u in context['units']
-    ])
+    ]) if context['units'] else 'Объекты пока не добавлены'
     
     services_text = '\n'.join([
         f"- {s['name']} ({s['category']}): {s['price']}₽"
         for s in context['services']
-    ]) if context['services'] else 'Пока не добавлено'
+    ]) if context['services'] else 'Допродажи пока не добавлены'
+    
+    # КРИТИЧНО: Календарь бронирований
+    bookings_text = ''
+    if context['bookings']:
+        confirmed = [b for b in context['bookings'] if b['status'] == 'confirmed']
+        pending = [b for b in context['bookings'] if b['status'] == 'pending']
+        
+        if confirmed:
+            bookings_text += 'ПОДТВЕРЖДЁННЫЕ БРОНИРОВАНИЯ:\n'
+            for b in confirmed:
+                bookings_text += f"- {b['check_in']} → {b['check_out']}: {b['unit_name']}, {b['guest_name']}, {b['price']:.0f}₽\n"
+        
+        if pending:
+            bookings_text += '\nОЖИДАЮТ ОПЛАТЫ:\n'
+            for b in pending:
+                deadline = b.get('payment_deadline', 'не указан')
+                bookings_text += f"- {b['check_in']} → {b['check_out']}: {b['unit_name']}, {b['guest_name']}, до {deadline}\n"
+    else:
+        bookings_text = 'Ближайших бронирований нет'
     
     holidays_text = '\n'.join([
         f"- {h['date']}: {h['name']}"
         for h in context['holidays']
-    ])
+    ]) if context['holidays'] else 'Праздников в ближайшее время нет'
     
     bot_name = context['bot_settings']['name']
     style = context['bot_settings']['style']
@@ -509,7 +590,6 @@ def build_system_prompt(context: dict) -> str:
     return f"""Ты — {bot_name}, личный AI-ассистент владельца турбазы.
 
 Стиль общения: {style}
-
 Сегодня: {context['today']}
 
 ТВОИ ОБЪЕКТЫ:
@@ -518,29 +598,32 @@ def build_system_prompt(context: dict) -> str:
 ДОПРОДАЖИ:
 {services_text}
 
-СТАТИСТИКА ЗА МЕСЯЦ:
-- Бронирований: {context['stats']['bookings_last_month']}
+АКТУАЛЬНЫЙ КАЛЕНДАРЬ (±30 дней):
+{bookings_text}
+
+СТАТИСТИКА ТЕКУЩЕГО МЕСЯЦА:
+- Подтверждённых броней: {context['stats']['bookings_this_month']}
+- Загрузка: {context['stats']['occupancy_rate']}%
 - Средний чек: {context['stats']['avg_price']:.0f}₽
-- Выручка: {context['stats']['revenue_last_month']:.0f}₽
+- Выручка: {context['stats']['revenue_this_month']:.0f}₽
 
 БЛИЖАЙШИЕ ПРАЗДНИКИ:
 {holidays_text}
 
 ТВОИ ЗАДАЧИ:
-1. Анализируй данные и давай советы по оптимизации бизнеса
-2. Отвечай на вопросы о загрузке, ценах, статистике
-3. Предлагай стратегии по увеличению загрузки в низкий сезон
-4. Напоминай о праздниках и советуй запустить акции
-5. Помогай с настройкой допродаж и ценообразования
-6. Анализируй конкурентов, если владелец спросит
-7. Поддерживай владельца и мотивируй
+1. Отвечай на вопросы о календаре, загрузке, статистике — ТОЛЬКО по реальным данным выше
+2. Анализируй бронирования и предлагай оптимизацию
+3. Напоминай о праздниках и советуй акции
+4. Помогай с ценообразованием и допродажами
+5. Предлагай стратегии увеличения загрузки
 
-ВАЖНО:
-- Используй только реальные данные из контекста
-- Будь конкретным в рекомендациях
-- Если не знаешь точно — скажи об этом
-- Можешь предлагать автоматизацию через бота
-- Следи за праздниками и предлагай акции заранее"""
+КРИТИЧЕСКИ ВАЖНО:
+- Ты ВСЕГДА видишь актуальные данные системы (календарь, бронирования, суммы)
+- Используй ТОЛЬКО данные из контекста выше — НИКОГДА не выдумывай цифры, даты, бронирования
+- Если данных нет — так и скажи прямо («Ближайших броней пока нет», «Объекты не добавлены»)
+- НИКОГДА не отвечай «у меня нет доступа к календарю» — календарь выше
+- Если вопрос вне переданных данных — предложи создать заявку или открыть раздел в системе
+- Будь конкретным: называй даты, суммы, имена из календаря"""
 
 
 def cors_response():

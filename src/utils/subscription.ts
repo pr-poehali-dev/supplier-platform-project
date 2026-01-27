@@ -52,7 +52,7 @@ export function getUserSubscription(): SubscriptionPlan {
   
   try {
     const user = JSON.parse(userStr);
-    const plan = user.subscription_plan || 'none';
+    const plan = (user.subscription_plan || 'none').toLowerCase() as SubscriptionPlan;
     
     // Проверка истечения подписки
     if (plan !== 'none' && user.subscription_expires_at) {

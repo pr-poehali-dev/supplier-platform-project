@@ -64,6 +64,12 @@ export default function MainNav({ activeSection, user, onScrollToSection, onNavi
             Roadmap
           </button>
           <button
+            onClick={() => onNavigate('/pricing')}
+            className="font-medium text-gray-600 hover:text-primary transition-colors"
+          >
+            Тарифы
+          </button>
+          <button
             onClick={() => onScrollToSection('contact')}
             className={`font-medium transition-colors hover:text-primary ${
               activeSection === 'contact' ? 'text-primary' : 'text-gray-600'

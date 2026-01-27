@@ -52,11 +52,7 @@ export default function PricingCard({
           <h3 className="text-2xl font-bold mb-2">{name}</h3>
           <p className="text-gray-600 mb-4">{description}</p>
           <div className="mb-4">
-            <span className="text-4xl font-bold bg-gradient-to-r bg-clip-text text-transparent" style={{
-              backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))`,
-              '--tw-gradient-from': color.split(' ')[1],
-              '--tw-gradient-to': color.split(' ')[3],
-            } as any}>
+            <span className={`text-4xl font-bold bg-gradient-to-r ${color} bg-clip-text text-transparent`}>
               {price.toLocaleString('ru-RU')} ₽
             </span>
             <span className="text-gray-600 ml-2">/мес</span>

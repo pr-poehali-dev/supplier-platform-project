@@ -88,8 +88,8 @@ def handle(event: dict, origin: str = '*') -> dict:
     now = datetime.utcnow().isoformat()
 
     user_id = execute_returning(f"""
-        INSERT INTO {S}users (email, password_hash, name, email_verified, created_at, updated_at)
-        VALUES ({escape(email)}, {escape(password_hash)}, {escape(name or None)}, {escape(not email_enabled)}, {escape(now)}, {escape(now)})
+        INSERT INTO {S}users (email, password_hash, full_name, email_verified, provider, provider_id, created_at, updated_at)
+        VALUES ({escape(email)}, {escape(password_hash)}, {escape(name or None)}, {escape(not email_enabled)}, 'email', {escape(email)}, {escape(now)}, {escape(now)})
         RETURNING id
     """)
 

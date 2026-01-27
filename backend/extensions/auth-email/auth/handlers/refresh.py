@@ -32,7 +32,7 @@ def handle(event: dict, origin: str = '*') -> dict:
     S = get_schema()
 
     result = query_one(f"""
-        SELECT rt.id, u.email, u.name
+        SELECT rt.id, u.email, u.full_name
         FROM {S}refresh_tokens rt
         JOIN {S}users u ON u.id = rt.user_id
         WHERE rt.token_hash = {escape(token_hash)}

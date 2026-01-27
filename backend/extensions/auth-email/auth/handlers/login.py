@@ -45,7 +45,7 @@ def handle(event: dict, origin: str = '*') -> dict:
                 return error(429, f'Слишком много попыток. Повторите через {remaining // 60 + 1} мин.', origin)
 
     user = query_one(f"""
-        SELECT id, email, name, password_hash, email_verified
+        SELECT id, email, full_name, password_hash, email_verified
         FROM {S}users WHERE email = {escape(email)}
     """)
 

@@ -494,6 +494,58 @@ def handler(event: dict, context) -> dict:
                 'isBase64Encoded': False
             }
         
+        # GET /get_subscription_payment_links - получить ссылки на оплату подписок
+        if method == 'GET' and action == 'get_subscription_payment_links':
+            cur.execute(f"""
+                SELECT id, plan_type, payment_url, description
+                FROM {schema}.subscription_payment_links
+                ORDER BY 
+                    CASE plan_type
+                        WHEN 'start' THEN 1
+                        WHEN 'pro' THEN 2
+                        WHEN 'business' THEN 3
+                        WHEN 'enterprise' THEN 4
+                        ELSE 5
+                    END
+            """)
+            
+            links = []
+            for row in cur.fetchall():
+                links.append({
+                    'id': row[0],
+                    'plan_type': row[1],
+                    'payment_url': row[2],
+                    'description': row[3]
+                })
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'links': links}),
+                'isBase64Encoded': False
+            }
+        
+        # POST /update_subscription_payment_link - обновить ссылку на оплату подписки
+        if method == 'POST' and action == 'update_subscription_payment_link':
+            body = json.loads(event.get('body', '{}'))
+            plan_type = body.get('plan_type', '')
+            payment_url = body.get('payment_url', '')
+            
+            cur.execute(f"""
+                UPDATE {schema}.subscription_payment_links 
+                SET payment_url = '{payment_url.replace("'", "''")}',
+                    updated_at = NOW()
+                WHERE plan_type = '{plan_type}'
+            """)
+            conn.commit()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'message': 'Payment link updated'}),
+                'isBase64Encoded': False
+            }
+        
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},

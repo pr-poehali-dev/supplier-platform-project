@@ -21,10 +21,12 @@ const Payment = () => {
   const [name, setName] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState('');
 
   useEffect(() => {
     if (!plan) {
       navigate('/pricing');
+      return;
     }
 
     const userStr = localStorage.getItem('user');
@@ -33,7 +35,23 @@ const Payment = () => {
       setEmail(user.email || '');
       setName(user.full_name || '');
     }
+
+    // Загружаем платежную ссылку для этого тарифа
+    fetchPaymentUrl();
   }, [plan, navigate]);
+
+  const fetchPaymentUrl = async () => {
+    try {
+      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_subscription_payment_links');
+      const data = await response.json();
+      const link = data.links?.find((l: any) => l.plan_type === plan.id);
+      if (link?.payment_url) {
+        setPaymentUrl(link.payment_url);
+      }
+    } catch (error) {
+      console.error('Failed to load payment URL:', error);
+    }
+  };
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,10 +65,26 @@ const Payment = () => {
       return;
     }
 
+    if (!paymentUrl) {
+      toast({
+        title: 'Ошибка',
+        description: 'Платежная ссылка не настроена. Свяжитесь с поддержкой.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Если это Enterprise - открываем Telegram
+    if (plan.id === 'enterprise') {
+      window.open(paymentUrl, '_blank');
+      return;
+    }
+
     setIsProcessing(true);
 
+    // Сохраняем информацию о намерении оплаты
     try {
-      const response = await fetchWithAuth('https://functions.poehali.dev/6c81ac6e-86fa-4b52-b7fa-f49593ba95f4', {
+      await fetchWithAuth('https://functions.poehali.dev/6c81ac6e-86fa-4b52-b7fa-f49593ba95f4', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,27 +97,12 @@ const Payment = () => {
           name,
         }),
       });
-
-      const data = await response.json();
-
-      if (response.ok && data.payment_url) {
-        window.location.href = data.payment_url;
-      } else {
-        toast({
-          title: 'Ошибка оплаты',
-          description: data.error || 'Попробуйте позже',
-          variant: 'destructive',
-        });
-      }
     } catch (error) {
-      toast({
-        title: 'Ошибка соединения',
-        description: 'Проверьте интернет и попробуйте снова',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsProcessing(false);
+      console.error('Failed to log payment intent:', error);
     }
+
+    // Перенаправляем на платежную ссылку
+    window.location.href = paymentUrl;
   };
 
   if (!plan) return null;

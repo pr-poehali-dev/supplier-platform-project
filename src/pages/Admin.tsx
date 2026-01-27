@@ -8,6 +8,7 @@ import { fetchWithAuth } from '@/lib/api';
 import PaymentLinksManager from '@/components/admin/PaymentLinksManager';
 import PendingBookingsManager from '@/components/admin/PendingBookingsManager';
 import SubscriptionManager from '@/components/admin/SubscriptionManager';
+import SubscriptionPaymentLinks from '@/components/admin/SubscriptionPaymentLinks';
 import CalendarSyncManager from '@/components/admin/CalendarSyncManager';
 import UsersTable from '@/components/admin/UsersTable';
 import EmailSender from '@/components/admin/EmailSender';
@@ -186,7 +187,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8 gap-1">
             <TabsTrigger value="users">
               <Icon name="Users" size={16} className="mr-2" />
               Пользователи
@@ -210,6 +211,10 @@ const Admin = () => {
             <TabsTrigger value="subscriptions">
               <Icon name="Crown" size={16} className="mr-2" />
               Подписки
+            </TabsTrigger>
+            <TabsTrigger value="subscription-links">
+              <Icon name="Link" size={16} className="mr-2" />
+              Тарифы
             </TabsTrigger>
             <TabsTrigger value="sync">
               <Icon name="RefreshCw" size={16} className="mr-2" />
@@ -254,6 +259,10 @@ const Admin = () => {
 
           <TabsContent value="subscriptions">
             <SubscriptionManager />
+          </TabsContent>
+
+          <TabsContent value="subscription-links">
+            <SubscriptionPaymentLinks />
           </TabsContent>
 
           <TabsContent value="sync">

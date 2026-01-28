@@ -1,0 +1,54 @@
+{
+  "tests": [
+    {
+      "name": "Create subscription - missing plan_id",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "user_email": "test@example.com",
+        "return_url": "https://example.com/success"
+      },
+      "headers": {
+        "X-Authorization": "Bearer test_token"
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "plan_id is required"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create subscription - invalid email",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "plan_id": 1,
+        "user_email": "invalid-email",
+        "return_url": "https://example.com/success"
+      },
+      "headers": {
+        "X-Authorization": "Bearer test_token"
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "Valid email is required"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create subscription - unauthorized",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "plan_id": 1,
+        "user_email": "test@example.com",
+        "return_url": "https://example.com/success"
+      },
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "Unauthorized"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

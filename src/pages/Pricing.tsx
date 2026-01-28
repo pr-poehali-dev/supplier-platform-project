@@ -32,17 +32,18 @@ const Pricing = () => {
 
   const plans = [
     {
-      id: 'start' as const,
+      id: 1,
+      planId: 'start' as const,
       name: 'START',
-      price: 1990,
+      price: 2450,
       emoji: '🟢',
       description: 'Для одиночных объектов',
-      limits: 'до 2 объектов / номеров',
+      limits: 'до 1 объекта размещения',
       features: [
         'Календарь бронирования',
-        'До 2 номеров',
+        '1 объект размещения',
+        'До 50 броней в месяц',
         'Telegram-бот для брони',
-        'Max-бот для брони',
         'Базовая аналитика',
         'Email поддержка',
       ],
@@ -50,31 +51,39 @@ const Pricing = () => {
       color: 'from-green-500 to-emerald-600',
     },
     {
-      id: 'pro' as const,
+      id: 2,
+      planId: 'pro' as const,
       name: 'PRO',
-      price: 3990,
+      price: 4490,
       emoji: '🔵',
       description: 'Основной тариф для большинства',
-      limits: 'До 10 объектов / номеров',
+      limits: 'До 5 объектов размещения',
       features: [
         'Всё из тарифа START',
-        'До 10 номеров',
+        'До 5 объектов',
+        'До 200 броней в месяц',
+        'Приоритетная поддержка',
+        'Расширенная аналитика',
         'Доступ к закрытому каналу',
       ],
       popular: true,
       color: 'from-blue-500 to-cyan-600',
     },
     {
-      id: 'business' as const,
+      id: 3,
+      planId: 'business' as const,
       name: 'BUSINESS',
-      price: 6990,
+      price: 7490,
       emoji: '🟣',
       description: 'Для баз отдыха и глэмпингов',
-      limits: 'До 30 объектов / номеров',
+      limits: 'Без ограничений на объекты',
       features: [
         'Всё из тарифа PRO',
-        'До 30 номеров',
-        'Приоритетная поддержка',
+        'Неограниченное кол-во объектов',
+        'Неограниченное кол-во броней',
+        'Приоритетная поддержка 24/7',
+        'API доступ',
+        'Персональный менеджер',
       ],
       popular: false,
       color: 'from-purple-500 to-pink-600',
@@ -82,13 +91,47 @@ const Pricing = () => {
   ];
 
   const handleSelectPlan = (planId: 'start' | 'pro' | 'business') => {
+    if (!user) {
+      alert('Пожалуйста, войдите в аккаунт для подписки на тариф');
+      navigate('/auth');
+      return;
+    }
     setSelectedPlan(planId);
   };
 
-  const handlePayment = () => {
-    if (!selectedPlan) return;
-    const plan = plans.find(p => p.id === selectedPlan);
-    navigate('/payment', { state: { plan } });
+  const handlePayment = async () => {
+    if (!selectedPlan || !user) return;
+    
+    const plan = plans.find(p => p.planId === selectedPlan);
+    if (!plan) return;
+
+    try {
+      // TODO: Replace with actual backend URL after deployment
+      const response = await fetch('REPLACE_WITH_SUBSCRIPTION_CREATE_URL', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: JSON.stringify({
+          plan_id: plan.id,
+          user_email: user.email,
+          return_url: `${window.location.origin}/profile?subscription=success`,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.confirmation_url) {
+        // Redirect to YooKassa payment page
+        window.location.href = data.confirmation_url;
+      } else {
+        alert('Ошибка создания подписки: ' + (data.error || 'Неизвестная ошибка'));
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Ошибка при создании подписки. Попробуйте позже.');
+    }
   };
 
   const handleRenew = () => {

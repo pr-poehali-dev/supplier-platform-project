@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 
 interface PricingCardProps {
-  id: string;
+  id?: number | string;
+  planId?: string;
   name: string;
   price: number;
   emoji: string;

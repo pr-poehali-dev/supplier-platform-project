@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Cron execution - no active subscriptions",
+      "method": "POST",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "processed": 0
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

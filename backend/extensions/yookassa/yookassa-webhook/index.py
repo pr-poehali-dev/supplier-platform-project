@@ -94,6 +94,7 @@ def handler(event, context):
     event_type = data.get('event', '')
     payment_object = data.get('object', {})
     payment_id = payment_object.get('id', '')
+    payment_method_id = payment_object.get('payment_method', {}).get('id', '')
     metadata = payment_object.get('metadata', {})
 
     if not payment_id:
@@ -117,6 +118,7 @@ def handler(event, context):
             }
         # Use verified status instead of webhook data
         payment_status = verified_payment.get('status', '')
+        payment_method_id = verified_payment.get('payment_method', {}).get('id', '')
     else:
         # Fallback to webhook data (less secure, only if credentials missing)
         payment_status = payment_object.get('status', '')
@@ -154,7 +156,80 @@ def handler(event, context):
 
         order_id, current_status = row
 
-        # Update based on verified payment status
+        # Handle subscription payments
+        subscription_id = metadata.get('subscription_id')
+        if subscription_id:
+            # This is a subscription payment
+            if payment_status == 'succeeded':
+                # Save payment method if available
+                if payment_method_id:
+                    user_id = metadata.get('user_id', 0)
+                    card_info = payment_object.get('payment_method', {})
+                    card_type = card_info.get('card', {}).get('card_type', '')
+                    card_last4 = card_info.get('card', {}).get('last4', '')
+                    card_exp_month = card_info.get('card', {}).get('expiry_month', '')
+                    card_exp_year = card_info.get('card', {}).get('expiry_year', '')
+
+                    # Check if payment method exists
+                    cur.execute(f"""
+                        SELECT id FROM {S}payment_methods
+                        WHERE yookassa_payment_method_id = %s
+                    """, (payment_method_id,))
+                    pm_row = cur.fetchone()
+
+                    if not pm_row:
+                        # Insert new payment method
+                        cur.execute(f"""
+                            INSERT INTO {S}payment_methods
+                            (user_id, yookassa_payment_method_id, card_type, card_last4, 
+                             card_expiry_month, card_expiry_year, is_active, created_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, true, %s)
+                            RETURNING id
+                        """, (user_id, payment_method_id, card_type, card_last4,
+                              card_exp_month, card_exp_year, now))
+                        pm_id = cur.fetchone()[0]
+                    else:
+                        pm_id = pm_row[0]
+
+                    # Update subscription with payment_method_id and activate
+                    cur.execute(f"""
+                        UPDATE {S}subscriptions
+                        SET payment_method_id = %s, status = 'active', 
+                            activated_at = %s
+                        WHERE id = %s
+                    """, (pm_id, now, subscription_id))
+
+                # Update payment record
+                cur.execute(f"""
+                    UPDATE {S}subscription_payments
+                    SET status = 'succeeded', paid_at = %s, updated_at = %s
+                    WHERE yookassa_payment_id = %s
+                """, (now, now, payment_id))
+
+                conn.commit()
+                conn.close()
+                return {
+                    'statusCode': 200,
+                    'headers': HEADERS,
+                    'body': json.dumps({'status': 'ok', 'type': 'subscription'})
+                }
+
+            elif payment_status == 'canceled':
+                # Update payment record as failed
+                cur.execute(f"""
+                    UPDATE {S}subscription_payments
+                    SET status = 'canceled', updated_at = %s
+                    WHERE yookassa_payment_id = %s
+                """, (now, payment_id))
+                conn.commit()
+                conn.close()
+                return {
+                    'statusCode': 200,
+                    'headers': HEADERS,
+                    'body': json.dumps({'status': 'ok', 'type': 'subscription'})
+                }
+
+        # Update based on verified payment status (orders)
         if payment_status == 'succeeded':
             if current_status != 'paid':
                 cur.execute(f"""

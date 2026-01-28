@@ -32,6 +32,34 @@ const AuthCallback = () => {
 
         if (data.success && data.user) {
           localStorage.setItem('user', JSON.stringify(data.user));
+          
+          if (data.access_token) {
+            localStorage.setItem('access_token', data.access_token);
+          }
+          if (data.refresh_token) {
+            localStorage.setItem('auth_refresh_token', data.refresh_token);
+          }
+
+          const accessToken = data.access_token || localStorage.getItem('access_token');
+          if (accessToken) {
+            try {
+              const subResponse = await fetch('https://functions.poehali.dev/578f8247-37f6-47e4-a3ce-744df886fc3f', {
+                method: 'GET',
+                headers: {
+                  'X-Authorization': `Bearer ${accessToken}`,
+                },
+              });
+              if (subResponse.ok) {
+                const subData = await subResponse.json();
+                if (subData.subscription) {
+                  localStorage.setItem('subscription_cache', JSON.stringify(subData.subscription));
+                }
+              }
+            } catch (err) {
+              console.warn('Failed to load subscription:', err);
+            }
+          }
+
           setStatus('success');
           
           if (!data.user.telegram_invited) {

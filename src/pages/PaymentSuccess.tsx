@@ -22,16 +22,36 @@ const PaymentSuccess = () => {
       });
     }
     
-    setTimeout(() => {
-      setIsLoading(false);
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        localStorage.setItem('user', JSON.stringify({
-          ...user,
-          subscription_plan: 'pro',
-        }));
+    const loadSubscription = async () => {
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) {
+        setIsLoading(false);
+        return;
       }
+
+      try {
+        const response = await fetch('https://functions.poehali.dev/578f8247-37f6-47e4-a3ce-744df886fc3f', {
+          method: 'GET',
+          headers: {
+            'X-Authorization': `Bearer ${accessToken}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.subscription) {
+            localStorage.setItem('subscription_cache', JSON.stringify(data.subscription));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load subscription:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    setTimeout(() => {
+      loadSubscription();
     }, 2000);
   }, [searchParams]);
 

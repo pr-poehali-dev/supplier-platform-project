@@ -101,6 +101,9 @@ export default function UserProfile({ user }: UserProfileProps) {
         <DropdownMenuItem
           onClick={() => {
             localStorage.removeItem('user');
+            localStorage.removeItem('subscription_cache');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('auth_refresh_token');
             navigate('/auth');
           }}
           className="text-red-600 focus:text-red-600"

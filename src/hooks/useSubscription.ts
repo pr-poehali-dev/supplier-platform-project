@@ -18,7 +18,17 @@ const SUBSCRIPTION_CANCEL_URL = 'https://functions.poehali.dev/7f98ad7b-9f7c-415
 const AUTH_REFRESH_URL = 'https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70?action=refresh';
 
 export function useSubscription() {
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(() => {
+    const cached = localStorage.getItem('subscription_cache');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
 
   const fetchSubscription = async () => {
@@ -68,6 +78,7 @@ export function useSubscription() {
         const data = await response.json();
         console.log('Subscription fetched:', data.subscription);
         setSubscription(data.subscription);
+        localStorage.setItem('subscription_cache', JSON.stringify(data.subscription));
       } else {
         console.error('Failed to fetch subscription:', response.status, await response.text());
       }
@@ -104,6 +115,10 @@ export function useSubscription() {
   };
 
   useEffect(() => {
+    const cached = localStorage.getItem('subscription_cache');
+    if (cached) {
+      setLoading(false);
+    }
     fetchSubscription();
   }, []);
 

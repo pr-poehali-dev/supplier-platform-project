@@ -89,14 +89,13 @@ def handler(event: dict, context) -> dict:
                 },
                 json={
                     'Data': {
-                        'customerCode': os.environ['TOCHKA_CUSTOMER_CODE'],
+                        'merchantId': os.environ['TOCHKA_MERCHANT_ID'],
                         'amount': float(amount),
                         'purpose': purpose,
                         'redirectUrl': redirect_url,
                         'failRedirectUrl': fail_redirect_url,
                         'saveCard': True,
                         'consumerId': subscription_id,
-                        'merchantId': os.environ['TOCHKA_MERCHANT_ID'],
                         'recurring': True,
                         'Options': {
                             'paymentLinkId': subscription_id

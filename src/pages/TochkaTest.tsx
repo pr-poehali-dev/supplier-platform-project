@@ -200,7 +200,6 @@ const TochkaTest = () => {
                   <ul className="text-blue-700 space-y-1 text-xs">
                     <li>✓ TOCHKA_CLIENT_ID</li>
                     <li>✓ TOCHKA_CLIENT_SECRET</li>
-                    <li>✓ TOCHKA_CUSTOMER_CODE</li>
                     <li>✓ TOCHKA_MERCHANT_ID</li>
                   </ul>
                 </div>
@@ -377,35 +376,11 @@ const TochkaTest = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 bg-orange-50 -mx-2 -my-1 px-2 py-2 rounded">
-                  <Icon name="AlertCircle" size={18} className="text-orange-600 mt-0.5" />
+                <div className="flex items-start gap-3">
+                  <Icon name="Check" size={18} className="text-green-600 mt-0.5" />
                   <div className="flex-1">
-                    <code className="text-orange-700 font-medium">TOCHKA_CUSTOMER_CODE</code>
-                    <p className="text-xs text-gray-700 mt-1 mb-2">❌ Нужно добавить</p>
-                    <div className="bg-white p-2 rounded text-xs space-y-1">
-                      <p className="font-medium">Где найти:</p>
-                      <ol className="list-decimal ml-4 space-y-0.5 text-gray-600">
-                        <li>Откройте <a href="https://enter.tochka.com" target="_blank" className="text-blue-600 underline">enter.tochka.com</a></li>
-                        <li>Раздел "API" → "Настройки приложения"</li>
-                        <li>Найдите поле "Customer Code" (9 цифр)</li>
-                      </ol>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 bg-orange-50 -mx-2 -my-1 px-2 py-2 rounded">
-                  <Icon name="AlertCircle" size={18} className="text-orange-600 mt-0.5" />
-                  <div className="flex-1">
-                    <code className="text-orange-700 font-medium">TOCHKA_MERCHANT_ID</code>
-                    <p className="text-xs text-gray-700 mt-1 mb-2">❌ Нужно добавить</p>
-                    <div className="bg-white p-2 rounded text-xs space-y-1">
-                      <p className="font-medium">Где найти:</p>
-                      <ol className="list-decimal ml-4 space-y-0.5 text-gray-600">
-                        <li>В интернет-банке: "Эквайринг" → "Настройки"</li>
-                        <li>Раздел "Интернет-эквайринг"</li>
-                        <li>Скопируйте "Merchant ID"</li>
-                      </ol>
-                    </div>
+                    <code className="text-blue-600 font-medium">TOCHKA_MERCHANT_ID</code>
+                    <p className="text-xs text-gray-600 mt-1">✅ Добавлен: MA0005915195</p>
                   </div>
                 </div>
               </div>

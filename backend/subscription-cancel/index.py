@@ -61,6 +61,9 @@ def handler(event, context):
 
     # Parse body
     body = event.get('body', '{}')
+    if not body or body.strip() == '':
+        body = '{}'
+    
     if event.get('isBase64Encoded'):
         body = base64.b64decode(body).decode('utf-8')
 
@@ -73,6 +76,14 @@ def handler(event, context):
             'body': json.dumps({'error': 'Invalid JSON'})
         }
 
+    subscription_id = data.get('subscription_id')
+    if not subscription_id:
+        return {
+            'statusCode': 400,
+            'headers': HEADERS,
+            'body': json.dumps({'error': 'subscription_id is required'})
+        }
+
     # Extract auth token
     auth_header = event.get('headers', {}).get('X-Authorization', '')
     if not auth_header:
@@ -80,14 +91,6 @@ def handler(event, context):
             'statusCode': 401,
             'headers': HEADERS,
             'body': json.dumps({'error': 'Unauthorized'})
-        }
-
-    subscription_id = data.get('subscription_id')
-    if not subscription_id:
-        return {
-            'statusCode': 400,
-            'headers': HEADERS,
-            'body': json.dumps({'error': 'subscription_id is required'})
         }
 
     S = get_schema()

@@ -8,11 +8,14 @@ import { fetchWithAuth } from '@/lib/api';
 import UserInfoCard from '@/components/profile/UserInfoCard';
 import DiagnosticsHistory from '@/components/profile/DiagnosticsHistory';
 import UserProfile from '@/components/navigation/UserProfile';
+import SubscriptionCard from '@/components/subscription/SubscriptionCard';
+import { useSubscription } from '@/hooks/useSubscription';
 
 const Profile = () => {
   const navigate = useNavigate();
   const [results, setResults] = useState(getDiagnosticsResults());
   const [user, setUser] = useState<any>(null);
+  const { subscription, cancelSubscription } = useSubscription();
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -38,6 +41,22 @@ const Profile = () => {
     if (daysLeft === 1) return 'Истекает завтра';
     if (daysLeft <= 7) return `Осталось ${daysLeft} дней`;
     return `До ${expiresAt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!subscription) return;
+    
+    if (!confirm('Вы уверены? Подписка будет отменена в конце текущего периода.')) {
+      return;
+    }
+
+    try {
+      await cancelSubscription(subscription.id);
+      alert('✅ Подписка будет отменена в конце периода');
+      window.location.reload();
+    } catch (error: any) {
+      alert('❌ ' + (error.message || 'Ошибка при отмене подписки'));
+    }
   };
 
   const refreshProfile = async () => {
@@ -122,6 +141,12 @@ const Profile = () => {
               expiryText={getSubscriptionExpiryText()}
               onRefresh={refreshProfile}
               onNavigatePricing={() => navigate('/pricing')}
+            />
+
+            <SubscriptionCard
+              subscription={subscription}
+              onCancel={handleCancelSubscription}
+              onChangePlan={() => navigate('/pricing')}
             />
 
             <DiagnosticsHistory

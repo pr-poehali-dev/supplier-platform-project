@@ -1,12 +1,12 @@
 {
   "tests": [
     {
-      "name": "Get subscriptions list",
+      "name": "Get subscription - unauthorized",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200,
+      "expectedStatus": 401,
       "expectedBody": {
-        "users": "array"
+        "error": "Unauthorized"
       },
       "bodyMatcher": "partial"
     }

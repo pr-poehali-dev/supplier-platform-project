@@ -1,4 +1,10 @@
 {
+  "subscription-get": "https://functions.poehali.dev/578f8247-37f6-47e4-a3ce-744df886fc3f",
+  "yookassa-yookassa": "https://functions.poehali.dev/7e6e6610-d137-4b79-9744-8e2e5a0f9804",
+  "yookassa-yookassa-webhook": "https://functions.poehali.dev/60bc374a-26cd-48ca-994a-7f9f46660e2b",
+  "subscription-cancel": "https://functions.poehali.dev/7f98ad7b-9f7c-4157-a5ab-7ba03dd634e5",
+  "subscription-charge": "https://functions.poehali.dev/7929e0cc-a291-41ac-9e44-42a0c5e3acb0",
+  "subscription-create": "https://functions.poehali.dev/2caae688-634f-4a76-b90b-0009fc13ee84",
   "broadcast-telegram": "https://functions.poehali.dev/6b801cd0-070e-4eb7-bc93-0d6dbdd90fc1",
   "auth-email-auth": "https://functions.poehali.dev/d538ced0-a6f6-4224-b438-b70de2029bd9",
   "confirm-payment": "https://functions.poehali.dev/aa2efe43-c732-4850-8c2e-06d0db752fef",
@@ -12,12 +18,9 @@
   "pricing-engine": "https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4",
   "delete-unit-helper": "https://functions.poehali.dev/99916984-c945-4b8d-9af9-fc88342eb58a",
   "telegram-messages": "https://functions.poehali.dev/b08b50dd-ee0f-4534-9865-afdf3582a91b",
-  "admin-subscriptions": "https://functions.poehali.dev/a3b103f1-3e4d-4066-9bbe-f303bc55720a",
-  "subscription-webhook": "https://functions.poehali.dev/7f8f791c-4136-4495-b27d-3720346aa26d",
   "contact-form": "https://functions.poehali.dev/d00d6394-685d-4e42-9d5e-b5f3a12b31d1",
   "chatgpt-polza-chatgpt": "https://functions.poehali.dev/e13712ed-a9c9-41b9-8408-3330a2e22fef",
   "telegram-setup": "https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d",
   "booking-calendar": "https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d",
-  "user-auth": "https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70",
-  "admin-users": "https://functions.poehali.dev/57e87325-acea-4f23-9b9b-048fa498ae14"
+  "user-auth": "https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70"
 }

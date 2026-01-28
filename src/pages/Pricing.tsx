@@ -106,8 +106,7 @@ const Pricing = () => {
     if (!plan) return;
 
     try {
-      // TODO: Replace with actual backend URL after deployment
-      const response = await fetch('REPLACE_WITH_SUBSCRIPTION_CREATE_URL', {
+      const response = await fetch('https://functions.poehali.dev/2caae688-634f-4a76-b90b-0009fc13ee84', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

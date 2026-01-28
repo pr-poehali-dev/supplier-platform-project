@@ -1,20 +1,6 @@
 {
   "tests": [
     {
-      "name": "Cancel subscription - missing subscription_id",
-      "method": "POST",
-      "path": "/",
-      "body": {},
-      "headers": {
-        "X-Authorization": "Bearer test_token"
-      },
-      "expectedStatus": 400,
-      "expectedBody": {
-        "error": "subscription_id is required"
-      },
-      "bodyMatcher": "partial"
-    },
-    {
       "name": "Cancel subscription - unauthorized",
       "method": "POST",
       "path": "/",

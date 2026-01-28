@@ -73,6 +73,10 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
       setIsDialogOpen(false);
       setEditingRule(null);
       onRulesUpdate?.();
+      // Reload calendar prices
+      if ((window as any).__reloadCalendarPrices) {
+        (window as any).__reloadCalendarPrices();
+      }
     } catch (error) {
       // Error saving rule
     } finally {
@@ -106,6 +110,10 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
       
       setRules(prev => prev.map(r => r.id === ruleId ? { ...r, enabled } : r));
       onRulesUpdate?.();
+      // Reload calendar prices
+      if ((window as any).__reloadCalendarPrices) {
+        (window as any).__reloadCalendarPrices();
+      }
     } catch (error) {
       await loadRules();
     } finally {
@@ -126,6 +134,10 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
       
       setRules(prev => prev.filter(r => r.id !== ruleId));
       onRulesUpdate?.();
+      // Reload calendar prices
+      if ((window as any).__reloadCalendarPrices) {
+        (window as any).__reloadCalendarPrices();
+      }
     } catch (error) {
       await loadRules();
     } finally {

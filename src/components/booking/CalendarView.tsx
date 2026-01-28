@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import type { Unit } from './UnitsManagement';
 import { fetchWithAuth } from '@/lib/api';
 import CalendarGrid from './CalendarGrid';
@@ -53,6 +51,7 @@ interface CalendarViewProps {
   onChangeMonth: (delta: number) => void;
   onDeleteBooking?: (bookingId: number) => Promise<void>;
   renderBookingButton?: React.ReactNode;
+  onPricesReload?: () => void;
 }
 
 export default function CalendarView({
@@ -62,13 +61,13 @@ export default function CalendarView({
   pendingBookings = [],
   onChangeMonth,
   onDeleteBooking,
-  renderBookingButton
+  renderBookingButton,
+  onPricesReload
 }: CalendarViewProps) {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [dynamicPrices, setDynamicPrices] = useState<Record<string, { price: number; appliedRules: any[] }>>({});
-  const [showPrices, setShowPrices] = useState(false);
   const [loadingPrices, setLoadingPrices] = useState(false);
   
   const monthNames = [
@@ -85,10 +84,21 @@ export default function CalendarView({
   }, [selectedBooking]);
 
   useEffect(() => {
-    if (selectedUnit && showPrices) {
+    if (selectedUnit) {
       loadDynamicPrices();
     }
-  }, [selectedUnit, currentDate, showPrices]);
+  }, [selectedUnit, currentDate]);
+
+  // Expose reload function via callback
+  useEffect(() => {
+    if (onPricesReload) {
+      // Store reference so PricingAccordion can call it
+      (window as any).__reloadCalendarPrices = loadDynamicPrices;
+    }
+    return () => {
+      delete (window as any).__reloadCalendarPrices;
+    };
+  }, [selectedUnit, currentDate]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -206,16 +216,6 @@ export default function CalendarView({
               </Button>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="show-prices"
-                  checked={showPrices}
-                  onCheckedChange={setShowPrices}
-                />
-                <Label htmlFor="show-prices" className="text-sm cursor-pointer">
-                  Показать цены
-                </Label>
-              </div>
               {renderBookingButton}
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function CalendarView({
             selectedUnitId={selectedUnit.id}
             selectedUnitName={selectedUnit.name}
             dynamicPrices={dynamicPrices}
-            showPrices={showPrices}
+            showPrices={true}
             loadingPrices={loadingPrices}
             onBookingClick={setSelectedBooking}
           />

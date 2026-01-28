@@ -21,12 +21,6 @@ interface SubscriptionCardProps {
 }
 
 export default function SubscriptionCard({ subscription, onCancel, onChangePlan }: SubscriptionCardProps) {
-  console.log('SubscriptionCard render:', {
-    subscription,
-    has_payment_method: !!subscription?.payment_method,
-    cancel_at_period_end: subscription?.cancel_at_period_end
-  });
-
   if (!subscription) {
     return (
       <Card>

@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import requests
 
 def handler(event: dict, context) -> dict:
     '''API для создания подписки через Точка Банк'''
@@ -58,15 +59,64 @@ def handler(event: dict, context) -> dict:
             plan_name = plan_names[plan_code]
             purpose = f'Подписка TourConnect — {plan_name}'
 
-            # TODO: Интеграция с Точка Банк API
-            # На данный момент возвращаем mock-данные
-            # В продакшене здесь должен быть запрос к API Точка Банка:
-            # POST https://enter.tochka.com/api/v1/acquiring/v1.0/subscriptions
-            # Headers: Authorization: Bearer {token}
-            # Body: { amount, currency: 'RUB', purpose, redirectUrl, ... }
+            # Шаг 1: Получаем access_token через OAuth 2.0 (client_credentials)
+            token_response = requests.post(
+                'https://enter.tochka.com/connect/token',
+                headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                data={
+                    'client_id': os.environ['TOCHKA_CLIENT_ID'],
+                    'client_secret': os.environ['TOCHKA_CLIENT_SECRET'],
+                    'grant_type': 'client_credentials',
+                    'scope': 'accounts balances customers statements sbp payments acquiring'
+                }
+            )
+            
+            if token_response.status_code != 200:
+                return error_response(500, f'Ошибка получения токена Точка Банк: {token_response.text}')
+            
+            access_token = token_response.json()['access_token']
 
+            # Шаг 2: Создаём consent (разрешение) для подписки
+            consent_response = requests.post(
+                'https://enter.tochka.com/uapi/v1.0/consents',
+                headers={
+                    'Authorization': f'Bearer {access_token}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'Data': {
+                        'permissions': [
+                            'MakeAcquiringOperation',
+                            'ReadAcquiringData',
+                            'ManageWebhookData'
+                        ]
+                    }
+                }
+            )
+            
+            if consent_response.status_code != 200:
+                return error_response(500, f'Ошибка создания consent: {consent_response.text}')
+            
+            consent_id = consent_response.json()['Data']['consentId']
+
+            # Шаг 3: Формируем redirect_uri для возврата пользователя
             subscription_id = str(uuid.uuid4())
-            payment_url = f'https://pay.tochka.com/subscription/{subscription_id}'
+            callback_url = 'https://functions.poehali.dev/83c679fe-d952-4080-902a-14548ff7da79'
+
+            # Шаг 4: Формируем URL для подтверждения пользователем
+            # ВАЖНО: Точка Банк требует, чтобы пользователь подтвердил consent через OAuth authorize
+            state = subscription_id
+            authorize_url = (
+                f'https://enter.tochka.com/connect/authorize'
+                f'?client_id={os.environ["TOCHKA_CLIENT_ID"]}'
+                f'&response_type=code'
+                f'&state={state}'
+                f'&redirect_uri={callback_url}'
+                f'&scope=accounts%20balances%20customers%20statements%20sbp%20payments%20acquiring'
+                f'&consent_id={consent_id}'
+            )
+
+            payment_url = authorize_url
 
             conn = psycopg2.connect(os.environ['DATABASE_URL'])
             cur = conn.cursor(cursor_factory=RealDictCursor)

@@ -15,20 +15,48 @@ interface Subscription {
 
 const SUBSCRIPTION_GET_URL = 'https://functions.poehali.dev/578f8247-37f6-47e4-a3ce-744df886fc3f';
 const SUBSCRIPTION_CANCEL_URL = 'https://functions.poehali.dev/7f98ad7b-9f7c-4157-a5ab-7ba03dd634e5';
+const AUTH_REFRESH_URL = 'https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70?action=refresh';
 
 export function useSubscription() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchSubscription = async () => {
-    const accessToken = localStorage.getItem('access_token');
-    if (!accessToken) {
-      console.warn('No access token found, skipping subscription fetch');
+    let accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('auth_refresh_token');
+    
+    if (!accessToken && !refreshToken) {
+      console.warn('No tokens found, skipping subscription fetch');
       return;
     }
 
     setLoading(true);
     try {
+      // Try to refresh token first if we have refresh_token
+      if (refreshToken) {
+        try {
+          const refreshResponse = await fetch(AUTH_REFRESH_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            accessToken = refreshData.access_token;
+            localStorage.setItem('access_token', accessToken);
+            console.log('Token refreshed successfully before subscription fetch');
+          }
+        } catch (error) {
+          console.warn('Failed to refresh token, using existing:', error);
+        }
+      }
+
+      if (!accessToken) {
+        console.warn('No valid access token after refresh attempt');
+        return;
+      }
+
       const response = await fetch(SUBSCRIPTION_GET_URL, {
         method: 'GET',
         headers: {

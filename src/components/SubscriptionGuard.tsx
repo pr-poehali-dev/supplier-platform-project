@@ -47,16 +47,6 @@ const SubscriptionGuard = ({ feature, children, featureName = 'этой функ
     subscription?.current_period_end && 
     new Date(subscription.current_period_end) > new Date();
   
-  // Debug
-  console.log('SubscriptionGuard check:', {
-    status: subscription?.status,
-    cancel_at_period_end: subscription?.cancel_at_period_end,
-    current_period_end: subscription?.current_period_end,
-    isActive,
-    isCancelledButValid,
-    hasFeatureAccess: limits[feature]
-  });
-  
   const hasAccess = limits[feature] && (isActive || isCancelledButValid);
   
   if (hasAccess) {

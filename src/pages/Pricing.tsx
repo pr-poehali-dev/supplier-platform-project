@@ -112,6 +112,7 @@ const Pricing = () => {
       return;
     }
 
+    const AUTH_REFRESH_URL = 'https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70?action=refresh';
     const accessToken = localStorage.getItem('access_token');
     if (!accessToken) {
       console.error('No access token found');

@@ -358,23 +358,55 @@ const TochkaTest = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="font-medium text-gray-900 mb-2">1. Добавьте секреты в проект:</p>
-              <div className="bg-white rounded-lg p-3 space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <code className="text-blue-600">TOCHKA_CLIENT_ID</code>
-                  <Badge variant="outline">83d30e0012814c8bb5c03daeb9cfa8e5</Badge>
+              <p className="font-medium text-gray-900 mb-3">Статус секретов:</p>
+              
+              <div className="bg-white rounded-lg p-4 space-y-3 text-sm">
+                <div className="flex items-start gap-3">
+                  <Icon name="Check" size={18} className="text-green-600 mt-0.5" />
+                  <div className="flex-1">
+                    <code className="text-blue-600 font-medium">TOCHKA_CLIENT_ID</code>
+                    <p className="text-xs text-gray-600 mt-1">✅ Уже добавлен: 83d30e0012814c8bb5c03daeb9cfa8e5</p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <code className="text-blue-600">TOCHKA_CLIENT_SECRET</code>
-                  <Badge variant="outline">1825d3e4f40a43f8b71b42e5a9969e3c</Badge>
+
+                <div className="flex items-start gap-3">
+                  <Icon name="Check" size={18} className="text-green-600 mt-0.5" />
+                  <div className="flex-1">
+                    <code className="text-blue-600 font-medium">TOCHKA_CLIENT_SECRET</code>
+                    <p className="text-xs text-gray-600 mt-1">✅ Уже добавлен (скрыт)</p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <code className="text-blue-600">TOCHKA_CUSTOMER_CODE</code>
-                  <Badge variant="outline">Найди в ЛК (9 цифр)</Badge>
+
+                <div className="flex items-start gap-3 bg-orange-50 -mx-2 -my-1 px-2 py-2 rounded">
+                  <Icon name="AlertCircle" size={18} className="text-orange-600 mt-0.5" />
+                  <div className="flex-1">
+                    <code className="text-orange-700 font-medium">TOCHKA_CUSTOMER_CODE</code>
+                    <p className="text-xs text-gray-700 mt-1 mb-2">❌ Нужно добавить</p>
+                    <div className="bg-white p-2 rounded text-xs space-y-1">
+                      <p className="font-medium">Где найти:</p>
+                      <ol className="list-decimal ml-4 space-y-0.5 text-gray-600">
+                        <li>Откройте <a href="https://enter.tochka.com" target="_blank" className="text-blue-600 underline">enter.tochka.com</a></li>
+                        <li>Раздел "API" → "Настройки приложения"</li>
+                        <li>Найдите поле "Customer Code" (9 цифр)</li>
+                      </ol>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <code className="text-blue-600">TOCHKA_MERCHANT_ID</code>
-                  <Badge variant="outline">Раздел "Эквайринг"</Badge>
+
+                <div className="flex items-start gap-3 bg-orange-50 -mx-2 -my-1 px-2 py-2 rounded">
+                  <Icon name="AlertCircle" size={18} className="text-orange-600 mt-0.5" />
+                  <div className="flex-1">
+                    <code className="text-orange-700 font-medium">TOCHKA_MERCHANT_ID</code>
+                    <p className="text-xs text-gray-700 mt-1 mb-2">❌ Нужно добавить</p>
+                    <div className="bg-white p-2 rounded text-xs space-y-1">
+                      <p className="font-medium">Где найти:</p>
+                      <ol className="list-decimal ml-4 space-y-0.5 text-gray-600">
+                        <li>В интернет-банке: "Эквайринг" → "Настройки"</li>
+                        <li>Раздел "Интернет-эквайринг"</li>
+                        <li>Скопируйте "Merchant ID"</li>
+                      </ol>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

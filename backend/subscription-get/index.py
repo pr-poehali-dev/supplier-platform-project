@@ -145,9 +145,8 @@ def handler(event, context):
                 amount,
                 status,
                 payment_type,
-                paid_at,
                 created_at,
-                error_message
+                updated_at
             FROM {S}subscription_payments
             WHERE subscription_id = %s
             ORDER BY created_at DESC
@@ -161,9 +160,8 @@ def handler(event, context):
                 'amount': float(p[1]),
                 'status': p[2],
                 'payment_type': p[3],
-                'paid_at': p[4].isoformat() if p[4] else None,
-                'created_at': p[5].isoformat() if p[5] else None,
-                'error_message': p[6]
+                'created_at': p[4].isoformat() if p[4] else None,
+                'updated_at': p[5].isoformat() if p[5] else None
             })
 
         conn.close()

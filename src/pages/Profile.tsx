@@ -4,7 +4,6 @@ import Icon from '@/components/ui/icon';
 import { getDiagnosticsResults, deleteDiagnosticsResult } from '@/utils/diagnosticsStorage';
 import { getUserSubscription, getPlanName, getPlanEmoji } from '@/utils/subscription';
 import { useState, useEffect } from 'react';
-import { fetchWithAuth } from '@/lib/api';
 import UserInfoCard from '@/components/profile/UserInfoCard';
 import DiagnosticsHistory from '@/components/profile/DiagnosticsHistory';
 import UserProfile from '@/components/navigation/UserProfile';
@@ -15,7 +14,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const [results, setResults] = useState(getDiagnosticsResults());
   const [user, setUser] = useState<any>(null);
-  const { subscription, cancelSubscription } = useSubscription();
+  const { subscription, cancelSubscription, refetch } = useSubscription();
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -61,26 +60,11 @@ const Profile = () => {
   };
 
   const refreshProfile = async () => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      navigate('/auth');
-      return;
-    }
-    
     try {
-      const response = await fetchWithAuth('https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70?action=refresh');
-      
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        alert('✅ Данные профиля обновлены!');
-        window.location.reload();
-      } else {
-        alert('❌ Не удалось обновить данные. Попробуйте перезайти.');
-      }
+      await refetch();
+      alert('✅ Данные подписки обновлены!');
     } catch (error) {
-      alert('❌ Ошибка при обновлении данных. Попробуйте перезайти.');
+      alert('❌ Ошибка при обновлении данных.');
     }
   };
 

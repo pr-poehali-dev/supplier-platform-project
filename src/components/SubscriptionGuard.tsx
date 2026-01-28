@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
-import { canAccessFeature, getUserSubscription, getPlanName, getPlanEmoji, SubscriptionLimits } from '@/utils/subscription';
+import { getPlanName, getPlanEmoji, SubscriptionLimits, getSubscriptionLimits } from '@/utils/subscription';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface SubscriptionGuardProps {
   feature: keyof Omit<SubscriptionLimits, 'maxUnits'>;
@@ -13,16 +14,35 @@ interface SubscriptionGuardProps {
 
 const SubscriptionGuard = ({ feature, children, featureName = 'этой функции' }: SubscriptionGuardProps) => {
   const navigate = useNavigate();
+  const { subscription, loading } = useSubscription();
   const isDevelopment = import.meta.env.DEV;
   const isEditorMode = window.location.hostname.includes('poehali.dev') || window.location.hostname === 'localhost';
-  const hasAccess = canAccessFeature(feature);
   
   // В режиме разработки и preview всегда даем доступ
-  if (hasAccess || isDevelopment || isEditorMode) {
+  if (isDevelopment || isEditorMode) {
     return <>{children}</>;
   }
   
-  const currentPlan = getUserSubscription();
+  // Wait for subscription to load
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Icon name="Loader2" className="animate-spin mx-auto mb-4" size={40} />
+          <p className="text-gray-600">Проверка подписки...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Check access based on API subscription data
+  const currentPlan = subscription?.plan_code || 'none';
+  const limits = getSubscriptionLimits(currentPlan as any);
+  const hasAccess = limits[feature];
+  
+  if (hasAccess) {
+    return <>{children}</>;
+  }
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 flex items-center justify-center p-6">

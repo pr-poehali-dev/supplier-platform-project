@@ -81,7 +81,7 @@ export function useSubscription() {
   return {
     subscription,
     loading,
-    fetchSubscription,
+    refetch: fetchSubscription,
     cancelSubscription,
   };
 }

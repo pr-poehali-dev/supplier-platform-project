@@ -21,7 +21,10 @@ export function useSubscription() {
 
   const fetchSubscription = async () => {
     const accessToken = localStorage.getItem('access_token');
-    if (!accessToken) return;
+    if (!accessToken) {
+      console.warn('No access token found, skipping subscription fetch');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -34,9 +37,10 @@ export function useSubscription() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Subscription fetched:', data.subscription);
         setSubscription(data.subscription);
       } else {
-        console.error('Failed to fetch subscription:', response.status);
+        console.error('Failed to fetch subscription:', response.status, await response.text());
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);

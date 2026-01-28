@@ -26,13 +26,14 @@ const Profile = () => {
     setResults(getDiagnosticsResults());
   }, []);
 
-  const subscriptionPlan = getUserSubscription();
-  const planName = getPlanName(subscriptionPlan);
-  const planEmoji = getPlanEmoji(subscriptionPlan);
+  // Get subscription plan from API or fallback to localStorage
+  const subscriptionPlan = subscription?.plan_code || getUserSubscription();
+  const planName = getPlanName(subscriptionPlan as any);
+  const planEmoji = getPlanEmoji(subscriptionPlan as any);
 
   const getSubscriptionExpiryText = () => {
-    if (!user?.subscription_expires_at || subscriptionPlan === 'none') return null;
-    const expiresAt = new Date(user.subscription_expires_at);
+    if (!subscription?.current_period_end || subscriptionPlan === 'none') return null;
+    const expiresAt = new Date(subscription.current_period_end);
     const now = new Date();
     const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     

@@ -38,7 +38,26 @@ const SubscriptionGuard = ({ feature, children, featureName = 'этой функ
   // Check access based on API subscription data
   const currentPlan = subscription?.plan_code || 'none';
   const limits = getSubscriptionLimits(currentPlan as any);
-  const hasAccess = limits[feature];
+  
+  // Check if subscription is active (even if cancel_at_period_end = true)
+  const isActive = subscription?.status === 'active';
+  
+  // Check if cancelled but still within period
+  const isCancelledButValid = subscription?.status === 'cancelled' && 
+    subscription?.current_period_end && 
+    new Date(subscription.current_period_end) > new Date();
+  
+  // Debug
+  console.log('SubscriptionGuard check:', {
+    status: subscription?.status,
+    cancel_at_period_end: subscription?.cancel_at_period_end,
+    current_period_end: subscription?.current_period_end,
+    isActive,
+    isCancelledButValid,
+    hasFeatureAccess: limits[feature]
+  });
+  
+  const hasAccess = limits[feature] && (isActive || isCancelledButValid);
   
   if (hasAccess) {
     return <>{children}</>;

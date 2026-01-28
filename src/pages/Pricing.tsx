@@ -34,7 +34,7 @@ const Pricing = () => {
     {
       id: 'start' as const,
       name: 'START',
-      price: 2450,
+      price: 1990,
       emoji: '🟢',
       description: 'Для одиночных объектов',
       limits: 'до 2 объектов / номеров',
@@ -52,7 +52,7 @@ const Pricing = () => {
     {
       id: 'pro' as const,
       name: 'PRO',
-      price: 4490,
+      price: 3990,
       emoji: '🔵',
       description: 'Основной тариф для большинства',
       limits: 'До 10 объектов / номеров',
@@ -67,7 +67,7 @@ const Pricing = () => {
     {
       id: 'business' as const,
       name: 'BUSINESS',
-      price: 7490,
+      price: 6990,
       emoji: '🟣',
       description: 'Для баз отдыха и глэмпингов',
       limits: 'До 30 объектов / номеров',
@@ -85,29 +85,10 @@ const Pricing = () => {
     setSelectedPlan(planId);
   };
 
-  const handlePayment = async () => {
-    if (!selectedPlan || !user) return;
-    
-    try {
-      const response = await fetch('https://functions.poehali.dev/2e481bdd-814f-4a67-a604-c4dfa33d848c', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-User-Id': user.id.toString()
-        },
-        body: JSON.stringify({ plan_code: selectedPlan })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Ошибка создания подписки');
-      }
-      
-      const { paymentUrl } = await response.json();
-      window.location.href = paymentUrl;
-    } catch (error: any) {
-      alert(error.message || 'Не удалось создать подписку. Попробуйте позже.');
-    }
+  const handlePayment = () => {
+    if (!selectedPlan) return;
+    const plan = plans.find(p => p.id === selectedPlan);
+    navigate('/payment', { state: { plan } });
   };
 
   const handleRenew = () => {
@@ -168,31 +149,6 @@ const Pricing = () => {
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Все тарифы включают полный доступ к платформе. Выбирайте по количеству номеров
           </p>
-          <div className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-500 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Icon name="Check" size={16} className="text-green-600" />
-              Подписка списывается автоматически раз в месяц
-            </div>
-            <div className="flex items-center gap-2">
-              <Icon name="X" size={16} className="text-gray-400" />
-              Никаких скрытых комиссий
-            </div>
-            <div className="flex items-center gap-2">
-              <Icon name="RotateCcw" size={16} className="text-blue-600" />
-              Отменить можно в любой момент
-            </div>
-          </div>
-          <div className="mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/tochka-test')}
-              className="gap-2 text-blue-600 border-blue-300 hover:bg-blue-50"
-            >
-              <Icon name="TestTube" size={14} />
-              Тестирование интеграции Точка Банк
-            </Button>
-          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto mb-16">

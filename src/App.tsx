@@ -25,8 +25,6 @@ import Pricing from "./pages/Pricing";
 import Payment from "./pages/Payment";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFail from "./pages/PaymentFail";
-import SubscriptionStatus from "./pages/SubscriptionStatus";
-import TochkaTest from "./pages/TochkaTest";
 import Oferta from "./pages/Oferta";
 import Roadmap from "./pages/Roadmap";
 import NotFound from "./pages/NotFound";
@@ -61,8 +59,6 @@ const AppContent = () => {
         <Route path="/payment" element={<Payment />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/fail" element={<PaymentFail />} />
-        <Route path="/subscription-status" element={<SubscriptionStatus />} />
-        <Route path="/tochka-test" element={<TochkaTest />} />
         <Route path="/oferta" element={<Oferta />} />
         <Route path="/roadmap" element={<Roadmap />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

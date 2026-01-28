@@ -5,6 +5,7 @@ from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import requests
+import base64
 
 def handler(event: dict, context) -> dict:
     '''API для создания подписки через Точка Банк'''
@@ -59,24 +60,28 @@ def handler(event: dict, context) -> dict:
             plan_name = plan_names[plan_code]
             purpose = f'Подписка TourConnect — {plan_name}'
 
-            # Шаг 1: Получаем access_token через OAuth 2.0 (client_credentials)
+            # Получаем токен через client_credentials с максимальными правами
             token_response = requests.post(
                 'https://enter.tochka.com/connect/token',
                 headers={'Content-Type': 'application/x-www-form-urlencoded'},
                 data={
                     'client_id': os.environ['TOCHKA_CLIENT_ID'],
                     'client_secret': os.environ['TOCHKA_CLIENT_SECRET'],
-                    'grant_type': 'client_credentials',
-                    'scope': 'accounts balances customers statements sbp payments acquiring'
+                    'grant_type': 'client_credentials'
                 }
             )
             
+            # Логируем ответ для отладки
             if token_response.status_code != 200:
-                return error_response(500, f'Ошибка получения токена: {token_response.text}')
+                return error_response(500, f'Токен не получен ({token_response.status_code}): {token_response.text}')
             
-            access_token = token_response.json()['access_token']
+            token_data = token_response.json()
+            access_token = token_data.get('access_token')
+            
+            if not access_token:
+                return error_response(500, f'access_token отсутствует в ответе: {json.dumps(token_data)}')
 
-            # Шаг 2: Создаём подписку через API acquiring
+            # Создаём подписку через API acquiring
             subscription_id = str(uuid.uuid4())
             redirect_url = f'https://tourconnect.ru/subscription-status?subscriptionId={subscription_id}&status=success'
             fail_redirect_url = f'https://tourconnect.ru/subscription-status?subscriptionId={subscription_id}&status=error'

@@ -48,7 +48,7 @@ export default function QuickQuestions({ onQuestionClick }: QuickQuestionsProps)
             key={idx}
             variant="ghost"
             onClick={() => onQuestionClick(question)}
-            className="w-full h-auto py-2.5 px-3 text-xs text-left bg-white hover:bg-indigo-50 border border-gray-200 hover:border-indigo-300 rounded-lg text-gray-700 font-normal transition-all justify-start whitespace-normal"
+            className="w-full h-auto py-2.5 px-3 text-xs text-left bg-white hover:bg-indigo-50 border border-gray-200 hover:border-indigo-300 rounded-lg text-gray-700 hover:text-gray-900 font-normal transition-all justify-start whitespace-normal"
           >
             {question}
           </Button>

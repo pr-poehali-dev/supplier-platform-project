@@ -1,4 +1,5 @@
 {
+  "tochka-subscription": "https://functions.poehali.dev/2e481bdd-814f-4a67-a604-c4dfa33d848c",
   "broadcast-telegram": "https://functions.poehali.dev/6b801cd0-070e-4eb7-bc93-0d6dbdd90fc1",
   "auth-email-auth": "https://functions.poehali.dev/d538ced0-a6f6-4224-b438-b70de2029bd9",
   "confirm-payment": "https://functions.poehali.dev/aa2efe43-c732-4850-8c2e-06d0db752fef",

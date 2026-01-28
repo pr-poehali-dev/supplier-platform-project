@@ -100,10 +100,23 @@ const Pricing = () => {
   };
 
   const handlePayment = async () => {
-    if (!selectedPlan || !user) return;
+    if (!selectedPlan || !user) {
+      console.error('Missing selectedPlan or user:', { selectedPlan, user });
+      alert('Выберите план и войдите в аккаунт');
+      return;
+    }
     
     const plan = plans.find(p => p.planId === selectedPlan);
-    if (!plan) return;
+    if (!plan) {
+      console.error('Plan not found for planId:', selectedPlan);
+      return;
+    }
+
+    console.log('Creating subscription:', {
+      plan_id: plan.id,
+      user_email: user.email,
+      return_url: `${window.location.origin}/profile?subscription=success`,
+    });
 
     try {
       const response = await fetch('https://functions.poehali.dev/2caae688-634f-4a76-b90b-0009fc13ee84', {
@@ -119,7 +132,9 @@ const Pricing = () => {
         }),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
       
       if (data.confirmation_url) {
         // Redirect to YooKassa payment page

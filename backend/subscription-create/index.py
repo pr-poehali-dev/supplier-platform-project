@@ -4,6 +4,7 @@ import os
 import re
 import uuid
 import base64
+import traceback
 from datetime import datetime, timedelta
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
@@ -303,8 +304,10 @@ def handler(event, context):
     except Exception as e:
         conn.rollback()
         conn.close()
+        error_details = f"{str(e)}\n{traceback.format_exc()}"
+        print(f"ERROR: {error_details}")
         return {
             'statusCode': 500,
             'headers': HEADERS,
-            'body': json.dumps({'error': str(e)})
+            'body': json.dumps({'error': error_details})
         }

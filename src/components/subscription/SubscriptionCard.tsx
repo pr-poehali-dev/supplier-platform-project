@@ -10,6 +10,7 @@ interface SubscriptionCardProps {
     amount: number;
     status: string;
     current_period_end?: string;
+    cancel_at_period_end?: boolean;
     payment_method?: {
       card_type: string;
       card_last4: string;
@@ -70,7 +71,15 @@ export default function SubscriptionCard({ subscription, onCancel, onChangePlan 
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Подписка</CardTitle>
-          {getStatusBadge(subscription.status)}
+          <div className="flex gap-2">
+            {getStatusBadge(subscription.status)}
+            {subscription.cancel_at_period_end && subscription.status === 'active' && (
+              <Badge className="bg-orange-500">
+                <Icon name="Clock" size={14} className="mr-1" />
+                До конца периода
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -87,21 +96,45 @@ export default function SubscriptionCard({ subscription, onCancel, onChangePlan 
         {subscription.current_period_end && (
           <div className="pt-4 border-t">
             <p className="text-sm text-gray-600">
-              Следующее списание:{' '}
-              <span className="font-semibold">
-                {new Date(subscription.current_period_end).toLocaleDateString('ru-RU')}
-              </span>
+              {subscription.cancel_at_period_end ? (
+                <>
+                  Доступ до:{' '}
+                  <span className="font-semibold text-orange-600">
+                    {new Date(subscription.current_period_end).toLocaleDateString('ru-RU')}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Следующее списание:{' '}
+                  <span className="font-semibold">
+                    {new Date(subscription.current_period_end).toLocaleDateString('ru-RU')}
+                  </span>
+                </>
+              )}
             </p>
           </div>
         )}
 
         {subscription.payment_method && (
           <div className="pt-4 border-t">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Icon name="CreditCard" size={16} />
-              <span>
-                {subscription.payment_method.card_type} •••• {subscription.payment_method.card_last4}
-              </span>
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Icon name="CreditCard" size={16} />
+                <span>
+                  {subscription.payment_method.card_type} •••• {subscription.payment_method.card_last4}
+                </span>
+              </div>
+              {!subscription.cancel_at_period_end && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onCancel}
+                  className="text-red-600 hover:text-red-700 h-auto p-1"
+                  title="Отвязать карту"
+                >
+                  <Icon name="Trash2" size={14} />
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -116,7 +149,7 @@ export default function SubscriptionCard({ subscription, onCancel, onChangePlan 
             Сменить тариф
           </Button>
           
-          {subscription.status === 'active' && (
+          {subscription.status === 'active' && !subscription.cancel_at_period_end && (
             <Button
               variant="outline"
               onClick={onCancel}

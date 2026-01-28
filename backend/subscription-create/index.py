@@ -84,6 +84,7 @@ def create_yookassa_payment_with_save(
             "return_url": return_url
         },
         "description": description,
+        "merchant_customer_id": customer_email,
         "receipt": {
             "customer": {
                 "email": customer_email

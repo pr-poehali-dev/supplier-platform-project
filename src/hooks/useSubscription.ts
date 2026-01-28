@@ -6,6 +6,7 @@ interface Subscription {
   amount: number;
   status: string;
   current_period_end?: string;
+  cancel_at_period_end?: boolean;
   payment_method?: {
     card_type: string;
     card_last4: string;

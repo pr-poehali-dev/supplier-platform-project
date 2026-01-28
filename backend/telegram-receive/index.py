@@ -2,7 +2,7 @@ import json
 import os
 import psycopg2
 from urllib import request
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: int, owner_telegram_id: int, bot_token: str) -> dict:
     conn = psycopg2.connect(dsn)
@@ -65,11 +65,30 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
             if nights <= 0:
                 return {'success': False, 'error': 'Некорректные даты', 'unit_name': unit_name}
             
-            base_amount = float(base_price) * nights
-            amount = base_amount + additional_services_amount
+            total_price = 0.0
+            current_date = date_in
+            
+            while current_date < date_out:
+                date_str = current_date.strftime('%Y-%m-%d')
+                try:
+                    price_req = request.Request(
+                        f'{pricing_url}?action=calculate_price&unit_id={unit_id}&date={date_str}',
+                        method='GET'
+                    )
+                    with request.urlopen(price_req, timeout=5) as price_resp:
+                        price_data = json.loads(price_resp.read().decode())
+                        day_price = float(price_data.get('price', base_price))
+                        total_price += day_price
+                except Exception as price_err:
+                    print(f'Failed to get price for {date_str}: {price_err}')
+                    total_price += float(base_price)
+                
+                current_date = current_date + timedelta(days=1)
+            
+            amount = total_price + additional_services_amount
         except Exception as e:
             print(f'Pricing calculation error: {e}')
-            amount = 0
+            amount = float(base_price) * nights if nights > 0 else 0
         
         # Получаем настройки СБП из bot_settings
         cur.execute(f"""

@@ -66,6 +66,10 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
       });
       setDynamicEnabled(enabled);
       await onUnitUpdate();
+      
+      if ((window as any).__reloadCalendarPrices) {
+        (window as any).__reloadCalendarPrices();
+      }
     } catch (error) {
       // Error toggling
     } finally {

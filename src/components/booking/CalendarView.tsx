@@ -51,7 +51,6 @@ interface CalendarViewProps {
   onChangeMonth: (delta: number) => void;
   onDeleteBooking?: (bookingId: number) => Promise<void>;
   renderBookingButton?: React.ReactNode;
-  onPricesReload?: () => void;
 }
 
 export default function CalendarView({
@@ -61,8 +60,7 @@ export default function CalendarView({
   pendingBookings = [],
   onChangeMonth,
   onDeleteBooking,
-  renderBookingButton,
-  onPricesReload
+  renderBookingButton
 }: CalendarViewProps) {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
@@ -91,10 +89,7 @@ export default function CalendarView({
 
   // Expose reload function via callback
   useEffect(() => {
-    if (onPricesReload) {
-      // Store reference so PricingAccordion can call it
-      (window as any).__reloadCalendarPrices = loadDynamicPrices;
-    }
+    (window as any).__reloadCalendarPrices = loadDynamicPrices;
     return () => {
       delete (window as any).__reloadCalendarPrices;
     };

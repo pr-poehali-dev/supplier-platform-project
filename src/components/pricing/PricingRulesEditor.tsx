@@ -90,7 +90,7 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
 
     setLoading(true);
     try {
-      await fetch(`${PRICING_ENGINE_URL}?action=update_rule`, {
+      await fetchWithAuth(`${PRICING_ENGINE_URL}?action=update_rule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,7 +126,7 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
 
     setLoading(true);
     try {
-      await fetch(`${PRICING_ENGINE_URL}?action=delete_rule`, {
+      await fetchWithAuth(`${PRICING_ENGINE_URL}?action=delete_rule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rule_id: ruleId })

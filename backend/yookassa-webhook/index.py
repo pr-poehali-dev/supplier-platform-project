@@ -68,7 +68,10 @@ def get_schema() -> str:
 # =============================================================================
 
 def handler(event, context):
-    """Handle YooKassa webhook notification."""
+    """
+    Обработчик webhook от ЮKassa для подписок и заказов.
+    Обновляет статусы платежей и активирует подписки.
+    """
     if event.get('httpMethod') != 'POST':
         return {
             'statusCode': 405,
@@ -130,33 +133,7 @@ def handler(event, context):
         cur = conn.cursor()
         now = datetime.utcnow().isoformat()
 
-        # Find order by payment_id
-        cur.execute(f"""
-            SELECT id, status FROM {S}orders
-            WHERE yookassa_payment_id = %s
-        """, (payment_id,))
-
-        row = cur.fetchone()
-
-        if not row:
-            # Try to find by order_id from metadata
-            order_id_meta = metadata.get('order_id')
-            if order_id_meta:
-                cur.execute(f"""
-                    SELECT id, status FROM {S}orders WHERE id = %s
-                """, (int(order_id_meta),))
-                row = cur.fetchone()
-
-        if not row:
-            return {
-                'statusCode': 404,
-                'headers': HEADERS,
-                'body': json.dumps({'error': 'Order not found'})
-            }
-
-        order_id, current_status = row
-
-        # Handle subscription payments
+        # Handle subscription payments FIRST
         subscription_id = metadata.get('subscription_id')
         if subscription_id:
             # This is a subscription payment
@@ -202,9 +179,9 @@ def handler(event, context):
                 # Update payment record
                 cur.execute(f"""
                     UPDATE {S}subscription_payments
-                    SET status = 'succeeded', paid_at = %s, updated_at = %s
+                    SET status = 'succeeded', updated_at = %s
                     WHERE yookassa_payment_id = %s
-                """, (now, now, payment_id))
+                """, (now, payment_id))
 
                 conn.commit()
                 conn.close()
@@ -228,6 +205,33 @@ def handler(event, context):
                     'headers': HEADERS,
                     'body': json.dumps({'status': 'ok', 'type': 'subscription'})
                 }
+
+        # If not subscription payment, handle as order payment
+        # Find order by payment_id
+        cur.execute(f"""
+            SELECT id, status FROM {S}orders
+            WHERE yookassa_payment_id = %s
+        """, (payment_id,))
+
+        row = cur.fetchone()
+
+        if not row:
+            # Try to find by order_id from metadata
+            order_id_meta = metadata.get('order_id')
+            if order_id_meta:
+                cur.execute(f"""
+                    SELECT id, status FROM {S}orders WHERE id = %s
+                """, (int(order_id_meta),))
+                row = cur.fetchone()
+
+        if not row:
+            return {
+                'statusCode': 404,
+                'headers': HEADERS,
+                'body': json.dumps({'error': 'Order not found'})
+            }
+
+        order_id, current_status = row
 
         # Update based on verified payment status (orders)
         if payment_status == 'succeeded':

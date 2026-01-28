@@ -1,7 +1,7 @@
 {
+  "yookassa-webhook": "https://functions.poehali.dev/832197cf-32de-4104-b098-202eb2f469d3",
   "subscription-get": "https://functions.poehali.dev/578f8247-37f6-47e4-a3ce-744df886fc3f",
   "yookassa-yookassa": "https://functions.poehali.dev/7e6e6610-d137-4b79-9744-8e2e5a0f9804",
-  "yookassa-yookassa-webhook": "https://functions.poehali.dev/60bc374a-26cd-48ca-994a-7f9f46660e2b",
   "subscription-cancel": "https://functions.poehali.dev/7f98ad7b-9f7c-4157-a5ab-7ba03dd634e5",
   "subscription-charge": "https://functions.poehali.dev/7929e0cc-a291-41ac-9e44-42a0c5e3acb0",
   "subscription-create": "https://functions.poehali.dev/2caae688-634f-4a76-b90b-0009fc13ee84",

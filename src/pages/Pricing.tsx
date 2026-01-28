@@ -112,29 +112,7 @@ const Pricing = () => {
       return;
     }
 
-    // Try to refresh token before payment to ensure it's valid
-    const refreshToken = localStorage.getItem('auth_refresh_token');
-    let accessToken = localStorage.getItem('access_token');
-    
-    if (refreshToken) {
-      try {
-        const refreshResponse = await fetch('https://functions.poehali.dev/51cbf45c-fb64-4ca5-9cc5-d18cd33dbca8?action=refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        });
-        
-        if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-          accessToken = refreshData.access_token;
-          localStorage.setItem('access_token', accessToken);
-          console.log('Token refreshed successfully');
-        }
-      } catch (error) {
-        console.warn('Failed to refresh token, using existing:', error);
-      }
-    }
-
+    const accessToken = localStorage.getItem('access_token');
     if (!accessToken) {
       console.error('No access token found');
       alert('Пожалуйста, войдите в аккаунт заново');
@@ -166,6 +144,13 @@ const Pricing = () => {
       console.log('Response status:', response.status);
       const data = await response.json();
       console.log('Response data:', data);
+      
+      if (response.status === 401) {
+        // Token expired - ask user to login again
+        alert('⏱️ Сессия истекла. Пожалуйста, войдите в аккаунт заново.');
+        navigate('/auth');
+        return;
+      }
       
       if (data.confirmation_url) {
         // Redirect to YooKassa payment page

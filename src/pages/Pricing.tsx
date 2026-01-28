@@ -213,9 +213,9 @@ const Pricing = () => {
             <PricingCard
               key={plan.id}
               {...plan}
-              selected={selectedPlan === plan.id}
+              selected={selectedPlan === plan.planId}
               isCurrent={currentPlan === plan.id}
-              onSelect={() => handleSelectPlan(plan.id)}
+              onSelect={() => handleSelectPlan(plan.planId)}
             />
           ))}
         </div>

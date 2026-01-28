@@ -5,6 +5,7 @@ import base64
 from datetime import datetime
 
 import psycopg2
+from jwt_utils import get_user_id
 
 
 # =============================================================================
@@ -93,15 +94,22 @@ def handler(event, context):
             'body': json.dumps({'error': 'Unauthorized'})
         }
 
+    # Extract user_id from JWT token
+    try:
+        user_id = get_user_id(auth_header)
+    except ValueError as e:
+        return {
+            'statusCode': 401,
+            'headers': HEADERS,
+            'body': json.dumps({'error': str(e)})
+        }
+
     S = get_schema()
     conn = get_connection()
 
     try:
         cur = conn.cursor()
         now = datetime.utcnow()
-
-        # TODO: Extract user_id from JWT token
-        user_id = 1
 
         # Find subscription
         cur.execute(f"""

@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 import psycopg2
+from jwt_utils import get_user_id
 
 
 # =============================================================================
@@ -159,6 +160,16 @@ def handler(event, context):
             'body': json.dumps({'error': 'Unauthorized'})
         }
 
+    # Extract user_id from JWT token
+    try:
+        user_id = get_user_id(auth_header)
+    except ValueError as e:
+        return {
+            'statusCode': 401,
+            'headers': HEADERS,
+            'body': json.dumps({'error': str(e)})
+        }
+
     # Validate required fields
     plan_id = data.get('plan_id')
     user_email = data.get('user_email', '').strip()
@@ -219,10 +230,6 @@ def handler(event, context):
 
         plan_id, plan_name, plan_price = plan
         plan_price = float(plan_price)
-
-        # TODO: Extract user_id from JWT token (auth_header)
-        # For now using placeholder
-        user_id = 1
 
         # Create subscription record
         subscription_id = str(uuid.uuid4())

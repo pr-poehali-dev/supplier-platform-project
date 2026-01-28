@@ -3,6 +3,7 @@ import JsonLd from '@/components/seo/JsonLd';
 import { breadcrumbSchema } from '@/utils/seo';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useBookingCalendar } from '@/hooks/useBookingCalendar';
+import { useSubscription } from '@/hooks/useSubscription';
 import CalendarHeader from '@/components/calendar/CalendarHeader';
 import PendingRequestsDialog from '@/components/calendar/PendingRequestsDialog';
 import UnitsManagement from '@/components/booking/UnitsManagement';
@@ -21,6 +22,7 @@ export default function BookingCalendar() {
     keywords: 'календарь бронирований, управление объектами, турбаза, глэмпинг, бронирование онлайн'
   });
 
+  const { subscription } = useSubscription();
   const {
     units,
     bookings,
@@ -77,6 +79,7 @@ export default function BookingCalendar() {
             onAddUnit={addUnit}
             onUpdateUnit={updateUnit}
             onDeleteUnit={deleteUnit}
+            currentPlan={subscription?.plan_code}
           />
 
           <PricingAccordion 

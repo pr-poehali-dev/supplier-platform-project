@@ -30,6 +30,7 @@ interface UnitsManagementProps {
   onAddUnit: (unit: { name: string; type: string; description: string; base_price: string; max_guests: string; photo_urls?: string[]; map_link?: string }) => Promise<void>;
   onUpdateUnit: (unitId: number, unit: { name: string; type: string; description: string; base_price: string; max_guests: string; photo_urls?: string[]; map_link?: string }) => Promise<void>;
   onDeleteUnit: (unitId: number) => Promise<void>;
+  currentPlan?: string;
 }
 
 export default function UnitsManagement({
@@ -38,7 +39,8 @@ export default function UnitsManagement({
   onSelectUnit,
   onAddUnit,
   onUpdateUnit,
-  onDeleteUnit
+  onDeleteUnit,
+  currentPlan: propPlan
 }: UnitsManagementProps) {
   const navigate = useNavigate();
   const [showAddUnit, setShowAddUnit] = useState(false);
@@ -53,9 +55,10 @@ export default function UnitsManagement({
     map_link: ''
   });
 
-  const currentPlan = getUserSubscription();
-  const limits = getSubscriptionLimits();
-  const canAdd = canAddUnit(units.length);
+  // Use prop plan if available, otherwise fallback to localStorage
+  const currentPlan = (propPlan || getUserSubscription()) as any;
+  const limits = getSubscriptionLimits(currentPlan);
+  const canAdd = units.length < limits.maxUnits;
 
   const handleAddUnit = async () => {
     if (!canAdd) {

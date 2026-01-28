@@ -168,7 +168,7 @@ const Pricing = () => {
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Все тарифы включают полный доступ к платформе. Выбирайте по количеству номеров
           </p>
-          <div className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-500">
+          <div className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-500 flex-wrap">
             <div className="flex items-center gap-2">
               <Icon name="Check" size={16} className="text-green-600" />
               Подписка списывается автоматически раз в месяц
@@ -181,6 +181,17 @@ const Pricing = () => {
               <Icon name="RotateCcw" size={16} className="text-blue-600" />
               Отменить можно в любой момент
             </div>
+          </div>
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/tochka-test')}
+              className="gap-2 text-blue-600 border-blue-300 hover:bg-blue-50"
+            >
+              <Icon name="TestTube" size={14} />
+              Тестирование интеграции Точка Банк
+            </Button>
           </div>
         </div>
 

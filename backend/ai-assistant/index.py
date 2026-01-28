@@ -46,16 +46,17 @@ def handler(event: dict, context) -> dict:
                     FROM ai_messages
                     WHERE conversation_id = {conversation_id}
                     ORDER BY created_at ASC
+                    LIMIT 100
                 """)
             else:
                 # Последний разговор владельца
                 cur.execute(f"""
-                    SELECT c.id, m.role, m.content, m.created_at
+                    SELECT m.id, m.role, m.content, m.created_at
                     FROM ai_conversations c
                     JOIN ai_messages m ON m.conversation_id = c.id
                     WHERE c.owner_id = {owner_id} AND c.context_type = 'owner_chat'
-                    ORDER BY c.created_at DESC, m.created_at ASC
-                    LIMIT 50
+                    ORDER BY m.created_at ASC
+                    LIMIT 100
                 """)
             
             messages = []
@@ -101,15 +102,16 @@ def handler(event: dict, context) -> dict:
             # Получаем контекст владельца
             context = get_owner_context(cur, owner_id)
             
-            # Получаем историю разговора
+            # Получаем историю разговора (последние 30 сообщений для контекста AI)
             cur.execute(f"""
                 SELECT role, content FROM ai_messages
                 WHERE conversation_id = {conversation_id}
-                ORDER BY created_at ASC
-                LIMIT 20
+                ORDER BY created_at DESC
+                LIMIT 30
             """)
             
-            messages = [{'role': row[0], 'content': row[1]} for row in cur.fetchall()]
+            # Переворачиваем в хронологическом порядке
+            messages = [{'role': row[0], 'content': row[1]} for row in reversed(cur.fetchall())]
             
             # Системный промпт
             system_prompt = build_system_prompt(context)
@@ -132,6 +134,17 @@ def handler(event: dict, context) -> dict:
             
             assistant_message = response.choices[0].message.content
             
+            # Проверяем, есть ли intent для массовой рассылки
+            intent_data = None
+            if user_message.lower().find('отправ') != -1 and (user_message.lower().find('клиент') != -1 or user_message.lower().find('всем') != -1 or user_message.lower().find('рассыл') != -1):
+                # Запрос на рассылку — формируем intent
+                intent_data = {
+                    'intent': 'broadcast_message',
+                    'original_request': user_message,
+                    'suggested_text': assistant_message,
+                    'audience': 'all'  # all | with_bookings | past_guests
+                }
+            
             # Сохраняем ответ
             cur.execute(f"""
                 INSERT INTO ai_messages (conversation_id, role, content)
@@ -139,10 +152,49 @@ def handler(event: dict, context) -> dict:
             """)
             conn.commit()
             
-            return success_response({
+            result = {
                 'message': assistant_message,
                 'conversation_id': conversation_id
-            })
+            }
+            
+            if intent_data:
+                result['intent'] = intent_data
+            
+            return success_response(result)
+        
+        # DELETE /chat - очистить историю чата владельца
+        if method == 'DELETE' and action == 'chat':
+            conversation_id = query_params.get('conversation_id')
+            
+            if conversation_id:
+                # Удаляем сообщения конкретного разговора
+                cur.execute(f"""
+                    DELETE FROM ai_messages
+                    WHERE conversation_id = {conversation_id}
+                """)
+                
+                # Удаляем сам разговор
+                cur.execute(f"""
+                    DELETE FROM ai_conversations
+                    WHERE id = {conversation_id} AND owner_id = {owner_id}
+                """)
+            else:
+                # Удаляем ВСЕ разговоры владельца с типом owner_chat
+                cur.execute(f"""
+                    DELETE FROM ai_messages
+                    WHERE conversation_id IN (
+                        SELECT id FROM ai_conversations
+                        WHERE owner_id = {owner_id} AND context_type = 'owner_chat'
+                    )
+                """)
+                
+                cur.execute(f"""
+                    DELETE FROM ai_conversations
+                    WHERE owner_id = {owner_id} AND context_type = 'owner_chat'
+                """)
+            
+            conn.commit()
+            return success_response({'message': 'Chat history cleared'})
         
         # GET /settings - получить настройки бота
         if method == 'GET' and action == 'settings':
@@ -404,6 +456,7 @@ def get_owner_context(cur, owner_id: int) -> dict:
     units = []
     services = []
     bookings = []
+    pending_bookings = []
     past_bookings = []
     stats = {
         'bookings_this_month': 0,
@@ -459,46 +512,75 @@ def get_owner_context(cur, owner_id: int) -> dict:
         pass
     
     try:
-        # КРИТИЧНО: Актуальный календарь бронирований (±30 дней)
+        # КРИТИЧНО: Актуальный календарь ПОДТВЕРЖДЁННЫХ бронирований (±30 дней)
         cur.execute(f"""
             SELECT 
                 b.check_in,
                 b.check_out,
-                b.status,
                 b.total_price,
                 b.guest_name,
                 b.guest_phone,
-                u.name as unit_name,
-                b.payment_deadline
+                u.name as unit_name
             FROM bookings b
             JOIN units u ON b.unit_id = u.id
             WHERE u.owner_id = {owner_id}
             AND b.check_in >= CURRENT_DATE - INTERVAL '7 days'
             AND b.check_in <= CURRENT_DATE + INTERVAL '30 days'
-            AND b.status IN ('confirmed', 'pending')
+            AND b.status = 'confirmed'
             ORDER BY b.check_in
         """)
         
         for row in cur.fetchall():
             try:
-                booking = {
+                bookings.append({
                     'check_in': row[0].isoformat() if row[0] else 'н/д',
                     'check_out': row[1].isoformat() if row[1] else 'н/д',
-                    'status': row[2] or 'unknown',
-                    'price': float(row[3]) if row[3] else 0,
-                    'guest_name': row[4] or 'не указано',
-                    'guest_phone': row[5] or '',
-                    'unit_name': row[6] or 'объект не найден'
-                }
-                
-                # Для pending добавляем дедлайн оплаты
-                if row[2] == 'pending' and row[7]:
-                    try:
-                        booking['payment_deadline'] = row[7].isoformat()
-                    except:
-                        pass
-                
-                bookings.append(booking)
+                    'price': float(row[2]) if row[2] else 0,
+                    'guest_name': row[3] or 'не указано',
+                    'guest_phone': row[4] or '',
+                    'unit_name': row[5] or 'объект не найден'
+                })
+            except:
+                continue
+    except:
+        pass
+    
+    try:
+        # КРИТИЧНО: ЗАЯВКИ БЕЗ ОПЛАТЫ (pending_bookings)
+        cur.execute(f"""
+            SELECT 
+                pb.id,
+                pb.check_in,
+                pb.check_out,
+                pb.guest_name,
+                pb.guest_contact,
+                pb.amount,
+                pb.verification_status,
+                pb.expires_at,
+                pb.created_at,
+                u.name as unit_name
+            FROM pending_bookings pb
+            JOIN units u ON pb.unit_id = u.id
+            WHERE u.owner_id = {owner_id}
+            AND pb.verification_status = 'pending'
+            AND pb.expires_at > CURRENT_TIMESTAMP
+            ORDER BY pb.created_at DESC
+        """)
+        
+        for row in cur.fetchall():
+            try:
+                pending_bookings.append({
+                    'id': row[0],
+                    'check_in': row[1].isoformat() if row[1] else 'н/д',
+                    'check_out': row[2].isoformat() if row[2] else 'н/д',
+                    'guest_name': row[3] or 'не указано',
+                    'guest_phone': row[4] or '',
+                    'amount': float(row[5]) if row[5] else 0,
+                    'verification_status': row[6] or 'pending',
+                    'expires_at': row[7].isoformat() if row[7] else 'н/д',
+                    'created_at': row[8].isoformat() if row[8] else 'н/д',
+                    'unit_name': row[9] or 'объект не найден'
+                })
             except:
                 continue
     except:
@@ -625,6 +707,7 @@ def get_owner_context(cur, owner_id: int) -> dict:
         'units': units,
         'services': services,
         'bookings': bookings,
+        'pending_bookings': pending_bookings,
         'past_bookings': past_bookings,
         'stats': stats,
         'bot_settings': bot_settings,
@@ -655,33 +738,29 @@ def build_system_prompt(context: dict) -> str:
     # КРИТИЧНО: Календарь бронирований с защитой от ошибок
     bookings_text = 'Ближайших бронирований нет'
     try:
+        parts = []
+        
         if context.get('bookings'):
-            confirmed = [b for b in context['bookings'] if b.get('status') == 'confirmed']
-            pending = [b for b in context['bookings'] if b.get('status') == 'pending']
-            
-            parts = []
-            
-            if confirmed:
-                parts.append('ПОДТВЕРЖДЁННЫЕ БРОНИРОВАНИЯ:')
-                for b in confirmed:
-                    try:
-                        line = f"- {b.get('check_in', 'н/д')} → {b.get('check_out', 'н/д')}: {b.get('unit_name', 'объект')}, {b.get('guest_name', 'не указано')}, {b.get('price', 0):.0f}₽"
-                        parts.append(line)
-                    except:
-                        continue
-            
-            if pending:
-                parts.append('\nОЖИДАЮТ ОПЛАТЫ:')
-                for b in pending:
-                    try:
-                        deadline = b.get('payment_deadline', 'не указан')
-                        line = f"- {b.get('check_in', 'н/д')} → {b.get('check_out', 'н/д')}: {b.get('unit_name', 'объект')}, {b.get('guest_name', 'не указано')}, до {deadline}"
-                        parts.append(line)
-                    except:
-                        continue
-            
-            if parts:
-                bookings_text = '\n'.join(parts)
+            parts.append('✅ ПОДТВЕРЖДЁННЫЕ БРОНИРОВАНИЯ:')
+            for b in context['bookings']:
+                try:
+                    line = f"- {b.get('check_in', 'н/д')} → {b.get('check_out', 'н/д')}: {b.get('unit_name', 'объект')}, {b.get('guest_name', 'не указано')}, {b.get('price', 0):.0f}₽"
+                    parts.append(line)
+                except:
+                    continue
+        
+        if context.get('pending_bookings'):
+            parts.append('\n⏳ ЗАЯВКИ БЕЗ ОПЛАТЫ (ОЖИДАЮТ ПОДТВЕРЖДЕНИЯ):')
+            for pb in context['pending_bookings']:
+                try:
+                    expires = pb.get('expires_at', 'н/д')
+                    line = f"- {pb.get('check_in', 'н/д')} → {pb.get('check_out', 'н/д')}: {pb.get('unit_name', 'объект')}, {pb.get('guest_name', 'не указано')}, {pb.get('amount', 0):.0f}₽, истекает {expires}"
+                    parts.append(line)
+                except:
+                    continue
+        
+        if parts:
+            bookings_text = '\n'.join(parts)
     except:
         pass
     
@@ -780,22 +859,40 @@ def build_system_prompt(context: dict) -> str:
    - Если даты нет в списке → бронирований на эту дату НЕТ
    - Отвечай уверенно и конкретно
 
-4. ЗАПРЕЩЁННЫЕ ФРАЗЫ:
+4. КРИТИЧНО — РАЗЛИЧАЙ СТАТУСЫ БРОНИРОВАНИЙ:
+   
+   ✅ ПОДТВЕРЖДЁННЫЕ БРОНИРОВАНИЯ (confirmed):
+   - Оплачены и подтверждены
+   - Занимают даты в календаре
+   - При вопросе "Есть ли брони?" — учитывай ТОЛЬКО эти
+   
+   ⏳ ЗАЯВКИ БЕЗ ОПЛАТЫ (pending_bookings):
+   - НЕ оплачены, ждут подтверждения оплаты
+   - НЕ занимают даты в календаре
+   - Имеют срок действия (expires_at)
+   - При вопросе "Есть ли заявки без оплаты?" — показывай ТОЛЬКО эти
+   - При вопросе "Свободны ли даты?" — НЕ учитывай pending (это НЕ брони!)
+   
+   ПРАВИЛО: НИКОГДА не говори "заявок нет", если в разделе "ЗАЯВКИ БЕЗ ОПЛАТЫ" есть записи!
+
+5. ЗАПРЕЩЁННЫЕ ФРАЗЫ:
    ❌ "у меня нет доступа к календарю"
    ❌ "возможно", "может быть", "скорее всего"
    ❌ "данные могут быть неточными"
    ❌ "проверьте в системе"
+   ❌ "заявок нет" (если есть pending_bookings)
    
    ✅ Если данных нет — говори прямо: "Бронирований не было", "Объекты не добавлены"
 
-5. ДОСТОВЕРНОСТЬ:
+6. ДОСТОВЕРНОСТЬ:
    - Ты ВСЕГДА видишь актуальный календарь будущих бронирований
+   - Ты ВСЕГДА видишь ВСЕ заявки без оплаты (pending_bookings)
    - Ты ВСЕГДА видишь историю за последние 60 дней
    - НЕ выдумывай цифры, даты, имена гостей
    - НЕ используй процент загрузки для ответов о конкретных датах
    - Называй КОНКРЕТНЫЕ даты, суммы, имена из календаря или истории
 
-6. СТАТИСТИКА:
+7. СТАТИСТИКА:
    - Процент загрузки — это агрегат, НЕ список конкретных дат
    - НЕ упоминай "загрузка включает прошлые брони"
    - НЕ связывай процент с конкретными прошедшими датами
@@ -806,10 +903,35 @@ def build_system_prompt(context: dict) -> str:
 ═══════════════════════════════════
 
 1. Отвечай на вопросы о будущих бронированиях — по данным календаря выше
-2. Анализируй загрузку и давай советы по оптимизации
-3. Напоминай о праздниках и предлагай акции
-4. Помогай настраивать цены и допродажи
-5. Поддерживай владельца и давай рекомендации
+2. Показывай заявки без оплаты при запросе владельца
+3. Анализируй загрузку и давай советы по оптимизации
+4. Напоминай о праздниках и предлагай акции
+5. Помогай настраивать цены и допродажи
+6. Поддерживай владельца и давай рекомендации
+
+═══════════════════════════════════
+МАССОВАЯ РАССЫЛКА КЛИЕНТАМ
+═══════════════════════════════════
+
+Если владелец просит:
+- "Отправь всем клиентам..."
+- "Разошли акцию..."
+- "Напиши клиентам про..."
+
+Твои действия:
+1. Составь ГОТОВЫЙ текст сообщения для рассылки
+2. Сделай текст кратким (2-4 предложения)
+3. Добавь эмодзи для привлечения внимания
+4. Укажи конкретные детали (цены, даты, условия)
+5. НЕ добавляй кнопки и ссылки в текст
+6. Система АВТОМАТИЧЕСКИ определит это как intent для рассылки
+
+ФОРМАТ ОТВЕТА:
+Сформируй готовый текст, который можно сразу отправить клиентам.
+
+Пример:
+Владелец: "Отправь всем скидку на 23 февраля"
+Ты: "🎉 Специальная акция к 23 февраля! Скидка 15% на все объекты при бронировании с 20 по 25 февраля. Успейте забронировать лучшие даты!"
 
 Помни: лучше честно сказать "данных нет", чем выдумать или сказать "нет доступа"."""
 

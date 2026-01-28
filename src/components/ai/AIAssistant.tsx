@@ -8,11 +8,19 @@ import ChatInput from './ChatInput';
 import QuickQuestions from './QuickQuestions';
 
 const AI_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
+const BROADCAST_URL = 'https://functions.poehali.dev/6b801cd0-070e-4eb7-bc93-0d6dbdd90fc1';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
+}
+
+interface BroadcastIntent {
+  intent: 'broadcast_message';
+  original_request: string;
+  suggested_text: string;
+  audience: 'all' | 'with_bookings' | 'past_guests';
 }
 
 export default function AIAssistant() {
@@ -22,6 +30,7 @@ export default function AIAssistant() {
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [broadcastIntent, setBroadcastIntent] = useState<BroadcastIntent | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -106,6 +115,11 @@ export default function AIAssistant() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Если AI распознал intent на рассылку
+      if (data.intent) {
+        setBroadcastIntent(data.intent);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       setMessages(prev => [...prev, {
@@ -122,6 +136,52 @@ export default function AIAssistant() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    }
+  };
+
+  const handleBroadcast = async () => {
+    if (!broadcastIntent) return;
+    
+    const audienceText = {
+      all: 'всем клиентам',
+      with_bookings: 'клиентам с активными бронированиями',
+      past_guests: 'прошлым гостям'
+    }[broadcastIntent.audience];
+    
+    if (!confirm(`Отправить сообщение ${audienceText}?\n\n"${broadcastIntent.suggested_text}"`)) {
+      setBroadcastIntent(null);
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      const response = await fetchWithAuth(BROADCAST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: broadcastIntent.suggested_text,
+          audience: broadcastIntent.audience
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Ошибка отправки');
+      }
+      
+      const result = await response.json();
+      
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `✅ Рассылка завершена!\n\nОтправлено: ${result.sent}\nНе доставлено: ${result.failed}\nВсего клиентов: ${result.total}`,
+        created_at: new Date().toISOString()
+      }]);
+      
+      setBroadcastIntent(null);
+    } catch (error) {
+      alert('Не удалось выполнить рассылку');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -157,15 +217,24 @@ export default function AIAssistant() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setMessages([]);
-                    setConversationId(null);
-                    loadSettings();
+                  onClick={async () => {
+                    if (confirm('Очистить историю чата? Это действие необратимо.')) {
+                      try {
+                        await fetchWithAuth(`${AI_URL}?action=chat`, {
+                          method: 'DELETE'
+                        });
+                        setMessages([]);
+                        setConversationId(null);
+                        loadSettings();
+                      } catch (error) {
+                        alert('Не удалось очистить историю');
+                      }
+                    }
                   }}
                   className="h-8 w-8 p-0 hover:bg-gray-100 text-gray-600 rounded-lg transition-colors"
-                  title="Начать новый чат"
+                  title="Очистить историю чата"
                 >
-                  <Icon name="RefreshCw" size={15} />
+                  <Icon name="Trash2" size={15} />
                 </Button>
                 <Button
                   variant="ghost"
@@ -202,6 +271,35 @@ export default function AIAssistant() {
               >
                 <Icon name="ArrowDown" size={18} />
               </Button>
+            )}
+            
+            {broadcastIntent && (
+              <div className="absolute bottom-24 left-4 right-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-3 shadow-lg z-20">
+                <div className="flex items-start gap-2 mb-2">
+                  <Icon name="Send" size={16} className="text-indigo-600 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-indigo-900 mb-1">Готово к рассылке</p>
+                    <p className="text-xs text-gray-700 mb-2">{broadcastIntent.suggested_text}</p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleBroadcast}
+                        size="sm"
+                        className="h-7 px-3 text-xs bg-indigo-600 hover:bg-indigo-700"
+                      >
+                        Отправить
+                      </Button>
+                      <Button
+                        onClick={() => setBroadcastIntent(null)}
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-3 text-xs text-gray-600 hover:bg-white"
+                      >
+                        Отмена
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
             
             <ChatInput

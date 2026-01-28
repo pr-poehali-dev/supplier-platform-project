@@ -72,51 +72,45 @@ def handler(event: dict, context) -> dict:
             )
             
             if token_response.status_code != 200:
-                return error_response(500, f'Ошибка получения токена Точка Банк: {token_response.text}')
+                return error_response(500, f'Ошибка получения токена: {token_response.text}')
             
             access_token = token_response.json()['access_token']
 
-            # Шаг 2: Создаём consent (разрешение) для подписки
-            consent_response = requests.post(
-                'https://enter.tochka.com/uapi/v1.0/consents',
+            # Шаг 2: Создаём подписку через API acquiring
+            subscription_id = str(uuid.uuid4())
+            redirect_url = f'https://tourconnect.ru/subscription-status?subscriptionId={subscription_id}&status=success'
+            fail_redirect_url = f'https://tourconnect.ru/subscription-status?subscriptionId={subscription_id}&status=error'
+
+            create_subscription_response = requests.post(
+                'https://enter.tochka.com/uapi/v1.0/acquiring/v1.0/subscriptions',
                 headers={
                     'Authorization': f'Bearer {access_token}',
                     'Content-Type': 'application/json'
                 },
                 json={
                     'Data': {
-                        'permissions': [
-                            'MakeAcquiringOperation',
-                            'ReadAcquiringData',
-                            'ManageWebhookData'
-                        ]
+                        'customerCode': os.environ['TOCHKA_CUSTOMER_CODE'],
+                        'amount': float(amount),
+                        'purpose': purpose,
+                        'redirectUrl': redirect_url,
+                        'failRedirectUrl': fail_redirect_url,
+                        'saveCard': True,
+                        'consumerId': subscription_id,
+                        'merchantId': os.environ['TOCHKA_MERCHANT_ID'],
+                        'recurring': True,
+                        'Options': {
+                            'paymentLinkId': subscription_id
+                        }
                     }
                 }
             )
             
-            if consent_response.status_code != 200:
-                return error_response(500, f'Ошибка создания consent: {consent_response.text}')
+            if create_subscription_response.status_code != 200:
+                return error_response(500, f'Ошибка создания подписки: {create_subscription_response.text}')
             
-            consent_id = consent_response.json()['Data']['consentId']
-
-            # Шаг 3: Формируем redirect_uri для возврата пользователя
-            subscription_id = str(uuid.uuid4())
-            callback_url = 'https://functions.poehali.dev/83c679fe-d952-4080-902a-14548ff7da79'
-
-            # Шаг 4: Формируем URL для подтверждения пользователем
-            # ВАЖНО: Точка Банк требует, чтобы пользователь подтвердил consent через OAuth authorize
-            state = subscription_id
-            authorize_url = (
-                f'https://enter.tochka.com/connect/authorize'
-                f'?client_id={os.environ["TOCHKA_CLIENT_ID"]}'
-                f'&response_type=code'
-                f'&state={state}'
-                f'&redirect_uri={callback_url}'
-                f'&scope=accounts%20balances%20customers%20statements%20sbp%20payments%20acquiring'
-                f'&consent_id={consent_id}'
-            )
-
-            payment_url = authorize_url
+            subscription_data = create_subscription_response.json()['Data']
+            payment_url = subscription_data['paymentLink']
+            operation_id = subscription_data['operationId']
 
             conn = psycopg2.connect(os.environ['DATABASE_URL'])
             cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -134,7 +128,7 @@ def handler(event: dict, context) -> dict:
                     plan_code,
                     amount,
                     'pending',
-                    subscription_id,
+                    operation_id,
                     datetime.utcnow()
                 )
             )

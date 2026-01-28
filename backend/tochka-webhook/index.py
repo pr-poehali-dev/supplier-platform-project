@@ -40,23 +40,31 @@ def handler(event: dict, context) -> dict:
             # if signature != expected_signature:
             #     return error_response(401, 'Неверная подпись')
 
-            event_type = body.get('eventType')
-            subscription_id = body.get('subscriptionId')
+            # Структура webhook от Точка Банк (acquiringInternetPayment):
+            # { "type": "acquiringInternetPayment", "operationId": "...", "status": "...", "consumerId": "..." }
+            webhook_type = body.get('type')
+            operation_id = body.get('operationId')
             payment_status = body.get('status')
-            amount = body.get('amount')
+            consumer_id = body.get('consumerId')
 
-            if not subscription_id:
-                return error_response(400, 'Отсутствует subscriptionId')
+            if not operation_id and not consumer_id:
+                return error_response(400, 'Отсутствует operationId или consumerId')
 
             conn = psycopg2.connect(os.environ['DATABASE_URL'])
             cur = conn.cursor(cursor_factory=RealDictCursor)
             schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
 
-            # Находим подписку
-            cur.execute(
-                f'SELECT * FROM {schema}.subscriptions WHERE tochka_subscription_id = %s',
-                (subscription_id,)
-            )
+            # Находим подписку по operation_id или consumer_id (= subscription_id)
+            if consumer_id:
+                cur.execute(
+                    f'SELECT * FROM {schema}.subscriptions WHERE id = %s',
+                    (consumer_id,)
+                )
+            else:
+                cur.execute(
+                    f'SELECT * FROM {schema}.subscriptions WHERE tochka_subscription_id = %s',
+                    (operation_id,)
+                )
             subscription = cur.fetchone()
 
             if not subscription:

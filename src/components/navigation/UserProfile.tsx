@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface UserProfileProps {
   user: any;
@@ -42,6 +43,7 @@ const getSubscriptionName = (plan: string) => {
 
 export default function UserProfile({ user }: UserProfileProps) {
   const navigate = useNavigate();
+  const { subscription } = useSubscription();
   
   if (!user) {
     return (
@@ -52,7 +54,8 @@ export default function UserProfile({ user }: UserProfileProps) {
     );
   }
 
-  const subscriptionPlan = (user.subscription_plan || 'none').toLowerCase();
+  // Get subscription from API (not from user object in localStorage)
+  const subscriptionPlan = subscription?.plan_code || 'none';
   const color = getSubscriptionColor(subscriptionPlan);
   const planName = getSubscriptionName(subscriptionPlan);
 

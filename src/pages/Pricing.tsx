@@ -112,10 +112,19 @@ const Pricing = () => {
       return;
     }
 
+    const accessToken = localStorage.getItem('access_token');
+    if (!accessToken) {
+      console.error('No access token found');
+      alert('Пожалуйста, войдите в аккаунт заново');
+      navigate('/auth');
+      return;
+    }
+
     console.log('Creating subscription:', {
       plan_id: plan.id,
       user_email: user.email,
       return_url: `${window.location.origin}/profile?subscription=success`,
+      token_present: !!accessToken,
     });
 
     try {
@@ -123,7 +132,7 @@ const Pricing = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'X-Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           plan_id: plan.id,

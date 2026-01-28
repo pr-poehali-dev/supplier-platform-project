@@ -236,7 +236,7 @@ def handler(event, context):
         # Deactivate old active subscriptions (only one active subscription at a time)
         cur.execute(f"""
             UPDATE {S}subscriptions
-            SET status = 'replaced', cancelled_at = %s
+            SET status = 'cancelled', cancelled_at = %s
             WHERE user_id = %s AND status IN ('active', 'pending')
         """, (datetime.utcnow(), user_id))
 

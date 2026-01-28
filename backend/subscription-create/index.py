@@ -232,6 +232,13 @@ def handler(event, context):
         plan_id, plan_name, plan_price = plan
         plan_price = float(plan_price)
 
+        # Deactivate old active subscriptions (only one active subscription at a time)
+        cur.execute(f"""
+            UPDATE {S}subscriptions
+            SET status = 'replaced', cancelled_at = %s
+            WHERE user_id = %s AND status IN ('active', 'pending')
+        """, (datetime.utcnow(), user_id))
+
         # Create subscription record
         subscription_id = str(uuid.uuid4())
         now = datetime.utcnow()

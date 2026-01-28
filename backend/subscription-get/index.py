@@ -85,6 +85,7 @@ def handler(event, context):
         cur = conn.cursor()
 
         # Get active subscription with payment method
+        # Priority: active without cancel > active with cancel > pending > payment_failed
         cur.execute(f"""
             SELECT 
                 s.id,
@@ -103,7 +104,14 @@ def handler(event, context):
             FROM {S}subscriptions s
             LEFT JOIN {S}payment_methods pm ON s.payment_method_id = pm.id
             WHERE s.user_id = %s AND s.status IN ('active', 'pending', 'payment_failed')
-            ORDER BY s.created_at DESC
+            ORDER BY 
+                CASE 
+                    WHEN s.status = 'active' AND s.cancel_at_period_end = false THEN 1
+                    WHEN s.status = 'active' AND s.cancel_at_period_end = true THEN 2
+                    WHEN s.status = 'pending' THEN 3
+                    ELSE 4
+                END,
+                s.created_at DESC
             LIMIT 1
         """, (user_id,))
 

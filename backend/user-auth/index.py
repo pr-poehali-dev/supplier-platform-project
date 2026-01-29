@@ -3,6 +3,7 @@ import os
 import urllib.request
 import urllib.parse
 import psycopg2
+from jwt_utils import create_access_token, create_refresh_token, decode_refresh_token
 
 def handler(event: dict, context) -> dict:
     '''Полный цикл OAuth авторизации: редирект на Яндекс и обработка callback'''
@@ -23,8 +24,12 @@ def handler(event: dict, context) -> dict:
     action = query.get('action')
     code = query.get('code')
     
-    # Обновление профиля
+    # Обновление токена
     if action == 'refresh':
+        return refresh_token_handler(event)
+    
+    # Обновление профиля
+    if action == 'refresh_profile':
         return refresh_profile(event)
     
     
@@ -162,10 +167,19 @@ def handle_callback(code: str) -> dict:
             'subscription_expires_at': user[6].isoformat() if user[6] else None
         }
         
+        # Generate JWT tokens
+        access_token = create_access_token(user[0], user[1])
+        refresh_token = create_refresh_token(user[0], user[1])
+        
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'success': True, 'user': user_info}),
+            'body': json.dumps({
+                'success': True,
+                'user': user_info,
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }),
             'isBase64Encoded': False
         }
         
@@ -174,6 +188,61 @@ def handle_callback(code: str) -> dict:
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({'error': f'Database error: {str(e)}'}),
+            'isBase64Encoded': False
+        }
+
+
+def refresh_token_handler(event: dict) -> dict:
+    '''Обновляет access_token используя refresh_token'''
+    try:
+        body = json.loads(event.get('body', '{}'))
+        refresh_token = body.get('refresh_token')
+        
+        if not refresh_token:
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Missing refresh_token'}),
+                'isBase64Encoded': False
+            }
+        
+        # Decode and validate refresh token
+        payload = decode_refresh_token(refresh_token)
+        user_id = payload.get('sub')
+        email = payload.get('email')
+        
+        if not user_id or not email:
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Invalid refresh token'}),
+                'isBase64Encoded': False
+            }
+        
+        # Generate new access token
+        new_access_token = create_access_token(user_id, email)
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({
+                'access_token': new_access_token
+            }),
+            'isBase64Encoded': False
+        }
+        
+    except ValueError as e:
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': str(e)}),
+            'isBase64Encoded': False
+        }
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': f'Token refresh failed: {str(e)}'}),
             'isBase64Encoded': False
         }
 

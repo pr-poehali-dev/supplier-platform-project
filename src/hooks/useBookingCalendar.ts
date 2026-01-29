@@ -68,13 +68,7 @@ export function useBookingCalendar() {
 
   const loadUnits = async () => {
     try {
-      const response = await fetchWithAuth(`${API_URL}?action=units`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
+      const data = await fetchWithAuth(`${API_URL}?action=units`);
       
       const unitsWithDefaults = (data.units || []).map((unit: Unit) => ({
         ...unit,
@@ -98,13 +92,7 @@ export function useBookingCalendar() {
 
   const loadBookings = async () => {
     try {
-      const response = await fetchWithAuth(`${API_URL}?action=bookings`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
+      const data = await fetchWithAuth(`${API_URL}?action=bookings`);
       const newBookings = data.bookings || [];
       
       if (bookings.length > 0 && newBookings.length > bookings.length) {
@@ -137,9 +125,7 @@ export function useBookingCalendar() {
   const loadPendingBookings = async () => {
     try {
       console.log('🔍 Loading pending bookings...');
-      const response = await fetchWithAuth(`${API_URL}?action=get_pending_bookings`);
-      console.log('🔍 Response status:', response.status);
-      const data = await response.json();
+      const data = await fetchWithAuth(`${API_URL}?action=get_pending_bookings`);
       console.log('🔍 Pending bookings data:', data);
       const newPending = data.bookings || [];
       console.log('🔍 New pending count:', newPending.length);
@@ -185,15 +171,12 @@ export function useBookingCalendar() {
     }
 
     try {
-      const response = await fetchWithAuth(`${API_URL}?action=create-unit`, {
+      await fetchWithAuth(`${API_URL}?action=create-unit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUnit)
       });
       
-      if (response.ok) {
-        await loadUnits();
-      }
+      await loadUnits();
     } catch (error) {
       // Error adding unit
     }
@@ -214,19 +197,16 @@ export function useBookingCalendar() {
     }
 
     try {
-      const response = await fetchWithAuth(`${API_URL}?action=update-unit&unit_id=${unitId}`, {
+      await fetchWithAuth(`${API_URL}?action=update-unit&unit_id=${unitId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedUnit)
       });
       
-      if (response.ok) {
-        await loadUnits();
-        toast({
-          title: 'Успешно',
-          description: 'Объект обновлён',
-        });
-      }
+      await loadUnits();
+      toast({
+        title: 'Успешно',
+        description: 'Объект обновлён',
+      });
     } catch (error) {
       toast({
         title: 'Ошибка',
@@ -238,32 +218,23 @@ export function useBookingCalendar() {
 
   const deleteUnit = async (unitId: number) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}?action=delete-unit&unit_id=${unitId}`, {
+      await fetchWithAuth(`${API_URL}?action=delete-unit&unit_id=${unitId}`, {
         method: 'DELETE'
       });
       
-      if (response.ok) {
-        if (selectedUnit?.id === unitId) {
-          setSelectedUnit(null);
-        }
-        await loadUnits();
-        await loadBookings();
-        toast({
-          title: 'Объект удалён',
-          description: 'Объект успешно удалён из системы',
-        });
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: 'Ошибка',
-          description: errorData.error || 'Не удалось удалить объект',
-          variant: 'destructive',
-        });
+      if (selectedUnit?.id === unitId) {
+        setSelectedUnit(null);
       }
+      await loadUnits();
+      await loadBookings();
+      toast({
+        title: 'Объект удалён',
+        description: 'Объект успешно удалён из системы',
+      });
     } catch (error) {
       toast({
         title: 'Ошибка',
-        description: 'Произошла ошибка при удалении объекта',
+        description: error instanceof Error ? error.message : 'Произошла ошибка при удалении объекта',
         variant: 'destructive',
       });
     }
@@ -281,38 +252,30 @@ export function useBookingCalendar() {
     }
 
     try {
-      const response = await fetchWithAuth(`${API_URL}?action=create-booking`, {
+      const data = await fetchWithAuth(`${API_URL}?action=create-booking`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           unit_id: selectedUnit.id,
           ...newBooking
         })
       });
       
-      const data = await response.json();
+      await loadBookings();
       
-      if (response.ok) {
-        await loadBookings();
-        
-        try {
-          await fetchWithAuth(CUSTOMER_SYNC_URL, { method: 'POST' });
-        } catch (err) {
-          // Customer sync failed
-        }
-      } else {
-        alert(data.error || 'Ошибка создания бронирования');
+      try {
+        await fetchWithAuth(CUSTOMER_SYNC_URL, { method: 'POST' });
+      } catch (err) {
+        // Customer sync failed
       }
     } catch (error) {
-      alert('Ошибка создания бронирования');
+      alert(error instanceof Error ? error.message : 'Ошибка создания бронирования');
     }
   };
 
   const updateBookingStatus = async (bookingId: number, newStatus: string) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}?action=update-booking-status`, {
+      await fetchWithAuth(`${API_URL}?action=update-booking-status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           booking_id: bookingId,
           status: newStatus,
@@ -321,13 +284,11 @@ export function useBookingCalendar() {
         })
       });
 
-      if (response.ok) {
-        await loadBookings();
-        toast({
-          title: 'Статус обновлен',
-          description: newStatus === 'confirmed' ? 'Бронь подтверждена' : 'Статус изменен'
-        });
-      }
+      await loadBookings();
+      toast({
+        title: 'Статус обновлен',
+        description: newStatus === 'confirmed' ? 'Бронь подтверждена' : 'Статус изменен'
+      });
     } catch (error) {
       toast({
         title: 'Ошибка',
@@ -348,13 +309,11 @@ export function useBookingCalendar() {
 
   const deleteBooking = async (bookingId: number) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}?action=delete-booking&booking_id=${bookingId}`, {
+      await fetchWithAuth(`${API_URL}?action=delete-booking&booking_id=${bookingId}`, {
         method: 'DELETE'
       });
       
-      if (response.ok) {
-        await loadBookings();
-      }
+      await loadBookings();
     } catch (error) {
       // Error deleting booking
     }

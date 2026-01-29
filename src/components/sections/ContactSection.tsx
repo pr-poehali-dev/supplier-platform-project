@@ -1,64 +1,9 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
-import { useToast } from '@/hooks/use-toast';
-import { fetchWithAuth } from '@/lib/api';
 
 const ContactSection = () => {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      name: formData.get('name'),
-      email: formData.get('email'),
-      company: formData.get('company') || 'Не указана',
-      message: formData.get('message')
-    };
-    
-    try {
-      const response = await fetchWithAuth('https://functions.poehali.dev/d00d6394-685d-4e42-9d5e-b5f3a12b31d1', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        toast({
-          title: '✅ Заявка отправлена!',
-          description: 'Мы свяжемся с вами в ближайшее время',
-        });
-        (e.target as HTMLFormElement).reset();
-      } else {
-        toast({
-          title: '❌ Ошибка отправки',
-          description: result.error || 'Попробуйте позже или напишите на email',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      toast({
-        title: '❌ Ошибка отправки',
-        description: 'Проверьте интернет-соединение',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <section id="contact" className="py-20 px-4 bg-gradient-to-br from-primary/5 to-secondary/5">
       <div className="container mx-auto max-w-4xl">
@@ -70,88 +15,47 @@ const ContactSection = () => {
             Начните сотрудничество
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Оставьте заявку, и мы расскажем, как TourConnect поможет развивать ваш бизнес
+            Свяжитесь с нами любым удобным способом
           </p>
         </div>
 
-        <Card className="border-none shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-2xl font-heading flex items-center gap-2">
-              <Icon name="Send" className="text-primary" size={24} />
-              Форма обратной связи
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleContactSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Имя</label>
-                  <Input 
-                    name="name"
-                    placeholder="Ваше имя" 
-                    required 
-                    className="border-gray-300 focus:border-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Email</label>
-                  <Input 
-                    name="email"
-                    type="email" 
-                    placeholder="your@email.com" 
-                    required 
-                    className="border-gray-300 focus:border-primary"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Компания</label>
-                <Input 
-                  name="company"
-                  placeholder="Название компании" 
-                  className="border-gray-300 focus:border-primary"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Сообщение</label>
-                <Textarea 
-                  name="message"
-                  placeholder="Расскажите о вашем бизнесе и целях сотрудничества" 
-                  rows={5}
-                  required
-                  className="border-gray-300 focus:border-primary resize-none"
-                />
-              </div>
-              <Button 
-                type="submit" 
-                size="lg" 
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Icon name="Loader2" className="mr-2 animate-spin" size={20} />
-                    Отправка...
-                  </>
-                ) : (
-                  <>
-                    Отправить заявку
-                    <Icon name="ArrowRight" className="ml-2" size={20} />
-                  </>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <div className="mt-12 flex justify-center">
-          <Card className="text-center border-none shadow-lg hover:shadow-xl transition-shadow max-w-md w-full">
+        <div className="mt-12 flex justify-center gap-6 flex-wrap">
+          <Card className="text-center border-none shadow-lg hover:shadow-xl transition-shadow max-w-sm w-full">
             <CardContent className="pt-6">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4">
                 <Icon name="Mail" className="text-white" size={24} />
               </div>
               <h4 className="font-bold mb-2">Email</h4>
-              <p className="text-gray-600 text-sm">admin@tourconnect.ru</p>
+              <a 
+                href="mailto:admin@tourconnect.ru"
+                className="text-gray-600 text-sm hover:text-primary transition-colors"
+              >
+                admin@tourconnect.ru
+              </a>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center border-none shadow-lg hover:shadow-xl transition-shadow max-w-sm w-full">
+            <CardContent className="pt-6">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-4">
+                <Icon name="Send" className="text-white" size={24} />
+              </div>
+              <h4 className="font-bold mb-2">Telegram</h4>
+              <Button
+                asChild
+                variant="outline"
+                className="mt-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+              >
+                <a 
+                  href="https://t.me/Maxim_Romantsov" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2"
+                >
+                  <Icon name="Send" size={16} />
+                  Написать в Telegram
+                </a>
+              </Button>
             </CardContent>
           </Card>
         </div>

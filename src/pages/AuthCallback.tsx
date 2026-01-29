@@ -31,13 +31,24 @@ const AuthCallback = () => {
         const data = await response.json();
 
         if (data.success && data.user) {
+          console.log('[AuthCallback] User data received:', data.user);
+          console.log('[AuthCallback] Access token exists:', !!data.access_token);
+          console.log('[AuthCallback] Refresh token exists:', !!data.refresh_token);
+          
           localStorage.setItem('user', JSON.stringify(data.user));
           
           if (data.access_token) {
             localStorage.setItem('access_token', data.access_token);
+            console.log('[AuthCallback] Access token saved to localStorage');
+          } else {
+            console.warn('[AuthCallback] No access_token in response');
           }
+          
           if (data.refresh_token) {
             localStorage.setItem('auth_refresh_token', data.refresh_token);
+            console.log('[AuthCallback] Refresh token saved to localStorage');
+          } else {
+            console.warn('[AuthCallback] No refresh_token in response');
           }
 
           const accessToken = data.access_token || localStorage.getItem('access_token');

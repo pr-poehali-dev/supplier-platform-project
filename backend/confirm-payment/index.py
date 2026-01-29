@@ -2,6 +2,7 @@ import json
 import os
 import psycopg2
 from urllib import request
+from jwt_utils import get_user_id
 
 def handler(event: dict, context) -> dict:
     '''Подтверждение оплаты владельцем и создание бронирования'''
@@ -14,7 +15,7 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-Owner-Id'
+                'Access-Control-Allow-Headers': 'Content-Type, X-Authorization'
             },
             'body': ''
         }

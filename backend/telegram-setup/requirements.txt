@@ -1,1 +1,1 @@
-# No external dependencies required
+PyJWT>=2.8.0

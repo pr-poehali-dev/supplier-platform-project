@@ -3,12 +3,13 @@ import os
 import psycopg2
 from datetime import datetime
 from decimal import Decimal
+from jwt_utils import get_user_id
 
 def handler(event: dict, context) -> dict:
     '''
     Упрощённый API для календаря бронирований с мультитенантностью.
     Управляет объектами размещения и бронированиями.
-    Требует X-Owner-Id заголовок для изоляции данных владельцев.
+    Требует JWT токен для авторизации владельцев.
     '''
     method = event.get('httpMethod', 'GET')
     
@@ -18,22 +19,32 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Owner-Id',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Authorization',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
             'isBase64Encoded': False
         }
     
-    # Extract owner_id from headers
+    # JWT Authorization
     headers = event.get('headers') or {}
-    owner_id = headers.get('x-owner-id') or headers.get('X-Owner-Id')
+    auth_header = headers.get('X-Authorization', '')
     
-    if not owner_id:
+    if not auth_header:
         return {
             'statusCode': 401,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Unauthorized: X-Owner-Id header required'}),
+            'body': json.dumps({'error': 'Unauthorized'}),
+            'isBase64Encoded': False
+        }
+    
+    try:
+        owner_id = get_user_id(auth_header)
+    except ValueError as e:
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': str(e)}),
             'isBase64Encoded': False
         }
     

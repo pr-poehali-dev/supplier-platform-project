@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from jwt_utils import get_user_id
 
 def handler(event: dict, context) -> dict:
     """
@@ -18,7 +19,7 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Owner-Id'
+                'Access-Control-Allow-Headers': 'Content-Type, X-Authorization'
             },
             'body': '',
             'isBase64Encoded': False
@@ -28,10 +29,17 @@ def handler(event: dict, context) -> dict:
     if not dsn:
         return error_response('Database connection not configured', 500)
     
-    # Извлечь owner_id из заголовков
+    # JWT Authorization
     headers = event.get('headers') or {}
-    owner_id_str = headers.get('x-owner-id') or headers.get('X-Owner-Id')
-    owner_id = int(owner_id_str) if owner_id_str else None
+    auth_header = headers.get('X-Authorization', '')
+    
+    if not auth_header:
+        return error_response('Unauthorized', 401)
+    
+    try:
+        owner_id = get_user_id(auth_header)
+    except ValueError as e:
+        return error_response(str(e), 401)
     
     conn = psycopg2.connect(dsn)
     

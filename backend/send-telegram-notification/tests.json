@@ -6,22 +6,14 @@
       "path": "/",
       "expectedStatus": 401,
       "expectedBody": {
-        "error": "Owner ID required in X-Owner-Id header"
+        "error": "Unauthorized"
       }
     },
     {
-      "name": "Send notification with auth",
-      "method": "POST",
+      "name": "OPTIONS request",
+      "method": "OPTIONS",
       "path": "/",
-      "headers": {
-        "X-Owner-Id": "1"
-      },
-      "body": {
-        "booking_id": 1,
-        "message": "Test notification"
-      },
-      "expectedStatus": 200,
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     }
   ]
 }

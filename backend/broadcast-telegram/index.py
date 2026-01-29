@@ -2,6 +2,7 @@ import json
 import os
 import psycopg2
 import requests
+from jwt_utils import get_user_id
 
 def handler(event: dict, context) -> dict:
     '''
@@ -17,12 +18,15 @@ def handler(event: dict, context) -> dict:
         return error_response('Only POST method allowed', 405)
     
     headers = event.get('headers', {})
-    owner_id = headers.get('X-Owner-Id') or headers.get('x-owner-id')
+    auth_header = headers.get('X-Authorization', '')
     
-    if not owner_id:
-        return error_response('Owner ID required in X-Owner-Id header', 401)
+    if not auth_header:
+        return error_response('Unauthorized', 401)
     
-    owner_id = int(owner_id)
+    try:
+        owner_id = get_user_id(auth_header)
+    except ValueError as e:
+        return error_response(str(e), 401)
     
     body = json.loads(event.get('body', '{}'))
     message_text = body.get('text', '').strip()
@@ -147,7 +151,7 @@ def cors_response():
         'headers': {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-Owner-Id',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Authorization',
             'Access-Control-Max-Age': '86400'
         },
         'body': '',

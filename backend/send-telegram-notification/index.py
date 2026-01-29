@@ -1,6 +1,7 @@
 import json
 import os
 import psycopg2
+from jwt_utils import get_user_id
 
 try:
     import requests
@@ -21,7 +22,7 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Owner-Id',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Authorization',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
@@ -37,13 +38,24 @@ def handler(event: dict, context) -> dict:
         }
     
     try:
-        owner_id = event.get('headers', {}).get('X-Owner-Id') or event.get('headers', {}).get('x-owner-id')
+        headers = event.get('headers', {})
+        auth_header = headers.get('X-Authorization', '')
         
-        if not owner_id:
+        if not auth_header:
             return {
                 'statusCode': 401,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Owner ID required in X-Owner-Id header'}),
+                'body': json.dumps({'error': 'Unauthorized'}),
+                'isBase64Encoded': False
+            }
+        
+        try:
+            owner_id = get_user_id(auth_header)
+        except ValueError as e:
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': str(e)}),
                 'isBase64Encoded': False
             }
         

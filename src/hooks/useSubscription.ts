@@ -58,6 +58,16 @@ export function useSubscription() {
             accessToken = refreshData.access_token;
             localStorage.setItem('access_token', accessToken);
             console.log('Token refreshed successfully before subscription fetch');
+          } else if (refreshResponse.status === 401) {
+            // Refresh token also invalid - clear everything
+            console.warn('Refresh token invalid, clearing auth data...');
+            setSubscription(null);
+            localStorage.removeItem('subscription_cache');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('auth_refresh_token');
+            localStorage.removeItem('user');
+            setLoading(false);
+            return;
           }
         } catch (error) {
           console.warn('Failed to refresh token, using existing:', error);
@@ -93,10 +103,19 @@ export function useSubscription() {
       } else {
         console.error('Failed to fetch subscription:', response.status, await response.text());
         
-        // If unauthorized, clear cache
+        // If unauthorized, clear all auth data and reload
         if (response.status === 401) {
+          console.warn('Token invalid, clearing auth data...');
           setSubscription(null);
           localStorage.removeItem('subscription_cache');
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('auth_refresh_token');
+          localStorage.removeItem('user');
+          
+          // Redirect to auth page if not already there
+          if (!window.location.pathname.includes('/auth')) {
+            window.location.href = '/auth';
+          }
         }
       }
     } catch (error) {

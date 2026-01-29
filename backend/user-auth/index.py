@@ -203,11 +203,15 @@ def handle_callback(code: str) -> dict:
 
 def refresh_token_handler(event: dict) -> dict:
     '''Обновляет access_token используя refresh_token'''
+    print("[user-auth] refresh_token_handler called")
     try:
-        body = json.loads(event.get('body', '{}'))
+        body_str = event.get('body', '{}')
+        print(f"[user-auth] Request body: {body_str[:100]}...")
+        body = json.loads(body_str)
         refresh_token = body.get('refresh_token')
         
         if not refresh_token:
+            print("[user-auth] ERROR: Missing refresh_token in request body")
             return {
                 'statusCode': 400,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -215,12 +219,16 @@ def refresh_token_handler(event: dict) -> dict:
                 'isBase64Encoded': False
             }
         
+        print(f"[user-auth] Refresh token received (first 20 chars): {refresh_token[:20]}...")
+        
         # Decode and validate refresh token
         payload = decode_refresh_token(refresh_token)
         user_id = payload.get('sub')
         email = payload.get('email')
+        print(f"[user-auth] Refresh token decoded: user_id={user_id}, email={email}")
         
         if not user_id or not email:
+            print("[user-auth] ERROR: Missing user_id or email in token payload")
             return {
                 'statusCode': 401,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -230,6 +238,7 @@ def refresh_token_handler(event: dict) -> dict:
         
         # Generate new access token
         new_access_token = create_access_token(user_id, email)
+        print(f"[user-auth] New access token generated for user_id={user_id}")
         
         return {
             'statusCode': 200,
@@ -241,6 +250,7 @@ def refresh_token_handler(event: dict) -> dict:
         }
         
     except ValueError as e:
+        print(f"[user-auth] ERROR: ValueError in refresh_token_handler: {str(e)}")
         return {
             'statusCode': 401,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},

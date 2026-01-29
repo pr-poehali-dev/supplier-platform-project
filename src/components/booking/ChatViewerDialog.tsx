@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -33,6 +33,9 @@ export default function ChatViewerDialog({
             <Icon name="MessageSquare" size={20} />
             Чат с {guestName}
           </DialogTitle>
+          <DialogDescription>
+            Полная история переписки в Telegram
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden">

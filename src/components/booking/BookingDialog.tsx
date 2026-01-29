@@ -56,6 +56,7 @@ export default function BookingDialog({
   const [showChatViewer, setShowChatViewer] = useState(false);
   const [showGuestProfile, setShowGuestProfile] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [guestAnalysisMessages, setGuestAnalysisMessages] = useState<ChatMessage[]>([]);
   const [guestAnalysis, setGuestAnalysis] = useState<GuestAnalysis | null>(null);
   const [loadingChat, setLoadingChat] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -98,6 +99,10 @@ export default function BookingDialog({
       if (data.analysis) {
         setGuestAnalysis(data.analysis);
         setMessagesCount(data.messages_count || 0);
+        // Save messages for chat history display
+        if (data.messages) {
+          setGuestAnalysisMessages(data.messages);
+        }
       }
     } catch (error) {
       console.error('Failed to analyze guest:', error);
@@ -279,6 +284,7 @@ export default function BookingDialog({
         analysis={guestAnalysis}
         loading={loadingAnalysis}
         messagesCount={messagesCount}
+        messages={guestAnalysisMessages}
       />
     </Dialog>
   );

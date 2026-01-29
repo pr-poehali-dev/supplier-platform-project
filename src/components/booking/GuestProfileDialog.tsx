@@ -1,6 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
 
 interface GuestAnalysis {
@@ -12,6 +13,13 @@ interface GuestAnalysis {
   summary: string;
 }
 
+interface ChatMessage {
+  id?: number;
+  sender: string;
+  message: string;
+  timestamp: string;
+}
+
 interface GuestProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -19,6 +27,7 @@ interface GuestProfileDialogProps {
   analysis: GuestAnalysis | null;
   loading: boolean;
   messagesCount: number;
+  messages: ChatMessage[];
 }
 
 export default function GuestProfileDialog({
@@ -27,7 +36,8 @@ export default function GuestProfileDialog({
   guestName,
   analysis,
   loading,
-  messagesCount
+  messagesCount,
+  messages
 }: GuestProfileDialogProps) {
   const getMoodColor = (mood: string) => {
     switch (mood) {
@@ -59,6 +69,9 @@ export default function GuestProfileDialog({
             <Icon name="UserSearch" size={20} />
             О госте: {guestName}
           </DialogTitle>
+          <DialogDescription>
+            Анализ характера гостя на основе переписки в Telegram
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto space-y-4">
@@ -159,6 +172,46 @@ export default function GuestProfileDialog({
                   {analysis.summary}
                 </p>
               </div>
+
+              {/* Chat History */}
+              {messages && messages.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Icon name="MessageSquare" size={16} />
+                    История переписки
+                  </h4>
+                  <ScrollArea className="h-64 border rounded-lg p-3 bg-gray-50">
+                    <div className="space-y-3">
+                      {messages.map((msg, index) => (
+                        <div
+                          key={msg.id || index}
+                          className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                              msg.sender === 'user'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-white border border-gray-200'
+                            }`}
+                          >
+                            <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                            <p className={`text-xs mt-1 ${
+                              msg.sender === 'user' ? 'text-blue-100' : 'text-gray-400'
+                            }`}>
+                              {new Date(msg.timestamp).toLocaleString('ru-RU', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
             </>
           )}
         </div>

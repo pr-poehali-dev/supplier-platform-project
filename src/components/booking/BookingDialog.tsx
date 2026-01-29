@@ -88,14 +88,8 @@ export default function BookingDialog({
   const loadGuestAnalysis = async () => {
     setLoadingAnalysis(true);
     try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const ownerId = user.id;
-      
       const response = await fetchWithAuth(`${AI_ASSISTANT_URL}?action=analyze_guest`, {
         method: 'POST',
-        headers: {
-          'X-Owner-Id': String(ownerId)
-        },
         body: JSON.stringify({
           booking_id: booking.id
         })

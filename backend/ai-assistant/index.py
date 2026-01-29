@@ -3,6 +3,7 @@ import os
 import psycopg2
 import calendar
 from datetime import datetime, timedelta
+from jwt_utils import get_user_id
 
 try:
     import openai
@@ -12,7 +13,7 @@ except ImportError:
 
 def handler(event: dict, context) -> dict:
     '''
-    AI-ассистент для владельцев турбаз с изоляцией по owner_id.
+    AI-ассистент для владельцев турбаз с JWT-авторизацией.
     Анализирует объекты, дает советы, управляет допродажами, помнит клиентов.
     Интегрирован с производственным календарем РФ.
     '''
@@ -21,13 +22,17 @@ def handler(event: dict, context) -> dict:
     if method == 'OPTIONS':
         return cors_response()
     
+    # JWT Authorization
     headers = event.get('headers', {})
-    owner_id = headers.get('X-Owner-Id') or headers.get('x-owner-id')
+    auth_header = headers.get('X-Authorization', '')
     
-    if not owner_id:
-        return error_response('Owner ID required in X-Owner-Id header', 401)
+    if not auth_header:
+        return error_response('Unauthorized', 401)
     
-    owner_id = int(owner_id)
+    try:
+        owner_id = get_user_id(auth_header)
+    except ValueError as e:
+        return error_response(str(e), 401)
     
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
@@ -1104,7 +1109,7 @@ def cors_response():
         'headers': {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-Owner-Id, X-User-Id',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Authorization',
             'Access-Control-Max-Age': '86400'
         },
         'body': '',

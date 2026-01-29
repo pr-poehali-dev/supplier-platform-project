@@ -65,11 +65,13 @@ def handler(event: dict, context) -> dict:
 
 def handle_callback(code: str) -> dict:
     '''Обрабатывает OAuth callback и сохраняет пользователя в БД'''
+    print(f"[user-auth] handle_callback started with code: {code[:10]}...")
     
     client_id = os.environ.get('YANDEX_CLIENT_ID')
     client_secret = os.environ.get('YANDEX_CLIENT_SECRET')
     
     if not client_id or not client_secret:
+        print("[user-auth] ERROR: OAuth not configured")
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -95,7 +97,9 @@ def handle_callback(code: str) -> dict:
         with urllib.request.urlopen(token_req) as response:
             token_response = json.loads(response.read().decode())
             access_token = token_response.get('access_token')
+            print(f"[user-auth] Token exchange successful")
     except Exception as e:
+        print(f"[user-auth] ERROR: Token exchange failed: {str(e)}")
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -120,7 +124,9 @@ def handle_callback(code: str) -> dict:
     try:
         with urllib.request.urlopen(user_req) as response:
             user_data = json.loads(response.read().decode())
+            print(f"[user-auth] User info received: {user_data.get('default_email')}")
     except Exception as e:
+        print(f"[user-auth] ERROR: Failed to get user info: {str(e)}")
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -170,6 +176,8 @@ def handle_callback(code: str) -> dict:
         # Generate JWT tokens
         access_token = create_access_token(user[0], user[1])
         refresh_token = create_refresh_token(user[0], user[1])
+        print(f"[user-auth] JWT tokens generated for user_id={user[0]}, email={user[1]}")
+        print(f"[user-auth] Subscription plan: {user[5]}, expires: {user[6]}")
         
         return {
             'statusCode': 200,
@@ -184,6 +192,7 @@ def handle_callback(code: str) -> dict:
         }
         
     except Exception as e:
+        print(f"[user-auth] ERROR: Database error: {str(e)}")
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},

@@ -44,8 +44,8 @@ export function useSubscription() {
 
     setLoading(true);
     try {
-      // Try to refresh token first if we have refresh_token
-      if (refreshToken) {
+      // Try to refresh token first if we have refresh_token but no access_token
+      if (refreshToken && !accessToken) {
         try {
           const refreshResponse = await fetch(AUTH_REFRESH_URL, {
             method: 'POST',
@@ -57,10 +57,10 @@ export function useSubscription() {
             const refreshData = await refreshResponse.json();
             accessToken = refreshData.access_token;
             localStorage.setItem('access_token', accessToken);
-            console.log('Token refreshed successfully before subscription fetch');
+            console.log('Token refreshed successfully');
           } else if (refreshResponse.status === 401) {
-            // Refresh token also invalid - clear everything
-            console.warn('Refresh token invalid, clearing auth data...');
+            // Refresh token invalid - clear auth silently without redirect
+            console.warn('Refresh token invalid, clearing auth data silently...');
             setSubscription(null);
             localStorage.removeItem('subscription_cache');
             localStorage.removeItem('access_token');
@@ -70,14 +70,17 @@ export function useSubscription() {
             return;
           }
         } catch (error) {
-          console.warn('Failed to refresh token, using existing:', error);
+          console.warn('Failed to refresh token:', error);
+          setLoading(false);
+          return;
         }
       }
 
       if (!accessToken) {
-        console.warn('No valid access token after refresh attempt');
+        console.warn('No valid access token');
         setSubscription(null);
         localStorage.removeItem('subscription_cache');
+        setLoading(false);
         return;
       }
 
@@ -92,7 +95,6 @@ export function useSubscription() {
         const data = await response.json();
         console.log('Subscription fetched:', data.subscription);
         
-        // Always update state and cache with fresh data
         if (data.subscription) {
           setSubscription(data.subscription);
           localStorage.setItem('subscription_cache', JSON.stringify(data.subscription));
@@ -100,23 +102,37 @@ export function useSubscription() {
           setSubscription(null);
           localStorage.removeItem('subscription_cache');
         }
-      } else {
-        console.error('Failed to fetch subscription:', response.status, await response.text());
-        
-        // If unauthorized, clear all auth data and reload
-        if (response.status === 401) {
-          console.warn('Token invalid, clearing auth data...');
-          setSubscription(null);
-          localStorage.removeItem('subscription_cache');
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('auth_refresh_token');
-          localStorage.removeItem('user');
-          
-          // Redirect to auth page if not already there
-          if (!window.location.pathname.includes('/auth')) {
-            window.location.href = '/auth';
+      } else if (response.status === 401) {
+        // Token expired, try to refresh once
+        if (refreshToken) {
+          try {
+            const refreshResponse = await fetch(AUTH_REFRESH_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+            
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+              localStorage.setItem('access_token', refreshData.access_token);
+              // Retry subscription fetch with new token
+              await fetchSubscription();
+              return;
+            }
+          } catch (error) {
+            console.warn('Failed to refresh token after 401:', error);
           }
         }
+        
+        // Clear auth data silently without redirect
+        console.warn('Token invalid, clearing auth data silently...');
+        setSubscription(null);
+        localStorage.removeItem('subscription_cache');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('auth_refresh_token');
+        localStorage.removeItem('user');
+      } else {
+        console.error('Failed to fetch subscription:', response.status, await response.text());
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);

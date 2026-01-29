@@ -51,15 +51,9 @@ export default function BotSettings() {
   };
 
   const loadSettings = async () => {
-    const userId = getUserId();
-    if (!userId) return;
-
     setLoading(true);
     try {
-      const response = await fetchWithAuth(`${AI_URL}?action=settings`, {
-        headers: { 'X-User-Id': userId.toString() }
-      });
-      const data = await response.json();
+      const data = await fetchWithAuth(`${AI_URL}?action=settings`);
       if (data.settings) {
         setSettings(data.settings);
       }
@@ -71,20 +65,15 @@ export default function BotSettings() {
   };
 
   const loadHolidays = async () => {
-    const userId = getUserId();
-    if (!userId) return;
-
     try {
       const today = new Date().toISOString().split('T')[0];
       const nextYear = new Date();
       nextYear.setFullYear(nextYear.getFullYear() + 1);
       const end = nextYear.toISOString().split('T')[0];
 
-      const response = await fetchWithAuth(
-        `${AI_URL}?action=holidays&start=${today}&end=${end}`,
-        { headers: { 'X-User-Id': userId.toString() } }
+      const data = await fetchWithAuth(
+        `${AI_URL}?action=holidays&start=${today}&end=${end}`
       );
-      const data = await response.json();
       setHolidays(data.holidays || []);
     } catch (error) {
       // Error loading holidays
@@ -92,26 +81,17 @@ export default function BotSettings() {
   };
 
   const saveSettings = async () => {
-    const userId = getUserId();
-    if (!userId) return;
-
     setLoading(true);
     try {
-      const response = await fetchWithAuth(`${AI_URL}?action=settings`, {
+      await fetchWithAuth(`${AI_URL}?action=settings`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': userId.toString()
-        },
         body: JSON.stringify(settings)
       });
 
-      if (response.ok) {
-        toast({
-          title: 'Успешно',
-          description: 'Настройки бота сохранены'
-        });
-      }
+      toast({
+        title: 'Успешно',
+        description: 'Настройки бота сохранены'
+      });
     } catch (error) {
       toast({
         title: 'Ошибка',

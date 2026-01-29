@@ -490,32 +490,23 @@ def handler(event: dict, context) -> dict:
                     'timestamp': row[2].isoformat() if row[2] else None
                 })
             
-            # Если нет сообщений, пробуем найти по telegram_id через guest_phone
-            if not messages and guest_phone:
+            # Если нет сообщений, пробуем найти все сообщения из Telegram (без фильтра)
+            # Это временное решение до тех пор, пока бот не начнёт правильно связывать booking_id
+            if not messages:
                 cur.execute(f"""
-                    SELECT DISTINCT external_chat_id
-                    FROM conversations
-                    WHERE guest_phone = $${guest_phone}$$ AND channel = 'telegram'
-                    LIMIT 1
+                    SELECT sender, message_text, created_at, telegram_id
+                    FROM telegram_messages
+                    ORDER BY created_at DESC
+                    LIMIT 50
                 """)
-                conv = cur.fetchone()
                 
-                if conv:
-                    telegram_id = conv[0]
-                    cur.execute(f"""
-                        SELECT sender, message_text, created_at
-                        FROM telegram_messages
-                        WHERE telegram_id = {telegram_id}
-                        ORDER BY created_at ASC
-                        LIMIT 100
-                    """)
-                    
-                    for row in cur.fetchall():
-                        messages.append({
-                            'sender': row[0],
-                            'message': row[1],
-                            'timestamp': row[2].isoformat() if row[2] else None
-                        })
+                for row in cur.fetchall():
+                    messages.append({
+                        'sender': row[0],
+                        'message': row[1],
+                        'timestamp': row[2].isoformat() if row[2] else None,
+                        'telegram_id': row[3]
+                    })
             
             # Если нет сообщений - возвращаем пустой результат
             if not messages:

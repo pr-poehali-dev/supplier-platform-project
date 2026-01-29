@@ -74,9 +74,9 @@ export default function BookingDialog({
   const loadChatHistory = async () => {
     setLoadingChat(true);
     try {
-      const response = await fetchWithAuth(`${CHAT_HISTORY_URL}?booking_id=${booking.id}`);
-      if (response.messages) {
-        setChatMessages(response.messages);
+      const data = await fetchWithAuth(`${CHAT_HISTORY_URL}?booking_id=${booking.id}`);
+      if (data.messages) {
+        setChatMessages(data.messages);
       }
     } catch (error) {
       console.error('Failed to load chat history:', error);
@@ -88,16 +88,16 @@ export default function BookingDialog({
   const loadGuestAnalysis = async () => {
     setLoadingAnalysis(true);
     try {
-      const response = await fetchWithAuth(`${AI_ASSISTANT_URL}?action=analyze_guest`, {
+      const data = await fetchWithAuth(`${AI_ASSISTANT_URL}?action=analyze_guest`, {
         method: 'POST',
         body: JSON.stringify({
           booking_id: booking.id
         })
       });
       
-      if (response.analysis) {
-        setGuestAnalysis(response.analysis);
-        setMessagesCount(response.messages_count || 0);
+      if (data.analysis) {
+        setGuestAnalysis(data.analysis);
+        setMessagesCount(data.messages_count || 0);
       }
     } catch (error) {
       console.error('Failed to analyze guest:', error);

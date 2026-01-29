@@ -15,21 +15,30 @@ export const getUser = (): User | null => {
   }
 };
 
-export const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const user = getUser();
+export const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<any> => {
+  const accessToken = localStorage.getItem('access_token');
   
-  if (!user) {
-    console.error('fetchWithAuth: User not found in localStorage');
+  if (!accessToken) {
+    console.error('fetchWithAuth: No access token found');
     throw new Error('User not authenticated');
   }
 
   const headers = {
+    'Content-Type': 'application/json',
     ...options.headers,
-    'X-Owner-Id': user.id.toString(),
+    'X-Authorization': `Bearer ${accessToken}`,
   };
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers,
   });
+
+  // Parse JSON response
+  if (response.ok) {
+    return response.json();
+  } else {
+    const error = await response.text();
+    throw new Error(`API Error ${response.status}: ${error}`);
+  }
 };

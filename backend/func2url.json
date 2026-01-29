@@ -1,4 +1,5 @@
 {
+  "booking-chat-history": "https://functions.poehali.dev/3fedee59-5e31-40c7-9469-3f308215b57e",
   "yookassa-webhook": "https://functions.poehali.dev/832197cf-32de-4104-b098-202eb2f469d3",
   "subscription-get": "https://functions.poehali.dev/578f8247-37f6-47e4-a3ce-744df886fc3f",
   "yookassa-yookassa": "https://functions.poehali.dev/7e6e6610-d137-4b79-9744-8e2e5a0f9804",
@@ -16,7 +17,6 @@
   "customer-sync": "https://functions.poehali.dev/4ead0222-a7b6-4305-b43d-20c7df4920ce",
   "ai-assistant": "https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a",
   "pricing-engine": "https://functions.poehali.dev/a4b5c99d-6289-44f5-835f-c865029c71e4",
-  "delete-unit-helper": "https://functions.poehali.dev/99916984-c945-4b8d-9af9-fc88342eb58a",
   "telegram-messages": "https://functions.poehali.dev/b08b50dd-ee0f-4534-9865-afdf3582a91b",
   "contact-form": "https://functions.poehali.dev/d00d6394-685d-4e42-9d5e-b5f3a12b31d1",
   "chatgpt-polza-chatgpt": "https://functions.poehali.dev/e13712ed-a9c9-41b9-8408-3330a2e22fef",

@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { Booking } from './CalendarView';
+import ChatViewerDialog from './ChatViewerDialog';
+import GuestProfileDialog from './GuestProfileDialog';
+import { fetchWithAuth } from '@/lib/api';
 
 interface TelegramMessage {
   id: number;
@@ -11,6 +15,22 @@ interface TelegramMessage {
   message_text: string;
   sender: 'user' | 'bot';
   created_at: string;
+}
+
+interface ChatMessage {
+  id: number;
+  sender: string;
+  message: string;
+  timestamp: string;
+}
+
+interface GuestAnalysis {
+  character: string;
+  purpose: string;
+  special_requests: string[];
+  important_notes: string[];
+  mood: 'позитивный' | 'нейтральный' | 'негативный';
+  summary: string;
 }
 
 interface BookingDialogProps {
@@ -22,6 +42,9 @@ interface BookingDialogProps {
   onDelete?: (bookingId: number, e: React.MouseEvent) => void;
 }
 
+const CHAT_HISTORY_URL = 'https://functions.poehali.dev/3fedee59-5e31-40c7-9469-3f308215b57e';
+const AI_ASSISTANT_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
+
 export default function BookingDialog({
   booking,
   open,
@@ -30,6 +53,14 @@ export default function BookingDialog({
   loadingMessages,
   onDelete
 }: BookingDialogProps) {
+  const [showChatViewer, setShowChatViewer] = useState(false);
+  const [showGuestProfile, setShowGuestProfile] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [guestAnalysis, setGuestAnalysis] = useState<GuestAnalysis | null>(null);
+  const [loadingChat, setLoadingChat] = useState(false);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [messagesCount, setMessagesCount] = useState(0);
+
   if (!booking) return null;
 
   const formatDate = (dateStr: string) => {
@@ -38,6 +69,60 @@ export default function BookingDialog({
       month: 'long',
       year: 'numeric'
     });
+  };
+
+  const loadChatHistory = async () => {
+    setLoadingChat(true);
+    try {
+      const response = await fetchWithAuth(`${CHAT_HISTORY_URL}?booking_id=${booking.id}`);
+      if (response.messages) {
+        setChatMessages(response.messages);
+      }
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+    } finally {
+      setLoadingChat(false);
+    }
+  };
+
+  const loadGuestAnalysis = async () => {
+    setLoadingAnalysis(true);
+    try {
+      const response = await fetchWithAuth(AI_ASSISTANT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'analyze_guest',
+          booking_id: booking.id
+        })
+      });
+      
+      if (response.analysis) {
+        setGuestAnalysis(response.analysis);
+        setMessagesCount(response.messages_count || 0);
+      }
+    } catch (error) {
+      console.error('Failed to analyze guest:', error);
+      setGuestAnalysis({
+        character: 'Ошибка анализа',
+        purpose: 'Не определена',
+        special_requests: [],
+        important_notes: [],
+        mood: 'нейтральный',
+        summary: 'Не удалось провести анализ. Попробуйте позже.'
+      });
+    } finally {
+      setLoadingAnalysis(false);
+    }
+  };
+
+  const handleOpenChat = () => {
+    setShowChatViewer(true);
+    loadChatHistory();
+  };
+
+  const handleOpenProfile = () => {
+    setShowGuestProfile(true);
+    loadGuestAnalysis();
   };
 
   return (
@@ -136,24 +221,66 @@ export default function BookingDialog({
           )}
         </div>
 
-        <div className="flex justify-between pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Закрыть
-          </Button>
-          {onDelete && (
+        <div className="flex flex-col gap-3 pt-4 border-t">
+          {/* New buttons for Chat and Guest Profile */}
+          <div className="flex gap-2">
             <Button
-              variant="destructive"
-              onClick={(e) => {
-                onDelete(booking.id, e);
-                onOpenChange(false);
-              }}
+              variant="outline"
+              onClick={handleOpenChat}
+              className="flex-1 bg-blue-50 hover:bg-blue-100 border-blue-200"
             >
-              <Icon name="Trash2" size={16} className="mr-2" />
-              Удалить
+              <Icon name="MessageSquare" size={16} className="mr-2" />
+              Чат
             </Button>
-          )}
+            <Button
+              variant="outline"
+              onClick={handleOpenProfile}
+              className="flex-1 bg-purple-50 hover:bg-purple-100 border-purple-200"
+            >
+              <Icon name="UserSearch" size={16} className="mr-2" />
+              О госте
+            </Button>
+          </div>
+
+          {/* Original buttons */}
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Закрыть
+            </Button>
+            {onDelete && (
+              <Button
+                variant="destructive"
+                onClick={(e) => {
+                  onDelete(booking.id, e);
+                  onOpenChange(false);
+                }}
+              >
+                <Icon name="Trash2" size={16} className="mr-2" />
+                Удалить
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
+
+      {/* Chat Viewer Dialog */}
+      <ChatViewerDialog
+        open={showChatViewer}
+        onOpenChange={setShowChatViewer}
+        messages={chatMessages}
+        guestName={booking.guest_name}
+        loading={loadingChat}
+      />
+
+      {/* Guest Profile Dialog */}
+      <GuestProfileDialog
+        open={showGuestProfile}
+        onOpenChange={setShowGuestProfile}
+        guestName={booking.guest_name}
+        analysis={guestAnalysis}
+        loading={loadingAnalysis}
+        messagesCount={messagesCount}
+      />
     </Dialog>
   );
 }

@@ -1,0 +1,16 @@
+{
+  "tests": [
+    {
+      "name": "Get chat history - unauthorized",
+      "method": "GET",
+      "path": "/?booking_id=1",
+      "expectedStatus": 401
+    },
+    {
+      "name": "Get chat history - missing booking_id",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    }
+  ]
+}

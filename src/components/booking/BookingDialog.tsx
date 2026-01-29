@@ -5,7 +5,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { Booking } from './CalendarView';
-import ChatViewerDialog from './ChatViewerDialog';
 import GuestProfileDialog from './GuestProfileDialog';
 import { fetchWithAuth } from '@/lib/api';
 
@@ -18,7 +17,7 @@ interface TelegramMessage {
 }
 
 interface ChatMessage {
-  id: number;
+  id?: number;
   sender: string;
   message: string;
   timestamp: string;
@@ -31,6 +30,13 @@ interface GuestAnalysis {
   important_notes: string[];
   mood: 'позитивный' | 'нейтральный' | 'негативный';
   summary: string;
+  // Новые поля для расширенного анализа
+  communication_style?: string;
+  potential_issues?: string[];
+  expectations?: string[];
+  recommendations?: string[];
+  vip_treatment?: boolean;
+  conflict_risk?: 'низкий' | 'средний' | 'высокий';
 }
 
 interface BookingDialogProps {
@@ -42,7 +48,6 @@ interface BookingDialogProps {
   onDelete?: (bookingId: number, e: React.MouseEvent) => void;
 }
 
-const CHAT_HISTORY_URL = 'https://functions.poehali.dev/3fedee59-5e31-40c7-9469-3f308215b57e';
 const AI_ASSISTANT_URL = 'https://functions.poehali.dev/f62c6672-5e97-4934-af5c-2f4fa9dca61a';
 
 export default function BookingDialog({
@@ -53,12 +58,9 @@ export default function BookingDialog({
   loadingMessages,
   onDelete
 }: BookingDialogProps) {
-  const [showChatViewer, setShowChatViewer] = useState(false);
   const [showGuestProfile, setShowGuestProfile] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [guestAnalysisMessages, setGuestAnalysisMessages] = useState<ChatMessage[]>([]);
   const [guestAnalysis, setGuestAnalysis] = useState<GuestAnalysis | null>(null);
-  const [loadingChat, setLoadingChat] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [messagesCount, setMessagesCount] = useState(0);
 
@@ -72,19 +74,7 @@ export default function BookingDialog({
     });
   };
 
-  const loadChatHistory = async () => {
-    setLoadingChat(true);
-    try {
-      const data = await fetchWithAuth(`${CHAT_HISTORY_URL}?booking_id=${booking.id}`);
-      if (data.messages) {
-        setChatMessages(data.messages);
-      }
-    } catch (error) {
-      console.error('Failed to load chat history:', error);
-    } finally {
-      setLoadingChat(false);
-    }
-  };
+
 
   const loadGuestAnalysis = async () => {
     setLoadingAnalysis(true);
@@ -112,7 +102,13 @@ export default function BookingDialog({
         special_requests: [],
         important_notes: [],
         mood: 'нейтральный',
-        summary: 'Не удалось провести анализ. Попробуйте позже.'
+        summary: 'Не удалось провести анализ. Попробуйте позже.',
+        communication_style: 'Не определён',
+        potential_issues: [],
+        expectations: [],
+        recommendations: [],
+        vip_treatment: false,
+        conflict_risk: 'низкий'
       });
     } finally {
       setLoadingAnalysis(false);
@@ -120,8 +116,9 @@ export default function BookingDialog({
   };
 
   const handleOpenChat = () => {
-    setShowChatViewer(true);
-    loadChatHistory();
+    // Открываем Telegram клиента по номеру телефона
+    const phone = booking.guest_phone.replace(/[^0-9+]/g, '');
+    window.open(`https://t.me/${phone}`, '_blank');
   };
 
   const handleOpenProfile = () => {
@@ -233,8 +230,8 @@ export default function BookingDialog({
               onClick={handleOpenChat}
               className="flex-1 bg-blue-50 hover:bg-blue-100 border-blue-200"
             >
-              <Icon name="MessageSquare" size={16} className="mr-2" />
-              Чат
+              <Icon name="Send" size={16} className="mr-2" />
+              Открыть в Telegram
             </Button>
             <Button
               variant="outline"
@@ -266,15 +263,6 @@ export default function BookingDialog({
           </div>
         </div>
       </DialogContent>
-
-      {/* Chat Viewer Dialog */}
-      <ChatViewerDialog
-        open={showChatViewer}
-        onOpenChange={setShowChatViewer}
-        messages={chatMessages}
-        guestName={booking.guest_name}
-        loading={loadingChat}
-      />
 
       {/* Guest Profile Dialog */}
       <GuestProfileDialog

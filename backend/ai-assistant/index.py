@@ -518,7 +518,13 @@ def handler(event: dict, context) -> dict:
                         'special_requests': [],
                         'important_notes': [],
                         'mood': 'нейтральный',
-                        'summary': 'История переписки отсутствует. Невозможно провести анализ.'
+                        'summary': 'История переписки отсутствует. Невозможно провести анализ.',
+                        'communication_style': 'Нет данных',
+                        'potential_issues': [],
+                        'expectations': [],
+                        'recommendations': [],
+                        'vip_treatment': False,
+                        'conflict_risk': 'низкий'
                     },
                     'messages_count': 0
                 })
@@ -531,13 +537,20 @@ def handler(event: dict, context) -> dict:
             
             # Системный промпт для анализа
             system_prompt = """Ты - эксперт по анализу клиентов в сфере гостиничного бизнеса.
-Проанализируй диалог с гостем и составь краткую характеристику:
+Проанализируй диалог с гостем максимально подробно и составь характеристику для владельца:
 
+Анализируй:
 1. Характер гостя (вежливый, требовательный, дружелюбный и т.д.)
 2. Цель визита (отдых, деловая поездка, семейное мероприятие и т.д.)
 3. Особые пожелания или требования
 4. Важные детали для персонала (аллергии, VIP-статус, жалобы и т.д.)
-5. Общая оценка настроя гостя (позитивный, нейтральный, негативный)
+5. Настроение гостя (позитивный, нейтральный, негативный)
+6. Стиль общения (формальный, дружеский, требовательный и т.д.)
+7. Потенциальные проблемы (конфликты, жалобы, недовольства в диалоге)
+8. Ожидания от проживания (комфорт, тишина, активности и т.д.)
+9. Рекомендации для персонала по приёму и обслуживанию
+10. Нужен ли VIP-подход (особое внимание, приветственные бонусы)
+11. Риск конфликта (низкий/средний/высокий)
 
 Ответ дай в формате JSON:
 {
@@ -546,7 +559,13 @@ def handler(event: dict, context) -> dict:
   "special_requests": ["список особых пожеланий"],
   "important_notes": ["важные заметки для персонала"],
   "mood": "позитивный/нейтральный/негативный",
-  "summary": "общий вывод о госте в 2-3 предложениях"
+  "summary": "общий вывод о госте в 2-3 предложениях",
+  "communication_style": "стиль общения гостя",
+  "potential_issues": ["потенциальные проблемы или риски"],
+  "expectations": ["что ожидает от проживания"],
+  "recommendations": ["конкретные рекомендации для персонала"],
+  "vip_treatment": true/false,
+  "conflict_risk": "низкий/средний/высокий"
 }"""
             
             # Вызываем AI через Polza.ai
@@ -563,7 +582,7 @@ def handler(event: dict, context) -> dict:
                         {'role': 'user', 'content': f"Диалог с гостем:\n\n{conversation_text}"}
                     ],
                     temperature=0.3,
-                    max_tokens=1000
+                    max_tokens=2000
                 )
                 
                 ai_response = response.choices[0].message.content
@@ -585,13 +604,20 @@ def handler(event: dict, context) -> dict:
                         'special_requests': [],
                         'important_notes': [],
                         'mood': 'нейтральный',
-                        'summary': ai_response[:500]
+                        'summary': ai_response[:500],
+                        'communication_style': 'Не определён',
+                        'potential_issues': [],
+                        'expectations': [],
+                        'recommendations': [],
+                        'vip_treatment': False,
+                        'conflict_risk': 'низкий'
                     }
                 
                 return success_response({
                     'guest_name': guest_name,
                     'analysis': analysis,
-                    'messages_count': len(messages)
+                    'messages_count': len(messages),
+                    'messages': messages
                 })
                 
             except Exception as ai_error:

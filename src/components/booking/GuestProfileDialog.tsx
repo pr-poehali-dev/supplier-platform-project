@@ -11,6 +11,12 @@ interface GuestAnalysis {
   important_notes: string[];
   mood: 'позитивный' | 'нейтральный' | 'негативный';
   summary: string;
+  communication_style?: string;
+  potential_issues?: string[];
+  expectations?: string[];
+  recommendations?: string[];
+  vip_treatment?: boolean;
+  conflict_risk?: 'низкий' | 'средний' | 'высокий';
 }
 
 interface ChatMessage {
@@ -58,6 +64,17 @@ export default function GuestProfileDialog({
         return 'Frown';
       default:
         return 'Minus';
+    }
+  };
+
+  const getConflictRiskColor = (risk?: string) => {
+    switch (risk) {
+      case 'высокий':
+        return 'bg-red-500';
+      case 'средний':
+        return 'bg-orange-500';
+      default:
+        return 'bg-green-500';
     }
   };
 
@@ -172,6 +189,89 @@ export default function GuestProfileDialog({
                   {analysis.summary}
                 </p>
               </div>
+
+              {/* Communication Style */}
+              {analysis.communication_style && (
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Icon name="MessageCircleMore" size={16} />
+                    Стиль общения
+                  </h4>
+                  <p className="text-sm bg-gray-50 border rounded-lg p-3">
+                    {analysis.communication_style}
+                  </p>
+                </div>
+              )}
+
+              {/* VIP Treatment & Conflict Risk Badges */}
+              <div className="flex gap-2 flex-wrap">
+                {analysis.vip_treatment && (
+                  <Badge className="bg-purple-500">
+                    <Icon name="Crown" size={14} className="mr-1" />
+                    VIP-гость
+                  </Badge>
+                )}
+                {analysis.conflict_risk && (
+                  <Badge className={getConflictRiskColor(analysis.conflict_risk)}>
+                    <Icon name="Shield" size={14} className="mr-1" />
+                    Риск конфликта: {analysis.conflict_risk}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Expectations */}
+              {analysis.expectations && analysis.expectations.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Icon name="Sparkles" size={16} />
+                    Ожидания от проживания
+                  </h4>
+                  <ul className="space-y-2">
+                    {analysis.expectations.map((expectation, index) => (
+                      <li key={index} className="text-sm bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-start gap-2">
+                        <Icon name="Star" size={16} className="mt-0.5 text-purple-600 flex-shrink-0" />
+                        <span>{expectation}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Potential Issues */}
+              {analysis.potential_issues && analysis.potential_issues.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Icon name="AlertTriangle" size={16} />
+                    Потенциальные проблемы
+                  </h4>
+                  <ul className="space-y-2">
+                    {analysis.potential_issues.map((issue, index) => (
+                      <li key={index} className="text-sm bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start gap-2">
+                        <Icon name="AlertCircle" size={16} className="mt-0.5 text-orange-600 flex-shrink-0" />
+                        <span>{issue}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {analysis.recommendations && analysis.recommendations.length > 0 && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 text-green-900">
+                    <Icon name="Lightbulb" size={16} />
+                    Рекомендации для приёма гостя
+                  </h4>
+                  <ul className="space-y-2">
+                    {analysis.recommendations.map((rec, index) => (
+                      <li key={index} className="text-sm text-green-800 flex items-start gap-2">
+                        <Icon name="CheckCircle2" size={16} className="mt-0.5 text-green-600 flex-shrink-0" />
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Chat History */}
               {messages && messages.length > 0 && (

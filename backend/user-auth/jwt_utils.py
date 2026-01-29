@@ -20,7 +20,7 @@ def create_access_token(user_id: int, email: str) -> str:
         Encoded JWT access token (valid for 1 hour)
     """
     payload = {
-        'sub': user_id,
+        'sub': str(user_id),  # JWT spec requires sub to be a string
         'email': email,
         'type': 'access',
         'exp': datetime.utcnow() + timedelta(hours=1),
@@ -41,7 +41,7 @@ def create_refresh_token(user_id: int, email: str) -> str:
         Encoded JWT refresh token (valid for 30 days)
     """
     payload = {
-        'sub': user_id,
+        'sub': str(user_id),  # JWT spec requires sub to be a string
         'email': email,
         'type': 'refresh',
         'exp': datetime.utcnow() + timedelta(days=30),

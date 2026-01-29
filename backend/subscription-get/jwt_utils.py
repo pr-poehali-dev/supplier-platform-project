@@ -24,15 +24,20 @@ def decode_access_token(auth_header: str) -> dict:
         raise ValueError('Missing or invalid Authorization header')
     
     token = auth_header[7:]  # Remove "Bearer " prefix
+    print(f"[jwt_utils] Decoding token (first 20 chars): {token[:20]}...")
+    print(f"[jwt_utils] JWT_SECRET exists: {bool(JWT_SECRET)}")
     
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        print(f"[jwt_utils] Token decoded successfully, type: {payload.get('type')}")
         if payload.get('type') != 'access':
             raise ValueError('Invalid token type')
         return payload
-    except jwt.ExpiredSignatureError:
+    except jwt.ExpiredSignatureError as e:
+        print(f"[jwt_utils] Token expired: {str(e)}")
         raise ValueError('Token expired')
-    except jwt.InvalidTokenError:
+    except jwt.InvalidTokenError as e:
+        print(f"[jwt_utils] Invalid token: {str(e)}")
         raise ValueError('Invalid token')
 
 

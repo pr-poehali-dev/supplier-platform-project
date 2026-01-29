@@ -439,6 +439,168 @@ def handler(event: dict, context) -> dict:
             
             return success_response({'holidays': holidays})
         
+        # POST /analyze_guest - AI-анализ гостя на основе переписки
+        if method == 'POST' and action == 'analyze_guest':
+            if not OPENAI_AVAILABLE:
+                return error_response('OpenAI not available', 503)
+            
+            body = json.loads(event.get('body', '{}'))
+            booking_id = body.get('booking_id')
+            
+            if not booking_id:
+                return error_response('booking_id is required', 400)
+            
+            # Получаем информацию о бронировании и проверяем owner_id
+            cur.execute(f"""
+                SELECT id, guest_name, guest_phone, owner_id
+                FROM bookings
+                WHERE id = {booking_id}
+            """)
+            
+            booking = cur.fetchone()
+            if not booking:
+                return error_response('Booking not found', 404)
+            
+            b_id, guest_name, guest_phone, booking_owner_id = booking
+            
+            # Проверка доступа
+            if booking_owner_id != owner_id:
+                return error_response('Access denied', 403)
+            
+            # Загружаем сообщения из telegram_messages
+            messages = []
+            
+            # Сначала пробуем по booking_id
+            cur.execute(f"""
+                SELECT sender, message_text, created_at
+                FROM telegram_messages
+                WHERE booking_id = {booking_id}
+                ORDER BY created_at ASC
+            """)
+            
+            for row in cur.fetchall():
+                messages.append({
+                    'sender': row[0],
+                    'message': row[1],
+                    'timestamp': row[2].isoformat() if row[2] else None
+                })
+            
+            # Если нет сообщений, пробуем найти по telegram_id через guest_phone
+            if not messages and guest_phone:
+                cur.execute(f"""
+                    SELECT DISTINCT external_chat_id
+                    FROM conversations
+                    WHERE guest_phone = $${guest_phone}$$ AND channel = 'telegram'
+                    LIMIT 1
+                """)
+                conv = cur.fetchone()
+                
+                if conv:
+                    telegram_id = conv[0]
+                    cur.execute(f"""
+                        SELECT sender, message_text, created_at
+                        FROM telegram_messages
+                        WHERE telegram_id = {telegram_id}
+                        ORDER BY created_at ASC
+                        LIMIT 100
+                    """)
+                    
+                    for row in cur.fetchall():
+                        messages.append({
+                            'sender': row[0],
+                            'message': row[1],
+                            'timestamp': row[2].isoformat() if row[2] else None
+                        })
+            
+            # Если нет сообщений - возвращаем пустой результат
+            if not messages:
+                return success_response({
+                    'guest_name': guest_name,
+                    'analysis': {
+                        'character': 'Нет данных',
+                        'purpose': 'Нет данных',
+                        'special_requests': [],
+                        'important_notes': [],
+                        'mood': 'нейтральный',
+                        'summary': 'История переписки отсутствует. Невозможно провести анализ.'
+                    },
+                    'messages_count': 0
+                })
+            
+            # Формируем текст диалога для AI
+            conversation_text = ""
+            for msg in messages:
+                role = "Гость" if msg['sender'] == 'user' else "Бот"
+                conversation_text += f"{role}: {msg['message']}\n"
+            
+            # Системный промпт для анализа
+            system_prompt = """Ты - эксперт по анализу клиентов в сфере гостиничного бизнеса.
+Проанализируй диалог с гостем и составь краткую характеристику:
+
+1. Характер гостя (вежливый, требовательный, дружелюбный и т.д.)
+2. Цель визита (отдых, деловая поездка, семейное мероприятие и т.д.)
+3. Особые пожелания или требования
+4. Важные детали для персонала (аллергии, VIP-статус, жалобы и т.д.)
+5. Общая оценка настроя гостя (позитивный, нейтральный, негативный)
+
+Ответ дай в формате JSON:
+{
+  "character": "краткое описание характера",
+  "purpose": "цель визита",
+  "special_requests": ["список особых пожеланий"],
+  "important_notes": ["важные заметки для персонала"],
+  "mood": "позитивный/нейтральный/негативный",
+  "summary": "общий вывод о госте в 2-3 предложениях"
+}"""
+            
+            # Вызываем AI через Polza.ai
+            try:
+                client = openai.OpenAI(
+                    base_url='https://api.polza.ai/api/v1',
+                    api_key=os.environ.get('POLZA_AI_API_KEY')
+                )
+                
+                response = client.chat.completions.create(
+                    model='openai/gpt-4o-mini',
+                    messages=[
+                        {'role': 'system', 'content': system_prompt},
+                        {'role': 'user', 'content': f"Диалог с гостем:\n\n{conversation_text}"}
+                    ],
+                    temperature=0.3,
+                    max_tokens=1000
+                )
+                
+                ai_response = response.choices[0].message.content
+                
+                # Парсим JSON
+                try:
+                    # Убираем markdown code blocks если есть
+                    if '```json' in ai_response:
+                        ai_response = ai_response.split('```json')[1].split('```')[0].strip()
+                    elif '```' in ai_response:
+                        ai_response = ai_response.split('```')[1].split('```')[0].strip()
+                    
+                    analysis = json.loads(ai_response)
+                except:
+                    # Если не удалось распарсить, возвращаем как summary
+                    analysis = {
+                        'character': 'Не определён',
+                        'purpose': 'Не определена',
+                        'special_requests': [],
+                        'important_notes': [],
+                        'mood': 'нейтральный',
+                        'summary': ai_response[:500]
+                    }
+                
+                return success_response({
+                    'guest_name': guest_name,
+                    'analysis': analysis,
+                    'messages_count': len(messages)
+                })
+                
+            except Exception as ai_error:
+                return error_response(f'AI analysis failed: {str(ai_error)}', 500)
+        
         return error_response('Unknown action', 404)
         
     except Exception as e:

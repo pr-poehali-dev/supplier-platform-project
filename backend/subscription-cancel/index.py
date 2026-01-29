@@ -152,6 +152,10 @@ def handler(event, context):
             WHERE id = %s
         """, (now, subscription_id))
 
+        # Sync users table: subscription stays active until period_end, but marked for cancellation
+        # We DON'T set subscription_plan to 'none' yet, because user still has access until period_end
+        # When subscription actually expires, subscription-charge will handle setting it to 'none'
+
         conn.commit()
         conn.close()
 

@@ -218,6 +218,14 @@ def handler(event, context):
                         SET paid_at = %s
                         WHERE id = %s
                     """, (now, payment_record_id))
+                    
+                    # Sync users table with extended subscription
+                    cur.execute(f"""
+                        UPDATE {S}users
+                        SET subscription_expires_at = %s,
+                            subscription_updated_at = %s
+                        WHERE id = %s
+                    """, (new_period_end, now, user_id))
                 
                 conn.commit()
                 
@@ -252,6 +260,14 @@ def handler(event, context):
                         SET status = 'payment_failed'
                         WHERE id = %s
                     """, (subscription_id,))
+                    
+                    # Sync users table: set subscription to none after payment failure
+                    cur.execute(f"""
+                        UPDATE {S}users
+                        SET subscription_plan = 'none',
+                            subscription_updated_at = %s
+                        WHERE id = %s
+                    """, (now, user_id))
                 
                 conn.commit()
                 

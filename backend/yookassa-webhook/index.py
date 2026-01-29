@@ -174,7 +174,21 @@ def handler(event, context):
                         SET payment_method_id = %s, status = 'active', 
                             activated_at = %s
                         WHERE id = %s
+                        RETURNING user_id, plan_code, current_period_end
                     """, (pm_id, now, subscription_id))
+                    
+                    sub_data = cur.fetchone()
+                    if sub_data:
+                        sub_user_id, plan_code, period_end = sub_data
+                        
+                        # Sync users table with subscription data
+                        cur.execute(f"""
+                            UPDATE {S}users
+                            SET subscription_plan = %s,
+                                subscription_updated_at = %s,
+                                subscription_expires_at = %s
+                            WHERE id = %s
+                        """, (plan_code, now, period_end, sub_user_id))
 
                 # Update payment record
                 cur.execute(f"""

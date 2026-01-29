@@ -115,15 +115,9 @@ export default function CalendarView({
       const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
       const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
       
-      const response = await fetchWithAuth(
+      const data = await fetchWithAuth(
         `${PRICING_ENGINE_URL}?action=get_price_calendar&unit_id=${selectedUnit.id}&start_date=${startDate}&end_date=${endDate}`
       );
-      
-      if (!response.ok) {
-        throw new Error('Failed to load prices');
-      }
-      
-      const data = await response.json();
       
       const prices: Record<string, { price: number; appliedRules: any[] }> = {};
       if (data.calendar && Array.isArray(data.calendar)) {
@@ -153,10 +147,9 @@ export default function CalendarView({
       
       if (!user?.id) return;
 
-      const response = await fetchWithAuth(
+      const data = await fetchWithAuth(
         `https://functions.poehali.dev/b08b50dd-ee0f-4534-9865-afdf3582a91b?booking_id=${bookingId}`
       );
-      const data = await response.json();
       
       if (data.success) {
         setTelegramMessages(data.messages || []);

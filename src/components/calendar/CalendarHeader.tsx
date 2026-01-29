@@ -27,8 +27,7 @@ export default function CalendarHeader({ user, onShowPendingRequests }: Calendar
 
   const loadPendingCount = async () => {
     try {
-      const response = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_pending_bookings');
-      const data = await response.json();
+      const data = await fetchWithAuth('https://functions.poehali.dev/9f1887ba-ac1c-402a-be0d-4ae5c1a9175d?action=get_pending_bookings');
       setPendingCount(data.bookings?.length || 0);
     } catch (error) {
       console.error('Failed to load pending count:', error);

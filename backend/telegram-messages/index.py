@@ -1,6 +1,7 @@
 import json
 import os
 import psycopg2
+from jwt_utils import get_user_id
 
 
 def handler(event: dict, context) -> dict:
@@ -31,24 +32,37 @@ def handler(event: dict, context) -> dict:
             'isBase64Encoded': False
         }
     
+    # JWT Authorization
+    headers = event.get('headers') or {}
+    auth_header = headers.get('X-Authorization', '')
+    
+    if not auth_header:
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Unauthorized'}),
+            'isBase64Encoded': False
+        }
+    
+    try:
+        user_id = get_user_id(auth_header)
+    except ValueError as e:
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': str(e)}),
+            'isBase64Encoded': False
+        }
+    
     try:
         params = event.get('queryStringParameters') or {}
         booking_id = params.get('booking_id')
-        user_id = event.get('headers', {}).get('X-User-Id')
         
         if not booking_id:
             return {
                 'statusCode': 400,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                 'body': json.dumps({'error': 'booking_id is required'}),
-                'isBase64Encoded': False
-            }
-        
-        if not user_id:
-            return {
-                'statusCode': 401,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Unauthorized'}),
                 'isBase64Encoded': False
             }
         

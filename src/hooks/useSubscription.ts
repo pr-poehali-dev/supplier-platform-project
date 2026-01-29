@@ -37,6 +37,8 @@ export function useSubscription() {
     
     if (!accessToken && !refreshToken) {
       console.warn('No tokens found, skipping subscription fetch');
+      setSubscription(null);
+      localStorage.removeItem('subscription_cache');
       return;
     }
 
@@ -64,6 +66,8 @@ export function useSubscription() {
 
       if (!accessToken) {
         console.warn('No valid access token after refresh attempt');
+        setSubscription(null);
+        localStorage.removeItem('subscription_cache');
         return;
       }
 
@@ -77,10 +81,23 @@ export function useSubscription() {
       if (response.ok) {
         const data = await response.json();
         console.log('Subscription fetched:', data.subscription);
-        setSubscription(data.subscription);
-        localStorage.setItem('subscription_cache', JSON.stringify(data.subscription));
+        
+        // Always update state and cache with fresh data
+        if (data.subscription) {
+          setSubscription(data.subscription);
+          localStorage.setItem('subscription_cache', JSON.stringify(data.subscription));
+        } else {
+          setSubscription(null);
+          localStorage.removeItem('subscription_cache');
+        }
       } else {
         console.error('Failed to fetch subscription:', response.status, await response.text());
+        
+        // If unauthorized, clear cache
+        if (response.status === 401) {
+          setSubscription(null);
+          localStorage.removeItem('subscription_cache');
+        }
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);

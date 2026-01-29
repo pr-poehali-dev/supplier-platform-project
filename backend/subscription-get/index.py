@@ -71,7 +71,9 @@ def handler(event, context):
     # Extract user_id from JWT token
     try:
         user_id = get_user_id(auth_header)
+        print(f"[subscription-get] Fetching subscription for user_id: {user_id}")
     except ValueError as e:
+        print(f"[subscription-get] Token error: {str(e)}")
         return {
             'statusCode': 401,
             'headers': HEADERS,
@@ -118,12 +120,15 @@ def handler(event, context):
         row = cur.fetchone()
         
         if not row:
+            print(f"[subscription-get] No subscription found for user_id: {user_id}")
             conn.close()
             return {
                 'statusCode': 200,
                 'headers': HEADERS,
                 'body': json.dumps({'subscription': None})
             }
+        
+        print(f"[subscription-get] Found subscription: id={row[0]}, plan={row[1]}, status={row[3]}")
 
         subscription = {
             'id': row[0],

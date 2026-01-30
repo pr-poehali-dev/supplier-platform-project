@@ -7,10 +7,17 @@
       "expectedStatus": 200
     },
     {
-      "name": "Get webhook info",
+      "name": "Get webhook info without token",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200
+      "headers": {
+        "X-User-Id": "1"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "has_token": false
+      },
+      "bodyMatcher": "partial"
     }
   ]
 }

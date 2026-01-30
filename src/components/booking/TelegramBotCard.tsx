@@ -14,27 +14,38 @@ export default function TelegramBotCard({ botLink }: TelegramBotCardProps) {
   const [webhookStatus, setWebhookStatus] = useState<string>('');
   const [realBotLink, setRealBotLink] = useState<string>(botLink);
   const [isSettingUp, setIsSettingUp] = useState(false);
+  const [botToken, setBotToken] = useState<string>('');
 
   const setupWebhook = async () => {
+    if (!botToken.trim()) {
+      setWebhookStatus('❌ Введите токен бота');
+      return;
+    }
+
     setIsSettingUp(true);
     setWebhookStatus('⏳ Настраиваю webhook...');
     
     try {
-      const response = await fetchWithAuth('https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d', {
-        method: 'POST'
+      const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
+      
+      const data = await fetchWithAuth('https://functions.poehali.dev/3c25846c-7f62-4ab4-a97d-8ace92b6ab9d', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': user?.id?.toString() || '1',
+        },
+        body: JSON.stringify({ bot_token: botToken }),
       });
       
-      const data = await response.json();
-      
       if (data.success && data.bot_username) {
-        const userId = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).id : '1';
-        setRealBotLink(`https://t.me/${data.bot_username}?start=${userId}`);
+        setRealBotLink(`https://t.me/${data.bot_username}?start=${user?.id || '1'}`);
         setWebhookStatus('✅ Webhook настроен! Бот готов к работе.');
+        setBotToken('');
       } else {
-        setWebhookStatus('❌ Добавьте токен бота в секреты выше ⬆️');
+        setWebhookStatus('❌ Ошибка настройки. Проверьте токен.');
       }
-    } catch (error) {
-      setWebhookStatus('❌ Добавьте токен бота в секреты');
+    } catch (error: any) {
+      setWebhookStatus(error.message?.includes('Неверный') ? '❌ Неверный токен бота' : '❌ Ошибка настройки');
     } finally {
       setIsSettingUp(false);
     }
@@ -86,11 +97,22 @@ export default function TelegramBotCard({ botLink }: TelegramBotCardProps) {
                 </div>
               )}
               
-              <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
+              <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700 mb-3">
                 <li>Создайте бота через @BotFather в Telegram</li>
-                <li>Добавьте токен бота в секреты выше ⬆️</li>
-                <li>Нажмите "Автонастройка" — всё готово! 🎉</li>
+                <li>Скопируйте токен бота (выглядит так: 123456:ABC-DEF...)</li>
+                <li>Вставьте токен ниже и нажмите "Автонастройка" 🎉</li>
               </ol>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Токен бота:</label>
+                <Input
+                  type="text"
+                  placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                  value={botToken}
+                  onChange={(e) => setBotToken(e.target.value)}
+                  className="bg-white text-gray-900 border-gray-300 font-mono text-sm"
+                />
+              </div>
             </div>
 
             {realBotLink && !realBotLink.includes('YOUR_BOT_USERNAME') && (

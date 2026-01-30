@@ -3,6 +3,8 @@ export interface User {
   email: string;
   full_name?: string;
   provider?: string;
+  subscription_plan?: string;
+  subscription_expires_at?: string;
 }
 
 export const getUser = (): User | null => {
@@ -16,6 +18,27 @@ export const getUser = (): User | null => {
 };
 
 const AUTH_URL = 'https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70';
+
+export const refreshUserProfile = async (): Promise<void> => {
+  const user = getUser();
+  if (!user) return;
+
+  try {
+    const response = await fetch(`${AUTH_URL}?action=refresh_profile`, {
+      headers: {
+        'X-User-Id': user.id.toString(),
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem('user', JSON.stringify(data.user));
+      console.log('User profile refreshed:', data.user.subscription_plan);
+    }
+  } catch (error) {
+    console.error('Failed to refresh user profile:', error);
+  }
+};
 
 export const refreshAccessToken = async (): Promise<string | null> => {
   const refreshToken = localStorage.getItem('refresh_token');
@@ -34,6 +57,10 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     if (response.ok) {
       const data = await response.json();
       localStorage.setItem('access_token', data.access_token);
+      
+      // Обновить профиль пользователя после обновления токена
+      await refreshUserProfile();
+      
       return data.access_token;
     } else {
       console.error('Failed to refresh token');

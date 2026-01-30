@@ -62,8 +62,25 @@ const Profile = () => {
   const refreshProfile = async () => {
     try {
       await refetch();
+      
+      // Обновить данные пользователя из API
+      const response = await fetch('https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70?action=refresh_profile', {
+        headers: {
+          'X-User-Id': user?.id?.toString() || '',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+        console.log('User profile updated:', data.user.subscription_plan);
+      }
+      
       alert('✅ Данные подписки обновлены!');
+      window.location.reload();
     } catch (error) {
+      console.error('Error refreshing profile:', error);
       alert('❌ Ошибка при обновлении данных.');
     }
   };

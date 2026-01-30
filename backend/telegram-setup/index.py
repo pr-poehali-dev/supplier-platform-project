@@ -66,8 +66,8 @@ def handler(event: dict, context) -> dict:
             cur.close()
             conn.close()
             
-            # Настроить webhook
-            webhook_url = 'https://functions.poehali.dev/c57cc120-80f9-4380-9cdf-6986439d814d'
+            # Настроить webhook с уникальным URL для каждого владельца
+            webhook_url = f'https://functions.poehali.dev/c57cc120-80f9-4380-9cdf-6986439d814d?owner_id={user_id}'
             
             url = f'https://api.telegram.org/bot{bot_token}/setWebhook'
             data = json.dumps({'url': webhook_url}).encode('utf-8')
@@ -83,12 +83,32 @@ def handler(event: dict, context) -> dict:
             with urllib.request.urlopen(req_me) as response:
                 bot_info = json.loads(response.read().decode('utf-8'))
             
+            bot_id = bot_info.get('result', {}).get('id')
+            bot_username = bot_info.get('result', {}).get('username', '')
+            
+            # Обновить bot_id в БД
+            conn = psycopg2.connect(db_url)
+            cur = conn.cursor()
+            
+            cur.execute(f"""
+                UPDATE {schema}.bot_settings 
+                SET bot_id = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE owner_id = %s
+            """, (bot_id, user_id))
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            print(f"[telegram-setup] Bot configured: bot_id={bot_id}, username={bot_username}, owner_id={user_id}")
+            
             return {
                 'statusCode': 200,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                 'body': json.dumps({
                     'success': result.get('ok', False),
-                    'bot_username': bot_info.get('result', {}).get('username', ''),
+                    'bot_username': bot_username,
+                    'bot_id': bot_id,
                     'webhook_url': webhook_url
                 }),
                 'isBase64Encoded': False

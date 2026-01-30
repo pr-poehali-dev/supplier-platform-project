@@ -4,7 +4,7 @@ import psycopg2
 from urllib import request
 from datetime import datetime, timedelta
 
-def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: int, owner_telegram_id: int, bot_token: str) -> dict:
+def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: int, owner_telegram_id: int, bot_token: str, owner_id: int) -> dict:
     conn = psycopg2.connect(dsn)
     cur = conn.cursor()
     
@@ -94,9 +94,9 @@ def validate_and_create_booking(intent: dict, schema: str, dsn: str, chat_id: in
         cur.execute(f"""
             SELECT sbp_phone, sbp_recipient_name 
             FROM {schema}.bot_settings 
-            WHERE owner_id = (SELECT id FROM {schema}.users WHERE is_admin = true LIMIT 1)
+            WHERE owner_id = %s
             LIMIT 1
-        """)
+        """, (owner_id,))
         payment_info = cur.fetchone()
         sbp_link = payment_info[0] if payment_info and payment_info[0] else 'Не настроено'
         recipient_name = payment_info[1] if payment_info and payment_info[1] else 'Владелец'
@@ -192,6 +192,19 @@ def handler(event: dict, context) -> dict:
         user_data = message.get('from', {})
         photo = message.get('photo')
         
+        # CRITICAL: Определить владельца бота через query параметр owner_id
+        # Каждый бот должен иметь уникальный webhook URL: /webhook?owner_id=XXX
+        query_params = event.get('queryStringParameters', {}) or {}
+        owner_id = query_params.get('owner_id')
+        
+        if not owner_id:
+            print("[telegram-receive] ERROR: No owner_id in webhook URL")
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'ok': True})
+            }
+        
         dsn = os.environ.get('DATABASE_URL')
         schema = os.environ.get('MAIN_DB_SCHEMA')
         if not schema:
@@ -205,6 +218,25 @@ def handler(event: dict, context) -> dict:
         
         conn = psycopg2.connect(dsn)
         cur = conn.cursor()
+        
+        # Получить токен бота для этого владельца
+        cur.execute(f"""
+            SELECT telegram_bot_token, bot_id 
+            FROM {schema}.bot_settings 
+            WHERE owner_id = %s
+        """, (owner_id,))
+        
+        bot_row = cur.fetchone()
+        if not bot_row or not bot_row[0]:
+            print(f"[telegram-receive] ERROR: No bot token for owner_id={owner_id}")
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'ok': True})
+            }
+        
+        bot_token, bot_id = bot_row
+        print(f"[telegram-receive] Processing message for owner_id={owner_id}, bot_id={bot_id}")
         
         if photo:
             bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -315,8 +347,9 @@ def handler(event: dict, context) -> dict:
         
         cur.execute(f'''
             SELECT telegram_owner_id, base_name, admin_phone, admin_name, work_hours, extra_notes 
-            FROM {schema}.bot_settings LIMIT 1
-        ''')
+            FROM {schema}.bot_settings 
+            WHERE owner_id = %s
+        ''', (owner_id,))
         bot_settings = cur.fetchone()
         owner_telegram_id = bot_settings[0] if bot_settings and bot_settings[0] else None
         base_name = bot_settings[1] if bot_settings and bot_settings[1] else 'Турбаза'
@@ -325,7 +358,6 @@ def handler(event: dict, context) -> dict:
         work_hours = bot_settings[4] if bot_settings and bot_settings[4] else ''
         extra_notes = bot_settings[5] if bot_settings and bot_settings[5] else ''
         
-        bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
         chatgpt_api_key = os.environ.get('POLZA_AI_API_KEY')
         
         if bot_token and chatgpt_api_key:
@@ -677,7 +709,7 @@ def handler(event: dict, context) -> dict:
                         
                         # Обработка бронирования
                         if intent.get('intent') in ['create_booking', 'confirm_booking']:
-                            result = validate_and_create_booking(intent, schema, dsn, chat_id, owner_telegram_id, bot_token)
+                            result = validate_and_create_booking(intent, schema, dsn, chat_id, owner_telegram_id, bot_token, int(owner_id))
                             all_bookings.append({
                                 'intent': intent,
                                 'result': result

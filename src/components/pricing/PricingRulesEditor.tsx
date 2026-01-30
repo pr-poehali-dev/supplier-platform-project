@@ -39,11 +39,11 @@ export default function PricingRulesEditor({ profileId, onRulesUpdate }: Pricing
 
   const loadRules = async () => {
     try {
-      const response = await fetchWithAuth(`${PRICING_ENGINE_URL}?action=get_rules&profile_id=${profileId}`);
-      const data = await response.json();
+      const data = await fetchWithAuth(`${PRICING_ENGINE_URL}?action=get_rules&profile_id=${profileId}`);
+      console.log('Loaded pricing rules for profile', profileId, ':', data);
       setRules(data.rules || []);
     } catch (error) {
-      // Error loading rules
+      console.error('Error loading pricing rules:', error);
     }
   };
 

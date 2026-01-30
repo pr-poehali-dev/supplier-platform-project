@@ -41,16 +41,18 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
 
   const loadProfile = async () => {
     try {
-      const response = await fetchWithAuth(`${PRICING_ENGINE_URL}?action=get_profiles`);
-      const data = await response.json();
+      const data = await fetchWithAuth(`${PRICING_ENGINE_URL}?action=get_profiles`);
+      console.log('Loaded pricing profiles:', data);
       if (data.profiles && data.profiles.length > 0) {
         const defaultProfile = data.profiles[0];
         setProfile(defaultProfile);
         setMinPrice(defaultProfile.min_price);
         setMaxPrice(defaultProfile.max_price);
+      } else {
+        console.warn('No pricing profiles found in response');
       }
     } catch (error) {
-      // Error loading profiles
+      console.error('Error loading pricing profiles:', error);
     }
   };
 
@@ -118,6 +120,17 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
     }
   };
 
+  if (!profile) {
+    return (
+      <div className="space-y-6">
+        <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-lg">
+          <p className="mb-2">Загрузка профиля ценообразования...</p>
+          <p className="text-sm">Если загрузка не происходит, проверьте подключение</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PricingControls
@@ -142,12 +155,10 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
         hasSelectedUnit={!!selectedUnit}
       />
 
-      {profile && (
-        <PricingRulesEditor
-          profileId={profile.id}
-          onRulesUpdate={onUnitUpdate}
-        />
-      )}
+      <PricingRulesEditor
+        profileId={profile.id}
+        onRulesUpdate={onUnitUpdate}
+      />
     </div>
   );
 }

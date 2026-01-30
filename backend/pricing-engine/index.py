@@ -283,17 +283,141 @@ def get_price_calendar(conn, unit_id: str, start_date: str, end_date: str) -> di
     if not unit_id or not start_date or not end_date:
         return error_response('unit_id, start_date, end_date required', 400)
     
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     start = datetime.strptime(start_date, '%Y-%m-%d').date()
     end = datetime.strptime(end_date, '%Y-%m-%d').date()
     
+    # Получаем информацию о unit и профиле одним запросом
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f"""
+            SELECT 
+                u.id, u.name, u.base_price,
+                u.dynamic_pricing_enabled,
+                pp.id as profile_id, pp.mode,
+                pp.min_price as profile_min_price, pp.max_price as profile_max_price
+            FROM {schema}.units u
+            LEFT JOIN {schema}.pricing_profiles pp ON u.pricing_profile_id = pp.id
+            WHERE u.id = %s
+        """, (unit_id,))
+        unit = cur.fetchone()
+        
+        if not unit:
+            return error_response('Unit not found', 404)
+        
+        # Если динамическое ценообразование выключено - возвращаем базовые цены
+        if not unit['dynamic_pricing_enabled']:
+            calendar = []
+            current = start
+            while current <= end:
+                calendar.append({
+                    'unit_id': int(unit_id),
+                    'date': current.strftime('%Y-%m-%d'),
+                    'price': float(unit['base_price']),
+                    'original_price': float(unit['base_price']),
+                    'applied_rules': [],
+                    'source': 'manual',
+                    'dynamic_enabled': False
+                })
+                current += timedelta(days=1)
+            return success_response({'calendar': calendar})
+        
+        # Загружаем правила один раз
+        if not unit['profile_id']:
+            calendar = []
+            current = start
+            while current <= end:
+                calendar.append({
+                    'unit_id': int(unit_id),
+                    'date': current.strftime('%Y-%m-%d'),
+                    'price': float(unit['base_price']),
+                    'original_price': float(unit['base_price']),
+                    'applied_rules': [],
+                    'source': 'manual',
+                    'dynamic_enabled': True,
+                    'note': 'No pricing profile assigned'
+                })
+                current += timedelta(days=1)
+            return success_response({'calendar': calendar})
+        
+        cur.execute(f"""
+            SELECT * FROM {schema}.pricing_rules 
+            WHERE profile_id = %s AND enabled = TRUE
+            ORDER BY priority DESC
+        """, (unit['profile_id'],))
+        rules = cur.fetchall()
+        
+        # Загружаем все брони для периода одним запросом
+        cur.execute(f"""
+            SELECT check_in, check_out FROM {schema}.bookings
+            WHERE unit_id = %s 
+            AND status IN ('pending', 'confirmed')
+            AND NOT (check_out <= %s OR check_in > %s)
+        """, (unit_id, start, end))
+        bookings = cur.fetchall()
+    
+    base_price = unit['base_price']
+    min_price = unit['profile_min_price'] or base_price * Decimal('0.5')
+    max_price = unit['profile_max_price'] or base_price * Decimal('2.0')
+    mode = unit['mode']
+    
+    # Рассчитываем цены для всех дат в цикле БЕЗ вызова calculate_dynamic_price
     calendar = []
     current = start
     
     while current <= end:
-        result = calculate_dynamic_price(conn, unit_id, current.strftime('%Y-%m-%d'))
-        if result['statusCode'] == 200:
-            data = json.loads(result['body'])
-            calendar.append(data)
+        current_price = base_price
+        applied_rules = []
+        
+        # Проверяем занятость
+        occupied = False
+        for booking in bookings:
+            if booking['check_in'] <= current < booking['check_out']:
+                occupied = True
+                break
+        
+        occupancy = 100.0 if occupied else 0.0
+        days_before = (current - datetime.now().date()).days
+        
+        # Применяем правила
+        for rule in rules:
+            condition_met = check_rule_condition(rule, current, occupancy, days_before)
+            
+            if condition_met:
+                if rule['action_type'] == 'increase_by_percent':
+                    current_price = current_price * (1 + Decimal(str(rule['action_value'])) / 100)
+                elif rule['action_type'] == 'decrease_by_percent':
+                    current_price = current_price * (1 - Decimal(str(rule['action_value'])) / 100)
+                elif rule['action_type'] == 'set_fixed':
+                    current_price = Decimal(str(rule['action_value']))
+                elif rule['action_type'] == 'increase_by_amount':
+                    current_price = current_price + Decimal(str(rule['action_value']))
+                elif rule['action_type'] == 'decrease_by_amount':
+                    current_price = current_price - Decimal(str(rule['action_value']))
+                
+                applied_rules.append({
+                    'rule_id': rule['id'],
+                    'rule_name': rule['name'],
+                    'action': rule['action_type'],
+                    'value': float(rule['action_value'])
+                })
+                
+                if mode == 'first_match':
+                    break
+        
+        final_price = max(min_price, min(max_price, current_price))
+        
+        calendar.append({
+            'unit_id': int(unit_id),
+            'date': current.strftime('%Y-%m-%d'),
+            'price': float(final_price),
+            'original_price': float(base_price),
+            'applied_rules': applied_rules,
+            'source': 'automatic',
+            'dynamic_enabled': True,
+            'occupancy': occupancy,
+            'days_before': days_before
+        })
+        
         current += timedelta(days=1)
     
     return success_response({'calendar': calendar})

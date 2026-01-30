@@ -377,22 +377,28 @@ def get_price_calendar(conn, unit_id: str, start_date: str, end_date: str) -> di
         
         occupancy = 100.0 if occupied else 0.0
         days_before = (current - datetime.now().date()).days
+        day_of_week = current.weekday()  # 0=Monday, 6=Sunday
         
         # Применяем правила
         for rule in rules:
-            condition_met = check_rule_condition(rule, current, occupancy, days_before)
+            condition_met = check_rule_condition(rule, occupancy, days_before, day_of_week)
             
             if condition_met:
-                if rule['action_type'] == 'increase_by_percent':
-                    current_price = current_price * (1 + Decimal(str(rule['action_value'])) / 100)
-                elif rule['action_type'] == 'decrease_by_percent':
-                    current_price = current_price * (1 - Decimal(str(rule['action_value'])) / 100)
-                elif rule['action_type'] == 'set_fixed':
-                    current_price = Decimal(str(rule['action_value']))
-                elif rule['action_type'] == 'increase_by_amount':
-                    current_price = current_price + Decimal(str(rule['action_value']))
-                elif rule['action_type'] == 'decrease_by_amount':
-                    current_price = current_price - Decimal(str(rule['action_value']))
+                action_type = rule['action_type']
+                action_unit = rule.get('action_unit', 'fixed')
+                action_value = Decimal(str(rule['action_value']))
+                
+                # Поддержка старого и нового формата
+                if action_type == 'increase_by_percent' or (action_type == 'increase' and action_unit == 'percent'):
+                    current_price = current_price * (1 + action_value / 100)
+                elif action_type == 'decrease_by_percent' or (action_type == 'decrease' and action_unit == 'percent'):
+                    current_price = current_price * (1 - action_value / 100)
+                elif action_type == 'set_fixed':
+                    current_price = action_value
+                elif action_type == 'increase_by_amount' or (action_type == 'increase' and action_unit == 'fixed'):
+                    current_price = current_price + action_value
+                elif action_type == 'decrease_by_amount' or (action_type == 'decrease' and action_unit == 'fixed'):
+                    current_price = current_price - action_value
                 
                 applied_rules.append({
                     'rule_id': rule['id'],

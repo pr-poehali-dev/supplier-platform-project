@@ -15,6 +15,40 @@ export const getUser = (): User | null => {
   }
 };
 
+const AUTH_URL = 'https://functions.poehali.dev/16ce90a9-5ba3-4fed-a6db-3e75fe1e7c70';
+
+export const refreshAccessToken = async (): Promise<string | null> => {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) {
+    console.error('No refresh token found');
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${AUTH_URL}?action=refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem('access_token', data.access_token);
+      return data.access_token;
+    } else {
+      console.error('Failed to refresh token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+      return null;
+    }
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    return null;
+  }
+};
+
 export const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<any> => {
   const accessToken = localStorage.getItem('access_token');
   
@@ -29,10 +63,29 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
     'X-Authorization': `Bearer ${accessToken}`,
   };
 
-  const response = await fetch(url, {
+  let response = await fetch(url, {
     ...options,
     headers,
   });
+
+  // If token expired, try to refresh
+  if (response.status === 401) {
+    console.log('Token expired, attempting to refresh...');
+    const newToken = await refreshAccessToken();
+    
+    if (newToken) {
+      // Retry request with new token
+      const newHeaders = {
+        ...headers,
+        'X-Authorization': `Bearer ${newToken}`,
+      };
+      
+      response = await fetch(url, {
+        ...options,
+        headers: newHeaders,
+      });
+    }
+  }
 
   // Parse JSON response
   if (response.ok) {

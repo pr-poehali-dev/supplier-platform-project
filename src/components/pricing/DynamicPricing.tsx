@@ -142,7 +142,7 @@ export default function DynamicPricing({ selectedUnit, onUnitUpdate }: DynamicPr
         hasSelectedUnit={!!selectedUnit}
       />
 
-      {profile && selectedUnit && (
+      {profile && (
         <PricingRulesEditor
           profileId={profile.id}
           onRulesUpdate={onUnitUpdate}

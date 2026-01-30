@@ -11,7 +11,7 @@ interface PricingAccordionProps {
 }
 
 export default function PricingAccordion({ selectedUnit, onUnitUpdate }: PricingAccordionProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
     <Card className="mb-6 overflow-hidden">
